@@ -1,0 +1,37 @@
+Package: SignalAdaptiveStudy
+Type: Package
+Title: Signal-Adaptive Ridge and LASSO in PatientLevelPrediction
+Version: 0.0.1
+Authors@R: person("Egill", "Fridgeirsson", email = "egillax@gmail.com", role = c("aut", "cre"))
+Description: A study package that adds signal-adaptive ridge (SAR) and signal-adaptive LASSO (SAL) logistic
+    regression to PatientLevelPrediction. Each feature's penalty depends on its prevalence and its marginal
+    association with the outcome, computed from the training rows of each fit.
+License: Apache License 2.0
+Encoding: UTF-8
+Imports:
+    CohortGenerator,
+    Cyclops (>= 4.0.0),
+    dplyr,
+    FeatureExtraction,
+    Matrix,
+    methods,
+    PatientLevelPrediction (>= 6.7.0),
+    rlang,
+    stats,
+    utils,
+    zip
+Remotes:
+    OHDSI/Cyclops@c04f498ad945f131a4ebb1ad158b150590343721
+Suggests:
+    Andromeda,
+    bit64,
+    BrokenAdaptiveRidge,
+    DatabaseConnector,
+    duckdb,
+    Eunomia,
+    glmnet,
+    roxygen2,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.1

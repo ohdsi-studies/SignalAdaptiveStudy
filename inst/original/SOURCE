@@ -1,0 +1,2 @@
+definitions_v1.json: the concept sets of the original SAR run (signal-adaptive contract/definitions_v1.json, sha256 71831f961469b82afae7844849d76191f8da6a1761976586e59a38a19a8d830e) (local source paths removed); the source of the Circe cohorts in inst/cohorts (extras/production/buildOriginalCohorts.R).
+settings/originalTasks.csv: the 26 feasible tasks of the original run (target, outcome, time at risk); task feasibility counts are not included.

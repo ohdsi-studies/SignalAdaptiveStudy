@@ -1,0 +1,59 @@
+{
+  "cdmVersionRange": ">=5.0.0",
+  "PrimaryCriteria": {
+    "CriteriaList": [
+      {
+        "ObservationPeriod": {
+          "PeriodLength": {
+            "Value": 0,
+            "Op": "gte"
+          },
+          "DateAdjustment": {
+            "StartWith": "START_DATE",
+            "StartOffset": 365,
+            "EndWith": "END_DATE",
+            "EndOffset": 0
+          }
+        }
+      }
+    ],
+    "ObservationWindow": {
+      "PriorDays": 0,
+      "PostDays": 0
+    },
+    "PrimaryCriteriaLimit": {
+      "Type": "All"
+    }
+  },
+  "ConceptSets": [],
+  "QualifiedLimit": {
+    "Type": "First"
+  },
+  "ExpressionLimit": {
+    "Type": "First"
+  },
+  "InclusionRules": [
+    {
+      "name": "aged 18 or over at entry",
+      "expression": {
+        "Type": "ALL",
+        "CriteriaList": [],
+        "DemographicCriteriaList": [
+          {
+            "Age": {
+              "Value": 18,
+              "Op": "gte"
+            }
+          }
+        ],
+        "Groups": []
+      }
+    }
+  ],
+  "CensoringCriteria": [],
+  "CollapseSettings": {
+    "CollapseType": "ERA",
+    "EraPad": 0
+  },
+  "CensorWindow": {}
+}

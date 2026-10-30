@@ -1,0 +1,5 @@
+taskId,catalogueTask,benchmark,target,outcome,timeAtRiskDays,targetId,outcomeId,populationRule
+SAR-017_AF_to_stroke_1y,SAR-017,ISAF,afib,non-hem-stroke,365,3017,3025,benchmark
+SAR-175_anemia_to_colorectal_cancer_1y,SAR-175,CCA,[PL]Anemia,[PL]ClrctlCancer,365,3003,3004,benchmark
+SAR-287_MDD_to_bipolar_1y,SAR-287,BMDD,mdd,bipolar,365,3024,3018,benchmark
+SAR-288_T2DM_second_line_to_HF_1y,SAR-288,HFT2DM,[IPEV]T2dm_second_line,[IPEV]Heart_Failure_revised_no_hosp,365,3002,3001,benchmark

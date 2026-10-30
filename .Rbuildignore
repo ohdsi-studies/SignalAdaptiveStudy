@@ -1,0 +1,8 @@
+^renv$
+^renv\.lock$
+^extras$
+^\.Rproj\.user$
+^output$
+^README_PRODUCTION\.md$
+^README\.md$
+^\.github$
