@@ -2,6 +2,11 @@
 # Run once per database: change databaseName and cdmDatabaseSchema and run again.
 # Nothing patient-level leaves outputFolder/data and outputFolder/models; only the zip from exportResults() is shared.
 
+# The Databricks JDBC driver (3.x) reads results with Apache Arrow, which on Java >= 16 needs this permission (without
+# it, querySql() fails with a Java NullPointerException). It must be set before Java starts, i.e. before the library()
+# call below, in a fresh R session.
+options(java.parameters = "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED")
+
 library(SignalAdaptiveStudy)
 
 # ---- EDIT: connection ---------------------------------------------------------------------------------------------
