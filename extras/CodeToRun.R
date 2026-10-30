@@ -5,16 +5,21 @@
 library(SignalAdaptiveStudy)
 
 # ---- EDIT: connection ---------------------------------------------------------------------------------------------
-# Credentials from environment variables (.Renviron or keyring), never in this file. Databricks:
-#   SAR_CONNECTION_STRING = jdbc:databricks://<host>:443/default;transportMode=http;ssl=1;AuthMech=3;httpPath=<path>;
-#   SAR_USER = token, SAR_PASSWORD = <personal access token>,
-#   DATABASECONNECTOR_JAR_FOLDER = a folder with the driver (DatabaseConnector::downloadJdbcDrivers("spark"))
+# Credentials from environment variables, never in this file:
+#   DATABASE_SERVER    Databricks host (xxx.cloud.databricks.com), or a full jdbc:databricks://... connection string
+#   DATABASE_PATH      the SQL warehouse's HTTP path (/sql/1.0/warehouses/...); not needed with a full string
+#   DATABASE_PASSWORD  a personal access token (user "token")
+#   DATABASE_DRIVER    the folder with the JDBC driver (DatabaseConnector::downloadJdbcDrivers("spark", pathToDriver = ...))
+server <- Sys.getenv("DATABASE_SERVER")
+connectionString <- if (startsWith(server, "jdbc:")) server else
+  sprintf("jdbc:databricks://%s:443/default;transportMode=http;ssl=1;AuthMech=3;httpPath=%s;", server,
+          Sys.getenv("DATABASE_PATH"))
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "spark",                                         # EDIT for other platforms
-  connectionString = Sys.getenv("SAR_CONNECTION_STRING"),
-  user = Sys.getenv("SAR_USER"),
-  password = Sys.getenv("SAR_PASSWORD"),
-  pathToDriver = Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
+  dbms = "spark",
+  connectionString = connectionString,
+  user = "token",
+  password = Sys.getenv("DATABASE_PASSWORD"),
+  pathToDriver = Sys.getenv("DATABASE_DRIVER")
 )
 scratchSchema <- "scratch"                                # EDIT: a schema you can write to (e.g. catalog.schema)
 options(sqlRenderTempEmulationSchema = scratchSchema)     # Spark has no temp tables: they go to the scratch schema

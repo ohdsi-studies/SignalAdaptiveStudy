@@ -23,10 +23,10 @@ then copy the project folder together with the renv cache (`renv::paths$cache()`
 
 ## Connection
 
-Set credentials as environment variables in `.Renviron` (or use keyring), never in code. For Databricks:
-`SAR_CONNECTION_STRING` (`jdbc:databricks://<host>:443/default;transportMode=http;ssl=1;AuthMech=3;httpPath=<path>;`),
-`SAR_USER` (`token`), `SAR_PASSWORD` (a personal access token) and `DATABASECONNECTOR_JAR_FOLDER` (a folder with the
-driver from `DatabaseConnector::downloadJdbcDrivers("spark")`). You need read access to the
+Credentials come from environment variables (`.Renviron` or the system), never code: `DATABASE_SERVER` (the
+Databricks host, or a full `jdbc:databricks://...` string), `DATABASE_PATH` (the SQL warehouse's HTTP path),
+`DATABASE_PASSWORD` (a personal access token) and `DATABASE_DRIVER` (the folder with the JDBC driver from
+`DatabaseConnector::downloadJdbcDrivers("spark", pathToDriver = ...)`). You need read access to the
 CDM schema and write access to one schema for the cohort tables.
 
 ## Smoke test (no database, about a minute)
