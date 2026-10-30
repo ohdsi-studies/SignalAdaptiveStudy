@@ -19,6 +19,10 @@ server <- Sys.getenv("DATABASE_SERVER")
 connectionString <- if (startsWith(server, "jdbc:")) server else
   sprintf("jdbc:databricks://%s:443/default;transportMode=http;ssl=1;AuthMech=3;httpPath=%s;", server,
           Sys.getenv("DATABASE_PATH"))
+# Arrow result transfer, with the Java permission above (the combination that works with driver 3.4.3)
+if (!grepl("EnableArrow=", connectionString, ignore.case = TRUE)) {
+  connectionString <- paste0(sub(";?$", ";", connectionString), "EnableArrow=1;")
+}
 connectionDetails <- DatabaseConnector::createConnectionDetails(
   dbms = "spark",
   connectionString = connectionString,
