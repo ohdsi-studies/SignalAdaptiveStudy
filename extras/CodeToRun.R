@@ -1,34 +1,40 @@
 # SignalAdaptiveStudy: production run (README_PRODUCTION.md). Edit the lines marked EDIT, then run step by step.
+# Run once per database: change databaseName and cdmDatabaseSchema and run again.
 # Nothing patient-level leaves outputFolder/data and outputFolder/models; only the zip from exportResults() is shared.
 
 library(SignalAdaptiveStudy)
 
-# ---- EDIT: database ---------------------------------------------------------------------------------------------
-# Credentials from environment variables (or keyring), never in this file.
+# ---- EDIT: connection ---------------------------------------------------------------------------------------------
+# Credentials from environment variables (.Renviron or keyring), never in this file. Databricks:
+#   SAR_CONNECTION_STRING = jdbc:databricks://<host>:443/default;transportMode=http;ssl=1;AuthMech=3;httpPath=<path>;
+#   SAR_USER = token, SAR_PASSWORD = <personal access token>,
+#   DATABASECONNECTOR_JAR_FOLDER = a folder with the driver (DatabaseConnector::downloadJdbcDrivers("spark"))
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = Sys.getenv("SAR_DBMS"),                          # e.g. "postgresql", "redshift", "spark", "duckdb"
-  server = Sys.getenv("SAR_SERVER"),
+  dbms = "spark",                                         # EDIT for other platforms
+  connectionString = Sys.getenv("SAR_CONNECTION_STRING"),
   user = Sys.getenv("SAR_USER"),
   password = Sys.getenv("SAR_PASSWORD"),
-  port = Sys.getenv("SAR_PORT", unset = NA),
   pathToDriver = Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
 )
-cdmDatabaseSchema <- "cdm"                                # EDIT: CDM and vocabulary schema
-cohortDatabaseSchema <- "scratch"                         # EDIT: a schema you can write to
-cohortTable <- "sar_study_cohort"                         # EDIT if the name is taken
-databaseName <- "CCAE"                                    # EDIT: short name used in the results
-options(sqlRenderTempEmulationSchema = NULL)              # EDIT on Spark/Oracle/BigQuery: a writable schema
-outputFolder <- file.path(getwd(), "SignalAdaptiveStudy_output", databaseName)   # EDIT if wanted
+scratchSchema <- "scratch"                                # EDIT: a schema you can write to (e.g. catalog.schema)
+options(sqlRenderTempEmulationSchema = scratchSchema)     # Spark has no temp tables: they go to the scratch schema
 minCellCount <- 5                                         # EDIT: your site's minimum cell count
+
+# ---- EDIT: database (one run per database) ---------------------------------------------------------------------
+databaseName <- "CCAE"                                    # EDIT: CCAE, MDCD, MDCR, OPTUM_EHR, OPTUM_CLAIMS, ...
+cdmDatabaseSchema <- "cdm_ccae"                           # EDIT: that database's CDM and vocabulary schema
 # -----------------------------------------------------------------------------------------------------------------
 
-dataSource <- createCdmDataSource(connectionDetails, cdmDatabaseSchema, cohortDatabaseSchema, databaseName,
+cohortTable <- paste0("sar_study_cohort_", tolower(databaseName))   # one cohort table per database
+outputFolder <- file.path(getwd(), "SignalAdaptiveStudy_output", databaseName)
+dataSource <- createCdmDataSource(connectionDetails, cdmDatabaseSchema, scratchSchema, databaseName,
                                   cohortTable = cohortTable)
 tasks <- studyTasks()          # the 26 original tasks and 4 new catalogue tasks (PLP benchmark definitions)
 
 # ---- Step 3b: feasibility counts, no models ------------------------------------------------------------------------
-# Generates the cohorts, extracts each task's data (cached in outputFolder/data) and counts the training pool and test
-# set. Feasible: >= 500 training events and >= 80 test events.
+# Generates the cohorts (once per database) and counts each task's training pool and test set; cohorts and outcomes
+# only, no covariates. Feasible: >= 500 training events and >= 80 test events. Restartable; a failing task leaves
+# outputFolder/counts/<database>/<task>_error.txt and the others continue.
 counts <- execute(dataSource, tasks, outputFolder, mode = "counts")
 print(counts[, c("taskId", "n", "poolEvents", "testEvents", "feasible")])
 exportResults(outputFolder, minCellCount = minCellCount)  # send this zip after 3b
