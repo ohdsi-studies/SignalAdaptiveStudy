@@ -222,12 +222,20 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso"), shapes 
   }, numeric(1))) / length(y)
   context <- list(startVariance = defaultStartVariance(X, length(full$ids)), full = full, unpenalized = unpenalized)
 
+  # progress in the log (PLP's plpLog.txt of the run): one line per shape
+  ParallelLogger::logInfo(sprintf("%s cross-validation: %d rows, %d events, %d columns, %d folds, %d shape(s)",
+                                  penalty, length(y), sum(y), ncol(X), length(problems), nrow(shapes)))
   records <- list(); traces <- list(); states <- list()
   for (s in seq_len(nrow(shapes))) {
     shape <- unname(shapes[s, ])
     setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized))
     result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
     records[[s]] <- result$record; traces[s] <- list(result$trace); states[s] <- list(result$state) # keep NULL slots
+    chosen <- if (is.na(result$record$lambda)) sprintf("variance %.4g", result$record$variance) else
+      sprintf("lambda %.4g", result$record$lambda)
+    ParallelLogger::logInfo(sprintf("shape %d/%d (c = %s): %s, CV loss %.6f; %.1f min so far", s, nrow(shapes),
+                                    paste(shape, collapse = ", "), chosen, result$record$cvLoss,
+                                    as.numeric(difftime(Sys.time(), start, units = "mins"))))
   }
   records <- do.call(rbind, records)
   score <- if (cSelection == "ordinate") records$ordinateLoss else records$cvLoss
@@ -264,6 +272,9 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso"), shapes 
       cvPrediction[!pr$rows] <- stats::plogis(co[1] + as.numeric(X[!pr$rows, pr$ids, drop = FALSE] %*% co[-1]))
     }
   }
+  ParallelLogger::logInfo(sprintf("final fit done: %s; %.1f min in all",
+                                  if (is.null(selected)) "intercept only" else paste("c =", paste(shape, collapse = ", ")),
+                                  as.numeric(difftime(Sys.time(), start, units = "mins"))))
   list(
     intercept = unname(intercept), beta = beta, penalty = penalty, search = search, cSelection = cSelection,
     selected = list(shape = shape, lambda = lambda, variance = variance, interceptOnly = is.null(selected),
