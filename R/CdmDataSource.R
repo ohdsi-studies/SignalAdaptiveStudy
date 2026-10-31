@@ -208,8 +208,12 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       folder <- file.path(outputFolder, "data", databaseName, task$taskId)
       if (!file.exists(file.path(folder, "covariates"))) {
         plpData <- extract(task, covariateSettings)
+        # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
+        partial <- paste0(folder, "_partial")
+        unlink(c(partial, folder), recursive = TRUE)
         dir.create(dirname(folder), recursive = TRUE, showWarnings = FALSE)
-        PatientLevelPrediction::savePlpData(plpData, folder)
+        PatientLevelPrediction::savePlpData(plpData, partial)
+        if (!file.rename(partial, folder)) stop("could not rename ", partial, " to ", folder)
       }
       PatientLevelPrediction::loadPlpData(folder)
     },
