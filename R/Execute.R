@@ -88,13 +88,16 @@ runOne <- function(plpData, population, task, split, modelSettings, method, runF
   start <- Sys.time()
   scratch <- tempfile("sar_run_")
   on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
+  # keep PLP's timestamped log of the run (its steps and their times) in the run folder, also when the run fails
+  on.exit(file.copy(file.path(scratch, basename(runFolder), "plpLog.txt"), file.path(runFolder, "plpLog.txt"),
+                    overwrite = TRUE), add = TRUE, after = FALSE)
   result <- PatientLevelPrediction::runPlp(
     plpData = plpData, outcomeId = task$outcomeId, analysisId = basename(runFolder), analysisName = basename(runFolder),
     populationSettings = dataSource$populationSettings(task),
     splitSettings = PatientLevelPrediction::createExistingSplitSettings(data.frame(rowId = split$rowId, index = split$index)),
     preprocessSettings = studyPreprocessSettings(),
     modelSettings = modelSettings,
-    logSettings = PatientLevelPrediction::createLogSettings(verbosity = "WARN", logName = "runPlp"),
+    logSettings = PatientLevelPrediction::createLogSettings(verbosity = "INFO", timeStamp = TRUE, logName = "runPlp"),
     executeSettings = PatientLevelPrediction::createExecuteSettings(
       runSplitData = TRUE, runSampleData = FALSE, runFeatureEngineering = FALSE, runPreprocessData = TRUE,
       runModelDevelopment = TRUE, runCovariateSummary = FALSE),
