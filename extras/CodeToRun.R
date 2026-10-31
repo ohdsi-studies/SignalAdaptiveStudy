@@ -1,5 +1,6 @@
-# SignalAdaptiveStudy: production run (README_PRODUCTION.md). Edit the lines marked EDIT, then run step by step.
-# Run once per database: change databaseName and cdmDatabaseSchema and run again.
+# SignalAdaptiveStudy: production run (README_PRODUCTION.md). Run step by step, in a fresh R session.
+# Site settings live in extras/localSettings.R (see below); no need to edit this file. Run once per database:
+# change databaseName in extras/localSettings.R and run again.
 # Nothing patient-level leaves outputFolder/data and outputFolder/models; only the zip from exportResults() is shared.
 
 # The Databricks JDBC driver (3.x) reads results with Apache Arrow, which on Java >= 16 needs this permission (without
@@ -9,7 +10,7 @@ options(java.parameters = "--add-opens=java.base/java.nio=org.apache.arrow.memor
 
 library(SignalAdaptiveStudy)
 
-# ---- EDIT: connection ---------------------------------------------------------------------------------------------
+# ---- Connection ---------------------------------------------------------------------------------------------------
 # Credentials from environment variables, never in this file:
 #   DATABASE_SERVER    Databricks host (xxx.cloud.databricks.com), or a full jdbc:databricks://... connection string
 #   DATABASE_PATH      the SQL warehouse's HTTP path (/sql/1.0/warehouses/...); not needed with a full string
@@ -24,19 +25,19 @@ if (!grepl("EnableArrow=", connectionString, ignore.case = TRUE)) {
   connectionString <- paste0(sub(";?$", ";", connectionString), "EnableArrow=1;")
 }
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "spark",
+  dbms = "spark",                                         # other platforms: change here
   connectionString = connectionString,
   user = "token",
   password = Sys.getenv("DATABASE_PASSWORD"),
   pathToDriver = Sys.getenv("DATABASE_DRIVER")
 )
-scratchSchema <- "scratch"                                # EDIT: a schema you can write to (e.g. catalog.schema)
+# ---- Site settings ----------------------------------------------------------------------------------------------
+# In extras/localSettings.R (git-ignored, so pulls never touch it): copy extras/localSettings_template.R to
+# extras/localSettings.R and fill it in. It sets scratchSchema, minCellCount, cdmSchemas and databaseName (the
+# database of this run).
+source("extras/localSettings.R")
 options(sqlRenderTempEmulationSchema = scratchSchema)     # Spark has no temp tables: they go to the scratch schema
-minCellCount <- 5                                         # EDIT: your site's minimum cell count
-
-# ---- EDIT: database (one run per database) ---------------------------------------------------------------------
-databaseName <- "CCAE"                                    # EDIT: CCAE, MDCD, MDCR, OPTUM_EHR, OPTUM_CLAIMS, ...
-cdmDatabaseSchema <- "cdm_ccae"                           # EDIT: that database's CDM and vocabulary schema
+cdmDatabaseSchema <- cdmSchemas[[databaseName]]
 # -----------------------------------------------------------------------------------------------------------------
 
 cohortTable <- paste0("sar_study_cohort_", tolower(databaseName))   # one cohort table per database

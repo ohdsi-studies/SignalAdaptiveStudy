@@ -39,8 +39,10 @@ This should print `smoke test PASSED`. Send back the printed table.
 
 ## Steps
 
-Edit the lines marked `EDIT` in `extras/CodeToRun.R`, then run it section by section, starting in a fresh R session (its
-first line sets a Java option the Databricks driver needs, which only takes effect before Java starts).
+Copy `extras/localSettings_template.R` to `extras/localSettings.R` (git-ignored, so `git pull` never touches it) and fill
+in the scratch schema, the CDM schema of each database and the database of this run. Then run `extras/CodeToRun.R`
+section by section, starting in a fresh R session (its first line sets a Java option the Databricks driver needs, which
+only takes effect before Java starts).
 
 1. **3b, counts:** generates 26 cohorts (Circe SQL shipped in `inst/cohorts`) and counts the training pool and test
    set of 30 tasks: the 26 original tasks and 4 new ones (PLP benchmark definitions). Cohorts and outcomes only, no

@@ -2,3 +2,4 @@
 .Rhistory
 output/
 .Renviron
+extras/localSettings.R
