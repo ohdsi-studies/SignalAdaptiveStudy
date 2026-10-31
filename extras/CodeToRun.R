@@ -62,6 +62,7 @@ exportResults(outputFolder, minCellCount = minCellCount)  # send this zip after 
 # Restartable: rerun the same lines after an interruption and finished runs are skipped.
 counts <- execute(dataSource, tasks, outputFolder, mode = "counts")   # the 3b counts (read back, not recounted)
 modelTasks <- addSampleSizes(originalCohortTasks(), counts[counts$feasible, ])
+if (exists("onlyTasks")) modelTasks <- modelTasks[modelTasks$taskId %in% onlyTasks, ]   # optional, localSettings.R
 for (i in seq_len(nrow(modelTasks))) {
   task <- modelTasks[i, ]
   execute(dataSource, task, outputFolder, mode = "models", budgets = task$budgets[[1]], orderings = 1:3,

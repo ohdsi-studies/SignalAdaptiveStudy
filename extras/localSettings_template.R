@@ -14,3 +14,6 @@ cdmSchemas <- c(
   OPTUM_EHR = "cdm_optum_ehr",
   OPTUM_CLAIMS = "cdm_optum_claims"
 )
+
+# Optional: run only these tasks in step 3c (task IDs as in studyTasks()); leave out to run all
+# onlyTasks <- c("heart_failure_to_COPD_3y", "CKD_to_heart_failure_1y")
