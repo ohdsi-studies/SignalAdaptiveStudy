@@ -106,8 +106,8 @@ studyCovariateSettings <- function() {
 #' @param cap Largest population that is not sampled.
 #' @param margin Expected training-pool events per event of the largest budget.
 #' @return `tasks` (those with counts) with `sampleSize` (expected population after sampling; `NA`: not sampled),
-#'   `sampleFraction`, `expectedPoolEvents` and `budgets` (a list column: the budgets up to the expected training-pool
-#'   events).
+#'   `sampleFraction`, `expectedPoolEvents`, `budgets` (a list column: the budgets up to the expected training-pool
+#'   events) and `eventsPerPerson` (training-pool events per person in the full population).
 #' @export
 addSampleSizes <- function(tasks, counts, budgets = c(100, 250, 500, 750, 1000), cap = 2e6, margin = 1.5) {
   countColumns <- c("n", "poolN", "poolEvents", "testN", "testEvents")
@@ -119,6 +119,7 @@ addSampleSizes <- function(tasks, counts, budgets = c(100, 250, 500, 750, 1000),
   tasks$sampleFraction <- tasks$sampleSize / tasks$n
   tasks$expectedPoolEvents <- ifelse(is.na(tasks$sampleSize), tasks$poolEvents, floor(tasks$sampleSize * eventsPerPerson))
   tasks$budgets <- lapply(tasks$expectedPoolEvents, function(e) budgets[budgets <= e])
+  tasks$eventsPerPerson <- eventsPerPerson
   tasks[, setdiff(names(tasks), countColumns)]
 }
 
@@ -250,27 +251,32 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       targetId = task$targetId, outcomeIds = task$outcomeId)
     PatientLevelPrediction::getPlpData(details, covariateSettings, PatientLevelPrediction::createRestrictPlpDataSettings())
   }
+  # The folder of the task's cached plpData, extracted first if it is not there. The cache records its sample; a cache
+  # of another sample (or of PLP's sampleSize, before) is extracted again.
+  cache <- function(task, outputFolder) {
+    folder <- file.path(outputFolder, "data", databaseName, task$taskId)
+    sample <- if (isSampled(task)) sprintf("person hash %.0f, fraction %.12g", SAMPLE_HASH$seed, task$sampleFraction) else "none"
+    sampleFile <- file.path(folder, "sample.txt")
+    cached <- if (file.exists(sampleFile)) readLines(sampleFile) else if (file.exists(file.path(folder, "covariates"))) "none" else ""
+    if (!identical(cached, sample)) {
+      plpData <- timed(task$taskId, "extract", extract(task, covariateSettings, sample = isSampled(task)))
+      # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
+      partial <- paste0(folder, "_partial")
+      unlink(c(partial, folder), recursive = TRUE)
+      dir.create(dirname(folder), recursive = TRUE, showWarnings = FALSE)
+      timed(task$taskId, "save plpData", PatientLevelPrediction::savePlpData(plpData, partial))
+      writeLines(sample, file.path(partial, "sample.txt"))
+      if (!file.rename(partial, folder)) stop("could not rename ", partial, " to ", folder)
+    }
+    folder
+  }
   populationSettings <- taskPopulationSettings
   newDataSource(
     databaseName, "study",
     loadPlpData = function(task, outputFolder) {
-      folder <- file.path(outputFolder, "data", databaseName, task$taskId)
-      # the cache records its sample; a cache of another sample (or of PLP's sampleSize, before) is extracted again
-      sample <- if (isSampled(task)) sprintf("person hash %.0f, fraction %.12g", SAMPLE_HASH$seed, task$sampleFraction) else "none"
-      sampleFile <- file.path(folder, "sample.txt")
-      cached <- if (file.exists(sampleFile)) readLines(sampleFile) else if (file.exists(file.path(folder, "covariates"))) "none" else ""
-      if (!identical(cached, sample)) {
-        plpData <- timed(task$taskId, "extract", extract(task, covariateSettings, sample = isSampled(task)))
-        # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
-        partial <- paste0(folder, "_partial")
-        unlink(c(partial, folder), recursive = TRUE)
-        dir.create(dirname(folder), recursive = TRUE, showWarnings = FALSE)
-        timed(task$taskId, "save plpData", PatientLevelPrediction::savePlpData(plpData, partial))
-        writeLines(sample, file.path(partial, "sample.txt"))
-        if (!file.rename(partial, folder)) stop("could not rename ", partial, " to ", folder)
-      }
-      timed(task$taskId, "load plpData", PatientLevelPrediction::loadPlpData(folder))
+      timed(task$taskId, "load plpData", PatientLevelPrediction::loadPlpData(cache(task, outputFolder)))
     },
+    plpDataFolder = function(task, outputFolder) cache(task, outputFolder),
     populationSettings = populationSettings,
     split = studySplit,
     counts = function(task) {

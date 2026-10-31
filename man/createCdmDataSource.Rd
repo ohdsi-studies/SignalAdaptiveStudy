@@ -37,8 +37,8 @@ A data source for \code{\link[=execute]{execute()}}, with tasks from \code{\link
 }
 \description{
 Generates the cohorts of \code{\link[=studyCohortDefinitionSet]{studyCohortDefinitionSet()}} once (in \code{cohortDatabaseSchema.cohortTable}), extracts
-each task's \code{plpData} with PLP and caches it in \code{outputFolder/data}, sampled to the task's \code{sampleSize} if it has
-one (\code{\link[=addSampleSizes]{addSampleSizes()}}). Counts (\code{\link[=execute]{execute()}} with \code{mode = "counts"}) extract the full population's cohorts and
+each task's \code{plpData} with PLP and caches it in \code{outputFolder/data}, from a person-level sample of the target
+cohort (in \code{cohortTable_sample}) if the task has a \code{sampleFraction} (\code{\link[=addSampleSizes]{addSampleSizes()}}). Counts (\code{\link[=execute]{execute()}} with \code{mode = "counts"}) extract the full population's cohorts and
 outcomes only (no covariates), so feasibility takes minutes. The study split applies: PLP's default 75/25
 split fixes the test set, each ordering is a seeded random order of the training pool cut at the k-th event, and
 3 stratified folds.

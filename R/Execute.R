@@ -7,13 +7,17 @@
 #   log_<database>.txt                   timestamped log of every execute() call (PLP, FeatureExtraction, step times)
 #   steps_<database>.csv                 duration of each step: cohorts, extraction, cache, population, split, the
 #                                        data of a budget and ordering (prepare), run
+#   workers/log_<database>_<pid>.txt     with workers > 1: the log of each worker process
+#   tmp/                                 with workers > 1: the workers' temporary files (emptied at the next start)
 # A run whose result.csv exists is skipped; a failed run leaves error.txt and is tried again next time.
 #
 # A data source supplies, per task, the plpData, the population settings and the split of a budget and ordering
-# (and optionally a faster counts function); execute() itself has no data- or split-specific choices.
+# (and optionally a faster counts function and the folder of the saved plpData); execute() itself has no data- or
+# split-specific choices.
 
 # Step timings of the current execute() call: appended to .timing$file (steps_<database>.csv) when execute() set it,
-# and written to the log; a step that fails is recorded too (ok = FALSE).
+# or collected in .timing$rows in a worker, which returns them to execute(), the only writer of the file; also written
+# to the log. A step that fails is recorded too (ok = FALSE).
 .timing <- new.env()
 
 timed <- function(taskId, step, expr) {
@@ -22,22 +26,31 @@ timed <- function(taskId, step, expr) {
   on.exit({
     seconds <- as.numeric(difftime(Sys.time(), start, units = "secs"))
     ParallelLogger::logInfo(sprintf("%s: %s %s %.1f secs", taskId, step, if (ok) "took" else "failed after", seconds))
-    if (!is.null(.timing$file)) {
-      row <- data.frame(taskId = taskId, step = step, started = format(start, "%Y-%m-%d %H:%M:%S"),
-                        seconds = round(seconds, 2), ok = ok)
-      if (file.exists(.timing$file)) {
-        utils::write.table(row, .timing$file, sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE)
-      } else utils::write.csv(row, .timing$file, row.names = FALSE)
-    }
+    row <- data.frame(taskId = taskId, step = step, started = format(start, "%Y-%m-%d %H:%M:%S"),
+                      seconds = round(seconds, 2), ok = ok)
+    if (!is.null(.timing$rows)) {
+      .timing$rows[[length(.timing$rows) + 1]] <- row
+    } else if (!is.null(.timing$file)) appendSteps(row, .timing$file)
   })
   value <- expr
   ok <- TRUE
   value
 }
 
-newDataSource <- function(databaseName, splitLabel, loadPlpData, populationSettings, split, counts = NULL) {
+appendSteps <- function(rows, file) {
+  if (is.null(rows) || nrow(rows) == 0) return(invisible())
+  if (file.exists(file)) {
+    utils::write.table(rows, file, sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE)
+  } else utils::write.csv(rows, file, row.names = FALSE)
+}
+
+# plpDataFolder(task, outputFolder), optional: the folder of the task's saved plpData (extracted first if need be), which
+# workers load; without it, execute() with workers > 1 saves the plpData under outputFolder/tmp.
+newDataSource <- function(databaseName, splitLabel, loadPlpData, populationSettings, split, counts = NULL,
+                          plpDataFolder = NULL) {
   structure(list(databaseName = databaseName, splitLabel = splitLabel, loadPlpData = loadPlpData,
-                 populationSettings = populationSettings, split = split, counts = counts), class = "sarDataSource")
+                 populationSettings = populationSettings, split = split, counts = counts,
+                 plpDataFolder = plpDataFolder), class = "sarDataSource")
 }
 
 #' Data source: an existing plpData object
@@ -168,23 +181,247 @@ taskCounts <- function(dataSource, task, outputFolder) {
        testN = attr(s, "testN"), testEvents = attr(s, "testEvents"))
 }
 
+# The runs still to do of a task, grouped by budget and ordering: one unit per budget and ordering, with what its runs
+# need (and nothing of the data source beyond that, so a unit can go to a worker process).
+modelUnits <- function(task, budgets, orderings, methods, dataSource, outputFolder) {
+  todo <- expand.grid(budget = budgets, ordering = orderings, method = names(methods), stringsAsFactors = FALSE)
+  todo$folder <- file.path(outputFolder, "models", dataSource$databaseName, task$taskId,
+                           sprintf("k%s_o%d_%s", todo$budget, todo$ordering, todo$method))
+  todo <- todo[!file.exists(file.path(todo$folder, "result.csv")), , drop = FALSE]
+  keys <- unique(todo[, c("budget", "ordering")])
+  source <- list(databaseName = dataSource$databaseName, splitLabel = dataSource$splitLabel, split = dataSource$split)
+  lapply(seq_len(nrow(keys)), function(j) {
+    runs <- todo[todo$budget == keys$budget[j] & todo$ordering == keys$ordering[j], c("method", "folder")]
+    list(task = task, budget = keys$budget[j], ordering = keys$ordering[j], runs = runs,
+         methods = methods[unique(runs$method)], populationSettings = dataSource$populationSettings(task),
+         source = source)
+  })
+}
+
+# The plpData and population of the task in hand, kept between its budgets and orderings (in execute()'s process, or
+# in each worker); emptied at the start and end of execute().
+.taskData <- new.env()
+
+clearTaskData <- function() {
+  rm(list = ls(.taskData, all.names = TRUE), envir = .taskData)
+  invisible(gc(verbose = FALSE)) # closes the Andromeda of a plpData loaded here
+}
+
+taskData <- function(unit, loadPlpData) {
+  key <- paste(unit$source$databaseName, unit$task$taskId)
+  if (!identical(.taskData$key, key)) {
+    clearTaskData()
+    plpData <- loadPlpData()
+    .taskData$population <- timed(unit$task$taskId, "population", PatientLevelPrediction::createStudyPopulation(
+      plpData, unit$task$outcomeId, unit$populationSettings))
+    .taskData$plpData <- plpData
+    .taskData$key <- key
+  }
+  .taskData
+}
+
+# One budget and ordering of a task: its split and preprocessed data, shared by its runs (one per method still to do).
+# loadPlpData() gives the task's plpData when it is not already in hand. Returns the failures as messages (a failed
+# run leaves error.txt).
+runUnit <- function(unit, loadPlpData) {
+  task <- unit$task; budget <- unit$budget; ordering <- unit$ordering
+  current <- taskData(unit, loadPlpData)
+  population <- current$population
+  splitIds <- tryCatch(timed(task$taskId, sprintf("split k%s o%d", budget, ordering),
+                             unit$source$split(population, task, budget, ordering)), error = function(e) e)
+  data <- if (inherits(splitIds, "error")) splitIds else tryCatch(
+    timed(task$taskId, sprintf("prepare k%s o%d", budget, ordering), prepareRunData(current$plpData, population, splitIds)),
+    error = function(e) e)
+  failures <- character()
+  for (r in seq_len(nrow(unit$runs))) {
+    folder <- unit$runs$folder[r]; method <- unit$runs$method[r]
+    dir.create(folder, recursive = TRUE, showWarnings = FALSE)
+    unlink(file.path(folder, "error.txt"))
+    outcome <- if (inherits(data, "error")) data else tryCatch(
+      timed(task$taskId, basename(folder), runOne(data, population, task, splitIds, unit$methods[[method]], method,
+                                                  folder, unit$source, budget, ordering)),
+      error = function(e) e)
+    if (inherits(outcome, "error")) {
+      writeLines(conditionMessage(outcome), file.path(folder, "error.txt"))
+      failures <- c(failures, sprintf("%s %s k=%s o=%d %s failed: %s", unit$source$databaseName, task$taskId, budget,
+                                      ordering, method, conditionMessage(outcome)))
+    }
+  }
+  failures
+}
+
+# Marks the unfinished runs of a unit as failed (error.txt), for a unit whose worker failed outside its runs.
+failUnit <- function(unit, reason) {
+  for (folder in unit$runs$folder[!file.exists(file.path(unit$runs$folder, "result.csv"))]) {
+    dir.create(folder, recursive = TRUE, showWarnings = FALSE)
+    writeLines(reason, file.path(folder, "error.txt"))
+  }
+  sprintf("%s %s k=%s o=%d failed: %s", unit$source$databaseName, unit$task$taskId, unit$budget, unit$ordering, reason)
+}
+
+# Message on the console and in the log.
+report <- function(text, warn = FALSE) {
+  message(text)
+  if (warn) ParallelLogger::logWarn(text) else ParallelLogger::logInfo(text)
+}
+
+# The source folder of the package when it was loaded with pkgload::load_all() (tests), for the workers to load it
+# the same way; NULL when installed.
+devPackagePath <- function() {
+  ns <- asNamespace("SignalAdaptiveStudy")
+  if (exists(".__DEVTOOLS__", envir = ns, inherits = FALSE)) getNamespaceInfo(ns, "path") else NULL
+}
+
+# Memory limit (GB) of each Andromeda (duckdb) in a worker: Andromeda's default is 20% of the RAM for every Andromeda,
+# and a worker has up to three open (the plpData, its split, the preprocessed training data). Here the Andromedas of all
+# workers together are held to half the RAM, beyond which duckdb writes to disk; the option andromedaMemoryLimit
+# overrides it.
+workerMemoryLimit <- function(workers) {
+  if (!is.null(getOption("andromedaMemoryLimit"))) return(getOption("andromedaMemoryLimit"))
+  ram <- tryCatch(as.numeric(memuse::Sys.meminfo()$totalram) / 1024^3, error = function(e) 16)
+  round(0.5 * ram / workers / 3, 2)
+}
+
+# A unit in a worker process (runInWorkers()): one thread and a memory limit for each Andromeda, the worker's own log,
+# and the step timings returned to execute(), which writes them. The random number generator is execute()'s: mirai
+# daemons use L'Ecuyer-CMRG, under which the study's seeds would give other orderings and folds.
+workerUnit <- function(payload, setup) {
+  unit <- unserialize(payload)
+  do.call(RNGkind, as.list(setup$rngKind))
+  options(andromedaThreads = 1, andromedaMemoryLimit = setup$memoryLimit)
+  dir.create(file.path(setup$outputFolder, "workers"), showWarnings = FALSE)
+  ParallelLogger::unregisterLogger("SignalAdaptiveStudyWorker", silent = TRUE)
+  ParallelLogger::registerLogger(ParallelLogger::createLogger(name = "SignalAdaptiveStudyWorker", threshold = "TRACE",
+    appenders = list(ParallelLogger::createFileAppender(layout = ParallelLogger::layoutTimestamp, fileName = file.path(
+      setup$outputFolder, "workers", sprintf("log_%s_%d.txt", setup$database, Sys.getpid()))))))
+  .timing$rows <- list()
+  on.exit(.timing$rows <- NULL)
+  failures <- runUnit(unit, function() timed(unit$task$taskId, "load plpData",
+                                             PatientLevelPrediction::loadPlpData(unit$plpDataFolder)))
+  list(steps = do.call(rbind, .timing$rows), failures = failures)
+}
+
+# execute() with workers > 1: each unit (a budget and ordering of a task) goes to the next free worker process (mirai
+# daemons), the largest first. The data stay with this process: each task's plpData is extracted (or found in the
+# cache) here, one task at a time, and its units are queued as soon as it is ready, so the workers start on the first
+# task while the next is extracted. A worker runs one thread for duckdb, BLAS and OpenMP, has a memory limit for each
+# Andromeda and writes its temporary files under outputFolder/tmp. A worker that dies (e.g. out of memory) is replaced
+# and its unit tried once more.
+runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
+  profile <- "SignalAdaptiveStudy"
+  database <- dataSource$databaseName
+  tmp <- file.path(outputFolder, "tmp")
+  unlink(tmp, recursive = TRUE) # what workers that died left
+  dir.create(tmp, recursive = TRUE, showWarnings = FALSE)
+  # environment variables the workers inherit when they start (TMPDIR: R's temporary folder, and so Andromeda's)
+  env <- c(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1", TMPDIR = normalizePath(tmp))
+  old <- Sys.getenv(names(env), unset = NA)
+  do.call(Sys.setenv, as.list(env))
+  on.exit({
+    mirai::daemons(0, .compute = profile)
+    for (name in names(old)) {
+      if (is.na(old[[name]])) Sys.unsetenv(name) else do.call(Sys.setenv, stats::setNames(list(old[[name]]), name))
+    }
+  }, add = TRUE)
+  mirai::daemons(workers, .compute = profile)
+  setup <- list(libPaths = .libPaths(), dev = devPackagePath(), outputFolder = outputFolder, database = database,
+                memoryLimit = workerMemoryLimit(workers), rngKind = RNGkind())
+  report(sprintf("%d workers, Andromeda memory limit %.2f GB each", workers, setup$memoryLimit))
+  stepsFile <- .timing$file
+  submit <- function(unit, tries = 1) {
+    # the unit goes serialized: a worker loads the package (and its library paths) before it reads the unit
+    job <- mirai::mirai({
+      .libPaths(setup$libPaths)
+      if (!is.null(setup$dev) && !isNamespaceLoaded("SignalAdaptiveStudy")) {
+        getExportedValue("pkgload", "load_all")(setup$dev, quiet = TRUE)
+      }
+      get("workerUnit", envir = asNamespace("SignalAdaptiveStudy"))(payload, setup)
+    }, payload = serialize(unit, NULL), setup = setup, .compute = profile)
+    list(unit = unit, tries = tries, job = job)
+  }
+  pending <- list()
+  finished <- 0
+  queued <- 0
+  handle <- function(p) {
+    value <- p$job$data
+    label <- sprintf("%s k%s o%d", p$unit$task$taskId, p$unit$budget, p$unit$ordering)
+    if (mirai::is_mirai_error(value)) { # an error outside the runs, e.g. loading the data
+      report(failUnit(p$unit, trimws(as.character(value))[1]), warn = TRUE)
+    } else if (mirai::is_error_value(value)) { # the worker died (19: connection reset)
+      report(sprintf("%s: the worker stopped (%s)", label, format(value)), warn = TRUE)
+      if (identical(as.integer(value), 19L)) mirai::launch_local(1, .compute = profile)
+      if (p$tries < 2) {
+        pending[[length(pending) + 1]] <<- submit(p$unit, p$tries + 1)
+        return(invisible())
+      }
+      report(failUnit(p$unit, "the worker stopped twice (out of memory?)"), warn = TRUE)
+    } else {
+      appendSteps(value$steps, stepsFile)
+      for (failure in value$failures) report(failure, warn = TRUE)
+    }
+    finished <<- finished + 1
+    report(sprintf("%s done (%d of %d queued units)", label, finished, queued))
+  }
+  collect <- function(wait) {
+    repeat {
+      ready <- vapply(pending, function(p) !mirai::unresolved(p$job), logical(1))
+      done <- pending[ready]
+      pending <<- pending[!ready]
+      for (p in done) handle(p)
+      if (!wait || length(pending) == 0) return(invisible())
+      if (length(done) == 0) Sys.sleep(1)
+    }
+  }
+  for (i in seq_len(nrow(tasks))) {
+    task <- tasks[i, ]
+    units <- unitsOf(task)
+    if (length(units) == 0) next
+    folder <- tryCatch(
+      if (!is.null(dataSource$plpDataFolder)) dataSource$plpDataFolder(task, outputFolder) else {
+        folder <- file.path(tmp, "plpData", task$taskId)
+        PatientLevelPrediction::savePlpData(dataSource$loadPlpData(task, outputFolder), folder)
+        folder
+      }, error = function(e) e)
+    if (inherits(folder, "error")) {
+      for (unit in units) report(failUnit(unit, conditionMessage(folder)), warn = TRUE)
+      next
+    }
+    for (unit in units) {
+      unit$plpDataFolder <- folder
+      pending[[length(pending) + 1]] <- submit(unit)
+    }
+    queued <- queued + length(units)
+    collect(wait = FALSE)
+  }
+  collect(wait = TRUE)
+}
+
 #' Run the study
 #'
 #' `mode = "counts"`: population, training-pool and test counts per task and the feasibility rule (>= 500 training
 #' events and >= 80 test events); no models. `mode = "models"`: every task x budget x ordering x method, skipping
 #' runs that have already finished.
 #'
+#' With `workers > 1`, the models run in that many R processes ([mirai](https://mirai.r-lib.org) daemons), one budget
+#' and ordering of a task each, the largest first; the results are the same as with one. Each worker uses one thread
+#' (duckdb in Andromeda, BLAS, OpenMP) and a memory limit for each Andromeda (half the RAM shared by all workers, or the
+#' option `andromedaMemoryLimit`), with temporary files under `outputFolder/tmp`. The data are extracted in this
+#' process.
+#'
 #' @param dataSource A data source, e.g. from [createPlpDataSource()].
-#' @param tasks Data frame with one row per task: `taskId`, `outcomeId`, `timeAtRiskDays`.
+#' @param tasks Data frame with one row per task: `taskId`, `outcomeId`, `timeAtRiskDays`; optionally `budgets` (a
+#'   list of each task's budgets, as from [addSampleSizes()], instead of `budgets`) and `eventsPerPerson` (to start the
+#'   largest units first).
 #' @param outputFolder Folder for the data cache, counts and results.
 #' @param mode `"counts"` or `"models"`.
 #' @param budgets Event budgets k.
 #' @param orderings Orderings (1, 2, 3).
 #' @param methods Named list of model settings (default [studyMethods()]).
+#' @param workers Number of worker processes for the models (1: in this process).
 #' @return For counts, a data frame of counts; for models, the result rows of this and earlier runs.
 #' @export
 execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"), budgets = c(100, 250, 500),
-                    orderings = 1:3, methods = studyMethods()) {
+                    orderings = 1:3, methods = studyMethods(), workers = 1) {
   mode <- match.arg(mode)
   if (!inherits(dataSource, "sarDataSource")) stop("dataSource must come from a create...DataSource() function")
   if (is.null(names(methods)) || any(names(methods) == "")) stop("methods must be a named list")
@@ -226,37 +463,24 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
     })
     return(do.call(rbind, rows))
   }
-  for (i in seq_len(nrow(tasks))) {
-    task <- tasks[i, ]
-    todo <- expand.grid(budget = budgets, ordering = orderings, method = names(methods), stringsAsFactors = FALSE)
-    todo$folder <- file.path(outputFolder, "models", database, task$taskId,
-                             sprintf("k%s_o%d_%s", todo$budget, todo$ordering, todo$method))
-    todo <- todo[!file.exists(file.path(todo$folder, "result.csv")), , drop = FALSE]
-    if (nrow(todo) == 0) next
-    plpData <- dataSource$loadPlpData(task, outputFolder)
-    population <- timed(task$taskId, "population", PatientLevelPrediction::createStudyPopulation(
-      plpData, task$outcomeId, dataSource$populationSettings(task)))
-    keys <- unique(todo[, c("budget", "ordering")])
-    for (j in seq_len(nrow(keys))) {
-      budget <- keys$budget[j]; ordering <- keys$ordering[j]
-      splitIds <- tryCatch(timed(task$taskId, sprintf("split k%s o%d", budget, ordering),
-                                 dataSource$split(population, task, budget, ordering)), error = function(e) e)
-      data <- if (inherits(splitIds, "error")) splitIds else tryCatch(
-        timed(task$taskId, sprintf("prepare k%s o%d", budget, ordering), prepareRunData(plpData, population, splitIds)),
-        error = function(e) e)
-      runs <- todo[todo$budget == budget & todo$ordering == ordering, ]
-      for (r in seq_len(nrow(runs))) {
-        dir.create(runs$folder[r], recursive = TRUE, showWarnings = FALSE)
-        unlink(file.path(runs$folder[r], "error.txt"))
-        outcome <- if (inherits(data, "error")) data else tryCatch(
-          timed(task$taskId, basename(runs$folder[r]), runOne(data, population, task, splitIds,
-                methods[[runs$method[r]]], runs$method[r], runs$folder[r], dataSource, budget, ordering)),
-          error = function(e) e)
-        if (inherits(outcome, "error")) {
-          writeLines(conditionMessage(outcome), file.path(runs$folder[r], "error.txt"))
-          message(sprintf("%s %s k=%s o=%d %s failed: %s", database, task$taskId, budget, ordering,
-                          runs$method[r], conditionMessage(outcome)))
-        }
+  clearTaskData()
+  on.exit(clearTaskData(), add = TRUE)
+  taskBudgets <- function(task) if ("budgets" %in% names(task)) task$budgets[[1]] else budgets
+  unitsOf <- function(task) modelUnits(task, taskBudgets(task), orderings, methods, dataSource, outputFolder)
+  if (workers > 1) {
+    # largest first: the tasks by the training rows of their largest budget, and within a task the largest budget first
+    size <- vapply(seq_len(nrow(tasks)), function(i) max(c(0, taskBudgets(tasks[i, ]))) /
+                     (if ("eventsPerPerson" %in% names(tasks)) tasks$eventsPerPerson[i] else 1), numeric(1))
+    largestFirst <- function(task) {
+      units <- unitsOf(task)
+      units[order(-vapply(units, function(unit) unit$budget, numeric(1)))]
+    }
+    runInWorkers(tasks[order(-size), , drop = FALSE], largestFirst, dataSource, outputFolder, workers)
+  } else {
+    for (i in seq_len(nrow(tasks))) {
+      task <- tasks[i, ]
+      for (unit in unitsOf(task)) {
+        for (failure in runUnit(unit, function() dataSource$loadPlpData(task, outputFolder))) message(failure)
       }
     }
   }

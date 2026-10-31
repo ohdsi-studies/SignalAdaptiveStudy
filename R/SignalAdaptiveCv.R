@@ -139,11 +139,13 @@ searchStrategy <- function(search, settings = list()) {
 
 # Cyclops's auto-search over sigma^2 (fold fits as Cyclops's own CV under fitter = "super"), final fit at the same
 # sigma^2 on all rows.
+# One thread per fit (Cyclops's default, explicit): execute() runs fits in parallel in worker processes instead.
 autoStrategy <- function() {
-  foldControl <- Cyclops::createControl(fitter = "super", convergenceType = "kkt", tolerance = 3e-3, maxIterations = 5000)
+  foldControl <- Cyclops::createControl(fitter = "super", convergenceType = "kkt", tolerance = 3e-3, maxIterations = 5000,
+                                        threads = 1)
   # Cyclops's final-fit settings (super: kkt, 1e-4) with more iterations than its default 5000, which a weighted
   # LASSO on 283k rows exceeded; a fit that converges sooner stops at the same point either way.
-  finalControl <- Cyclops::createControl(fitter = "super", maxIterations = 100000)
+  finalControl <- Cyclops::createControl(fitter = "super", maxIterations = 100000, threads = 1)
   list(
     searchShape = function(X, y, problems, setups, shape, penalty, context) {
       n <- length(y)

@@ -48,18 +48,24 @@ only takes effect before Java starts).
    set of 30 tasks: the 26 original tasks and 4 new ones (PLP benchmark definitions). Cohorts and outcomes only, no
    covariates and no models. Send the zip.
 2. **3c, models:** SAR, SAL, LASSO and ridge on the feasible original tasks (>= 500 training events, >= 80 test events), budgets
-   100/250/500, 3 orderings. Restartable: rerun after an interruption and finished runs are skipped. Send the zip.
+   100/250/500/750/1000 (as far as each task's training pool allows), 3 orderings. Runs in `workers` R processes
+   (`extras/localSettings.R`, default 6; [mirai](https://mirai.r-lib.org)), one thread each, with the Andromeda (duckdb)
+   memory of all workers held to half the RAM; the data are extracted in the main session. A worker that dies is
+   replaced and its runs tried once more. Restartable: rerun after an interruption and finished runs are skipped.
+   Send the zip.
 
-**Runtime (estimate from the IPCI pilot, one R process):** about 3.5 CPU hours of model runs for the 18 CCAE-type
-tasks at IPCI feature density. Claims data carry more codes per person, so plan for 8–12 hours, plus data extraction
-(minutes per task, up to an hour for populations of millions). Disk: the plpData cache is a few GB.
+**Runtime:** the model runs dominate (SAR and SAL about 5x LASSO and ridge), plus data extraction of minutes per task.
+With workers the wall-clock time falls about in proportion to the physical cores (8 vCPUs are often 4 cores with
+hyperthreading). Disk: the plpData cache is a few GB, plus the workers' temporary copies of the task data.
 
 ## Logs and timings
 
 `outputFolder` holds a timestamped log of every `execute()` call (`log_<database>.txt`), the duration of each step
 (`steps_<database>.csv`: cohort generation, extraction, the plpData cache, population, splits, model runs) and, per
-model run, PLP's log (`plpLog.txt` in the run folder). `Rscript extras/production/timingReport.R` summarises where the
-time goes and writes `timing_<database>.csv` (aggregate, fine to send).
+model run, PLP's log (`plpLog.txt` in the run folder). Each worker process logs to
+`workers/log_<database>_<pid>.txt` and keeps its temporary files in `outputFolder/tmp` (emptied at the next start).
+`Rscript extras/production/timingReport.R` summarises where the time goes and writes `timing_<database>.csv`
+(aggregate, fine to send).
 
 ## What leaves the site
 

@@ -24,13 +24,15 @@ addSampleSizes(
 \item{margin}{Expected training-pool events per event of the largest budget.}
 }
 \value{
-\code{tasks} (those with counts) with \code{sampleSize} (\code{NA}: not sampled), \code{expectedPoolEvents} and \code{budgets}
-(a list column: the budgets up to the expected training-pool events).
+\code{tasks} (those with counts) with \code{sampleSize} (expected population after sampling; \code{NA}: not sampled),
+\code{sampleFraction}, \code{expectedPoolEvents}, \code{budgets} (a list column: the budgets up to the expected training-pool
+events) and \code{eventsPerPerson} (training-pool events per person in the full population).
 }
 \description{
-Large populations are sampled at extraction (PLP's \code{sampleSize}, applied to the target cohort before covariates are
+Large populations are sampled at extraction (a person-level sample of the target cohort, before covariates are
 extracted), so that a task needs neither the full covariates of millions of persons nor predictions for a test set
-of millions. A task larger than \code{cap} is sampled to the larger of \code{cap} and the size that gives \code{margin} x the
-largest budget in expected training-pool events; smaller tasks are not sampled. Counts (\code{\link[=execute]{execute()}} with
-\code{mode = "counts"}) always use the full population.
+of millions. A task whose population is larger than \code{cap} is sampled to the larger of \code{cap} and the size that gives
+\code{margin} x the largest budget in expected training-pool events; smaller tasks are not sampled. Persons are sampled
+with probability \code{sampleFraction} = \code{sampleSize} / population, so the sampled population has about \code{sampleSize}
+persons. Counts (\code{\link[=execute]{execute()}} with \code{mode = "counts"}) always use the full population.
 }

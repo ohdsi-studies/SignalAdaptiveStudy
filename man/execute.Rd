@@ -11,13 +11,16 @@ execute(
   mode = c("counts", "models"),
   budgets = c(100, 250, 500),
   orderings = 1:3,
-  methods = studyMethods()
+  methods = studyMethods(),
+  workers = 1
 )
 }
 \arguments{
 \item{dataSource}{A data source, e.g. from \code{\link[=createPlpDataSource]{createPlpDataSource()}}.}
 
-\item{tasks}{Data frame with one row per task: \code{taskId}, \code{outcomeId}, \code{timeAtRiskDays}.}
+\item{tasks}{Data frame with one row per task: \code{taskId}, \code{outcomeId}, \code{timeAtRiskDays}; optionally \code{budgets} (a
+list of each task's budgets, as from \code{\link[=addSampleSizes]{addSampleSizes()}}, instead of \code{budgets}) and \code{eventsPerPerson} (to start the
+largest units first).}
 
 \item{outputFolder}{Folder for the data cache, counts and results.}
 
@@ -28,6 +31,8 @@ execute(
 \item{orderings}{Orderings (1, 2, 3).}
 
 \item{methods}{Named list of model settings (default \code{\link[=studyMethods]{studyMethods()}}).}
+
+\item{workers}{Number of worker processes for the models (1: in this process).}
 }
 \value{
 For counts, a data frame of counts; for models, the result rows of this and earlier runs.
@@ -36,4 +41,11 @@ For counts, a data frame of counts; for models, the result rows of this and earl
 \code{mode = "counts"}: population, training-pool and test counts per task and the feasibility rule (>= 500 training
 events and >= 80 test events); no models. \code{mode = "models"}: every task x budget x ordering x method, skipping
 runs that have already finished.
+}
+\details{
+With \code{workers > 1}, the models run in that many R processes (\href{https://mirai.r-lib.org}{mirai} daemons), one budget
+and ordering of a task each, the largest first; the results are the same as with one. Each worker uses one thread
+(duckdb in Andromeda, BLAS, OpenMP) and a memory limit for each Andromeda (half the RAM shared by all workers, or the
+option \code{andromedaMemoryLimit}), with temporary files under \code{outputFolder/tmp}. The data are extracted in this
+process.
 }

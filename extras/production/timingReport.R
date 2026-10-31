@@ -27,11 +27,12 @@ runs <- do.call(rbind, lapply(files, function(file) {
 runs <- runs[order(runs$finished), ]
 # Time between the end of the previous run and the start of this one: loading the task's plpData, the population and
 # the split (and, at a task's first run, extracting the data if it was not cached). A gap over 4 hours is taken to be
-# a restart (R not running) and left out.
+# a restart (R not running) and left out. With workers (execute(workers > 1)) runs overlap: the hours of runs are summed
+# over the workers, and the gaps say little (the steps file has the data steps).
 runs$gapSeconds <- c(NA, pmax(0, diff(as.numeric(runs$finished)) - runs$runSeconds[-1]))
 restarts <- sum(runs$gapSeconds > 4 * 3600, na.rm = TRUE)
 runs$gapSeconds[runs$gapSeconds > 4 * 3600] <- NA
-runs$plpOverheadSeconds <- runs$runSeconds - runs$fitSeconds # PLP around the fit: preprocessing, test predictions
+runs$plpOverheadSeconds <- runs$runSeconds - runs$fitSeconds # PLP around the fit: the test predictions, saving
 runs$finished <- format(runs$finished, "%Y-%m-%d %H:%M:%S")
 file <- file.path(outputFolder, sprintf("timing_%s.csv", runs$database[1]))
 utils::write.csv(runs, file, row.names = FALSE)

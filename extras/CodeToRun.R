@@ -59,13 +59,12 @@ exportResults(outputFolder, minCellCount = minCellCount)  # send this zip after 
 # Tasks with more than 2 million persons are sampled at extraction to 2 million, or more where needed for 1.5 x 1000
 # expected training-pool events (addSampleSizes()); a task runs the budgets its pool supports.
 # Original tasks only: the new catalogue tasks get counts but no models, so they stay unseen.
-# Restartable: rerun the same lines after an interruption and finished runs are skipped.
+# Runs in `workers` R processes (extras/localSettings.R; the data are extracted here, one task at a time, while the
+# workers fit the tasks already extracted). Restartable: rerun the same lines after an interruption and finished runs
+# are skipped.
 counts <- execute(dataSource, tasks, outputFolder, mode = "counts")   # the 3b counts (read back, not recounted)
 modelTasks <- addSampleSizes(originalCohortTasks(), counts[counts$feasible, ])
 if (exists("onlyTasks")) modelTasks <- modelTasks[modelTasks$taskId %in% onlyTasks, ]   # optional, localSettings.R
-for (i in seq_len(nrow(modelTasks))) {
-  task <- modelTasks[i, ]
-  execute(dataSource, task, outputFolder, mode = "models", budgets = task$budgets[[1]], orderings = 1:3,
-          methods = studyMethods())
-}
+execute(dataSource, modelTasks, outputFolder, mode = "models", orderings = 1:3, methods = studyMethods(),
+        workers = if (exists("workers")) workers else 1)   # each task's budgets: modelTasks$budgets
 exportResults(outputFolder, minCellCount = minCellCount)  # send this zip after 3c
