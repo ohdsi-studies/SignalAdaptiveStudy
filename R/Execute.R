@@ -438,6 +438,13 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
     ParallelLogger::unregisterLogger("SignalAdaptiveStudy", silent = TRUE)
     .timing$file <- NULL
   }, add = TRUE)
+  # duckdb >= 2.0 announces where it keeps downloaded extensions and secrets at every new Andromeda (up to 60 times per
+  # process, in each worker too) unless the place is chosen; Andromeda uses neither, so a temporary one (inherited by
+  # the workers)
+  if (is.null(getOption("duckdb.home")) && Sys.getenv("DUCKDB_R_HOME") == "") {
+    Sys.setenv(DUCKDB_R_HOME = file.path(tempdir(), "duckdb"))
+    on.exit(Sys.unsetenv("DUCKDB_R_HOME"), add = TRUE)
+  }
   ParallelLogger::logInfo(sprintf("execute(%s, mode = %s): %d task(s)", database, mode, nrow(tasks)))
   if (mode == "counts") {
     # restartable like the models: a task with counts is skipped; a failed task leaves error.txt and is tried again
