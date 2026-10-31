@@ -58,11 +58,11 @@ test_that("execute() runs end to end on simulated data", {
   expect_true(all(exported$eventsTrain == -200))
   expect_identical(exported$auc, collectResults(outputFolder)$auc)
 
-  # a failed fit records runPlp's error (runPlp itself logs it and carries on)
+  # a failed fit records its error
   broken <- setSar(); broken$param$search <- "none"
   execute(dataSource, tasks, outputFolder, mode = "models", budgets = 100, orderings = 1, methods = list(Broken = broken))
   error <- readLines(file.path(outputFolder, "models", "SIM", "sim_task", "k100_o1_Broken", "error.txt"))
-  expect_match(error, "model fit failed: .*unknown search: none", all = FALSE)
+  expect_match(error, "unknown search: none", all = FALSE)
 
   # another PLP model runs through the same harness: the SAR fields are NA, the non-zeros come from its coefficients
   other <- execute(dataSource, tasks, outputFolder, mode = "models", budgets = 100, orderings = 1,
@@ -77,5 +77,48 @@ test_that("execute() runs end to end on simulated data", {
       methods = list(BAR = PatientLevelPrediction::setBrokenAdaptiveRidge(seed = 1, threads = 1))))
     expect_identical(sum(bar$method == "BAR"), 1L)
     expect_true(is.na(bar$variance[bar$method == "BAR"]))
+  }
+})
+
+test_that("runs on the shared split and preprocessing give exactly what runPlp() gives, for every method in turn", {
+  profile <- get(utils::data("simulationProfile", package = "PatientLevelPrediction", envir = environment()))
+  source <- PatientLevelPrediction::simulatePlpData(profile, n = 2000, seed = 11)
+  prevalence <- source$covariateData$covariates %>% dplyr::count(.data$covariateId) %>% dplyr::collect()
+  signal <- utils::head(prevalence$covariateId[prevalence$n > 100 & prevalence$n < 800 & prevalence$covariateId != 1002], 9)
+  coefficients <- c("(Intercept)" = -3, stats::setNames(rep(c(1.5, -1.2, 1.0), length.out = length(signal)), signal))
+  plpData <- PatientLevelPrediction::simulatePlpBenchmarkData(source, coefficients, n = 12000, riskWindowStart = 1,
+                                                              riskWindowEnd = 365, outcomeId = 3,
+                                                              targetOutcomeRate = 0.06, seed = 12, returnTruth = FALSE)
+  populationSettings <- PatientLevelPrediction::createStudyPopulationSettings(riskWindowStart = 1, riskWindowEnd = 365,
+                                                                              requireTimeAtRisk = FALSE)
+  dataSource <- createPlpDataSource(plpData, "SIM", populationSettings)
+  task <- data.frame(taskId = "sim_task", outcomeId = 3, timeAtRiskDays = 365)
+  population <- PatientLevelPrediction::createStudyPopulation(plpData, 3, populationSettings)
+  split <- studySplit(population, task, 100, 1)
+  data <- prepareRunData(plpData, population, split)
+  folder <- tempfile("sar_identity_")
+  on.exit(unlink(folder, recursive = TRUE), add = TRUE)
+  for (method in names(studyMethods())) {
+    runFolder <- file.path(folder, method)
+    dir.create(runFolder, recursive = TRUE)
+    row <- runOne(data, population, task, split, studyMethods()[[method]], method, runFolder, dataSource, 100, 1)
+    shared <- PatientLevelPrediction::loadPlpModel(file.path(runFolder, "model"))
+    reference <- PatientLevelPrediction::runPlp(
+      plpData = plpData, outcomeId = 3, analysisId = method, populationSettings = populationSettings,
+      splitSettings = PatientLevelPrediction::createExistingSplitSettings(data.frame(rowId = split$rowId, index = split$index)),
+      preprocessSettings = studyPreprocessSettings(), modelSettings = studyMethods()[[method]],
+      executeSettings = PatientLevelPrediction::createExecuteSettings(
+        runSplitData = TRUE, runSampleData = FALSE, runFeatureEngineering = FALSE, runPreprocessData = TRUE,
+        runModelDevelopment = TRUE, runCovariateSummary = FALSE),
+      saveDirectory = file.path(folder, "reference"))
+    test <- reference$prediction[reference$prediction$evaluationType == "Test", ]
+    m <- testMetrics(as.numeric(test$outcomeCount > 0), test$value,
+                     as.numeric(population$outcomeCount[match(split$rowId[split$index > 0], population$rowId)] > 0))
+    expect_identical(row$auc, m$auc, info = method)
+    expect_identical(row$logLoss, m$logLoss, info = method)
+    expect_identical(row$nTest, nrow(test), info = method)
+    PatientLevelPrediction::savePlpModel(reference$model, file.path(folder, "reference", method, "model"))
+    saved <- PatientLevelPrediction::loadPlpModel(file.path(folder, "reference", method, "model")) # both through JSON
+    expect_identical(shared$covariateImportance$covariateValue, saved$covariateImportance$covariateValue, info = method)
   }
 })

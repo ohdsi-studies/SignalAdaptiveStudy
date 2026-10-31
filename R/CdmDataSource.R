@@ -93,19 +93,21 @@ studyCovariateSettings <- function() {
 
 #' Sample sizes for the model runs
 #'
-#' Large populations are sampled at extraction (PLP's `sampleSize`, applied to the target cohort before covariates are
+#' Large populations are sampled at extraction (a person-level sample of the target cohort, before covariates are
 #' extracted), so that a task needs neither the full covariates of millions of persons nor predictions for a test set
-#' of millions. A task larger than `cap` is sampled to the larger of `cap` and the size that gives `margin` x the
-#' largest budget in expected training-pool events; smaller tasks are not sampled. Counts ([execute()] with
-#' `mode = "counts"`) always use the full population.
+#' of millions. A task whose population is larger than `cap` is sampled to the larger of `cap` and the size that gives
+#' `margin` x the largest budget in expected training-pool events; smaller tasks are not sampled. Persons are sampled
+#' with probability `sampleFraction` = `sampleSize` / population, so the sampled population has about `sampleSize`
+#' persons. Counts ([execute()] with `mode = "counts"`) always use the full population.
 #'
 #' @param tasks Tasks, e.g. from [originalCohortTasks()].
 #' @param counts The counts of these tasks in one database, from [execute()] with `mode = "counts"`.
 #' @param budgets The event budgets of the model runs.
 #' @param cap Largest population that is not sampled.
 #' @param margin Expected training-pool events per event of the largest budget.
-#' @return `tasks` (those with counts) with `sampleSize` (`NA`: not sampled), `expectedPoolEvents` and `budgets`
-#'   (a list column: the budgets up to the expected training-pool events).
+#' @return `tasks` (those with counts) with `sampleSize` (expected population after sampling; `NA`: not sampled),
+#'   `sampleFraction`, `expectedPoolEvents` and `budgets` (a list column: the budgets up to the expected training-pool
+#'   events).
 #' @export
 addSampleSizes <- function(tasks, counts, budgets = c(100, 250, 500, 750, 1000), cap = 2e6, margin = 1.5) {
   countColumns <- c("n", "poolN", "poolEvents", "testN", "testEvents")
@@ -114,15 +116,51 @@ addSampleSizes <- function(tasks, counts, budgets = c(100, 250, 500, 750, 1000),
   eventsPerPerson <- tasks$poolEvents / tasks$n
   needed <- ceiling(margin * max(budgets) / eventsPerPerson)
   tasks$sampleSize <- ifelse(tasks$n <= cap | needed >= tasks$n, NA, pmax(cap, needed))
+  tasks$sampleFraction <- tasks$sampleSize / tasks$n
   tasks$expectedPoolEvents <- ifelse(is.na(tasks$sampleSize), tasks$poolEvents, floor(tasks$sampleSize * eventsPerPerson))
   tasks$budgets <- lapply(tasks$expectedPoolEvents, function(e) budgets[budgets <= e])
   tasks[, setdiff(names(tasks), countColumns)]
 }
 
-# Extraction restrictions of a task: its sample size, if any.
-taskRestrictSettings <- function(task) {
-  sampleSize <- if (is.null(task$sampleSize) || is.na(task$sampleSize)) NULL else as.numeric(task$sampleSize)
-  PatientLevelPrediction::createRestrictPlpDataSettings(sampleSize = sampleSize)
+# Person-level sample of a target cohort, in SQL that runs on every OHDSI dialect. A person is in the sample when a
+# multiplicative (golden-ratio) hash of the person ID falls below fraction x modulus: deterministic, nested across
+# fractions, and spread evenly over the range of person IDs (so over enrolment time). PLP's own sampleSize is not used:
+# it orders cohort entries by (person_id * month % 123) * (year * day % 123) and person ID, so a small sample is all
+# ties at 0 (e.g. a 3% sample: 58% index dates in 2009, 45% person IDs divisible by 41).
+SAMPLE_HASH <- list(modulus = 2147483647, multiplier = 1327217885, seed = 20261031)
+
+isSampled <- function(task) !is.null(task$sampleFraction) && !is.na(task$sampleFraction)
+
+sampleThreshold <- function(fraction) round(fraction * SAMPLE_HASH$modulus)
+
+# The hash in R, exact in double precision (the product is split so that no term exceeds 2^48).
+personHash <- function(personId) {
+  m <- SAMPLE_HASH$modulus; a <- SAMPLE_HASH$multiplier
+  x <- abs(personId) %% m
+  ((x * (a %/% 65536)) %% m * 65536 %% m + x * (a %% 65536) + SAMPLE_HASH$seed) %% m
+}
+
+# The same hash in SQL Server SQL for SqlRender. The products stay below 2^62, within BIGINT. SqlRender translates
+# `CAST(x AS BIGINT) % m` for BigQuery but has no rule for Oracle and IRIS, which get MOD().
+personHashSql <- function(column, dbms) {
+  mod <- function(x) if (dbms %in% c("oracle", "iris")) sprintf("MOD(%s, %.0f)", x, SAMPLE_HASH$modulus) else
+    sprintf("CAST(%s AS BIGINT) %% %.0f", x, SAMPLE_HASH$modulus)
+  mod(sprintf("(%s) * %.0f + %.0f", mod(sprintf("ABS(%s)", column)), SAMPLE_HASH$multiplier, SAMPLE_HASH$seed))
+}
+
+# Writes the sample of targetId (fraction of its persons) to cohortDatabaseSchema.sampleTable, replacing it.
+createTargetSample <- function(connection, cohortDatabaseSchema, cohortTable, sampleTable, targetId, fraction,
+                               tempEmulationSchema = NULL) {
+  sql <- "DROP TABLE IF EXISTS @cohort_database_schema.@sample_table;
+SELECT cohort_definition_id, subject_id, cohort_start_date, cohort_end_date
+INTO @cohort_database_schema.@sample_table
+FROM @cohort_database_schema.@cohort_table
+WHERE cohort_definition_id = @target_id AND @hash < @threshold;"
+  DatabaseConnector::renderTranslateExecuteSql(
+    connection, sql, cohort_database_schema = cohortDatabaseSchema, sample_table = sampleTable,
+    cohort_table = cohortTable, target_id = targetId, threshold = sprintf("%.0f", sampleThreshold(fraction)),
+    hash = personHashSql("subject_id", DatabaseConnector::dbms(connection)), tempEmulationSchema = tempEmulationSchema,
+    progressBar = FALSE, reportOverallTime = FALSE)
 }
 
 # The PLP benchmark's population settings (PLPBenchmarks, BenchmarkModelDesignList): >= 365 days of prior
@@ -158,8 +196,8 @@ originalProductionPopulationSettings <- function(timeAtRiskDays) {
 #' Data source: a CDM database
 #'
 #' Generates the cohorts of [studyCohortDefinitionSet()] once (in `cohortDatabaseSchema.cohortTable`), extracts
-#' each task's `plpData` with PLP and caches it in `outputFolder/data`, sampled to the task's `sampleSize` if it has
-#' one ([addSampleSizes()]). Counts ([execute()] with `mode = "counts"`) extract the full population's cohorts and
+#' each task's `plpData` with PLP and caches it in `outputFolder/data`, from a person-level sample of the target
+#' cohort (in `cohortTable_sample`) if the task has a `sampleFraction` ([addSampleSizes()]). Counts ([execute()] with `mode = "counts"`) extract the full population's cohorts and
 #' outcomes only (no covariates), so feasibility takes minutes. The study split applies: PLP's default 75/25
 #' split fixes the test set, each ordering is a seeded random order of the training pool cut at the k-th event, and
 #' 3 stratified folds.
@@ -193,28 +231,42 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
     })
     state$generated <- TRUE
   }
-  extract <- function(task, covariateSettings, restrictSettings = taskRestrictSettings(task)) {
+  sampleTable <- paste0(cohortTable, "_sample")
+  extract <- function(task, covariateSettings, sample = FALSE) {
     generate()
+    if (sample) {
+      timed(task$taskId, "sample target", {
+        connection <- DatabaseConnector::connect(connectionDetails)
+        on.exit(DatabaseConnector::disconnect(connection))
+        createTargetSample(connection, cohortDatabaseSchema, cohortTable, sampleTable, task$targetId,
+                           task$sampleFraction, tempEmulationSchema)
+      })
+    }
     details <- PatientLevelPrediction::createDatabaseDetails(
       connectionDetails = connectionDetails, cdmDatabaseSchema = cdmDatabaseSchema, cdmDatabaseName = databaseName,
       cdmDatabaseId = databaseName, tempEmulationSchema = tempEmulationSchema,
-      cohortDatabaseSchema = cohortDatabaseSchema, cohortTable = cohortTable,
+      cohortDatabaseSchema = cohortDatabaseSchema, cohortTable = if (sample) sampleTable else cohortTable,
       outcomeDatabaseSchema = cohortDatabaseSchema, outcomeTable = cohortTable,
       targetId = task$targetId, outcomeIds = task$outcomeId)
-    PatientLevelPrediction::getPlpData(details, covariateSettings, restrictSettings)
+    PatientLevelPrediction::getPlpData(details, covariateSettings, PatientLevelPrediction::createRestrictPlpDataSettings())
   }
   populationSettings <- taskPopulationSettings
   newDataSource(
     databaseName, "study",
     loadPlpData = function(task, outputFolder) {
       folder <- file.path(outputFolder, "data", databaseName, task$taskId)
-      if (!file.exists(file.path(folder, "covariates"))) {
-        plpData <- timed(task$taskId, "extract", extract(task, covariateSettings))
+      # the cache records its sample; a cache of another sample (or of PLP's sampleSize, before) is extracted again
+      sample <- if (isSampled(task)) sprintf("person hash %.0f, fraction %.12g", SAMPLE_HASH$seed, task$sampleFraction) else "none"
+      sampleFile <- file.path(folder, "sample.txt")
+      cached <- if (file.exists(sampleFile)) readLines(sampleFile) else if (file.exists(file.path(folder, "covariates"))) "none" else ""
+      if (!identical(cached, sample)) {
+        plpData <- timed(task$taskId, "extract", extract(task, covariateSettings, sample = isSampled(task)))
         # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
         partial <- paste0(folder, "_partial")
         unlink(c(partial, folder), recursive = TRUE)
         dir.create(dirname(folder), recursive = TRUE, showWarnings = FALSE)
         timed(task$taskId, "save plpData", PatientLevelPrediction::savePlpData(plpData, partial))
+        writeLines(sample, file.path(partial, "sample.txt"))
         if (!file.rename(partial, folder)) stop("could not rename ", partial, " to ", folder)
       }
       timed(task$taskId, "load plpData", PatientLevelPrediction::loadPlpData(folder))
@@ -223,8 +275,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
     split = studySplit,
     counts = function(task) {
       # PLP needs some covariate: sex, the cheapest
-      plpData <- extract(task, FeatureExtraction::createCovariateSettings(useDemographicsGender = TRUE),
-                         PatientLevelPrediction::createRestrictPlpDataSettings())
+      plpData <- extract(task, FeatureExtraction::createCovariateSettings(useDemographicsGender = TRUE))
       population <- PatientLevelPrediction::createStudyPopulation(plpData, task$outcomeId, populationSettings(task))
       s <- studySplit(population, task, NULL, 1)
       list(n = nrow(population), poolN = attr(s, "poolN"), poolEvents = attr(s, "poolEvents"),

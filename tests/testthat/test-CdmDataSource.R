@@ -68,6 +68,52 @@ test_that("large tasks are sampled for the model runs, enough for the largest bu
   expect_true(is.na(s$sampleSize[s$taskId == "huge_but_rare"]))         # needs more than the whole population
   expect_identical(s$budgets[[which(s$taskId == "small")]], c(100, 250))  # budgets up to the pool events
   expect_identical(s$budgets[[which(s$taskId == "large")]], c(100, 250, 500, 750, 1000))
-  expect_identical(taskRestrictSettings(s[s$taskId == "large", ])$sampleSize, 2e6)
-  expect_null(taskRestrictSettings(s[s$taskId == "small", ])$sampleSize)
+  expect_equal(s$sampleFraction[s$taskId == "large"], 2e6 / 2.8e7)       # persons sampled: population x fraction
+  expect_true(is.na(s$sampleFraction[s$taskId == "small"]))
+})
+
+test_that("the person hash matches exact integer arithmetic, in R and in SQL on duckdb and SQLite", {
+  ids <- c(1, 2, 3, 41, 123, 2147483646, 2147483647, 2147483648, 9876543210123, -5)
+  expected <- c(1347478916, 527213154, 1854431039, 749103141, 59303714, 840526793, 20261031, 1347478916, 1251708369,
+                213899515) # Python big integers: ((|id| mod m) * a + seed) mod m
+  expect_identical(personHash(ids), expected)
+  skip_if_not_installed("DatabaseConnector")
+  for (dbms in c("duckdb", "sqlite")) {
+    if (dbms == "duckdb") skip_if_not_installed("duckdb")
+    if (dbms == "sqlite") skip_if_not_installed("RSQLite")
+    connection <- DatabaseConnector::connect(dbms = dbms, server = tempfile())
+    sql <- SqlRender::translate(sprintf("SELECT %s AS h FROM (SELECT CAST(%.0f AS BIGINT) AS subject_id) t;",
+                                        personHashSql("subject_id", dbms), 9876543210123), targetDialect = dbms)
+    expect_equal(DatabaseConnector::querySql(connection, sql)[[1]], expected[9], info = dbms)
+    DatabaseConnector::disconnect(connection)
+  }
+})
+
+test_that("the target sample keeps whole persons, about the fraction, as the hash says", {
+  skip_if_not_installed("DatabaseConnector")
+  skip_if_not_installed("duckdb")
+  connection <- DatabaseConnector::connect(dbms = "duckdb", server = tempfile())
+  on.exit(DatabaseConnector::disconnect(connection), add = TRUE)
+  set.seed(5)
+  ids <- sample.int(1e9, 20000)
+  cohort <- data.frame(cohort_definition_id = c(rep(1, 20000), rep(1, 5000), rep(2, 100)),
+                       subject_id = c(ids, ids[1:5000], ids[1:100]),
+                       cohort_start_date = as.Date("2015-01-01") + c(seq_len(20000), seq_len(5000) + 30000, seq_len(100)),
+                       cohort_end_date = as.Date("2030-01-01"))
+  DatabaseConnector::insertTable(connection, "main", "cohort", cohort, createTable = TRUE, progressBar = FALSE)
+  createTargetSample(connection, "main", "cohort", "cohort_sample", targetId = 1, fraction = 0.1)
+  s <- DatabaseConnector::querySql(connection, "SELECT * FROM main.cohort_sample;", snakeCaseToCamelCase = TRUE)
+  expect_true(all(s$cohortDefinitionId == 1))
+  kept <- unique(ids[personHash(ids) < sampleThreshold(0.1)])
+  expect_setequal(unique(s$subjectId), kept)
+  expect_equal(length(kept) / 20000, 0.1, tolerance = 0.1)
+  expect_identical(nrow(s), sum(cohort$cohort_definition_id == 1 & cohort$subject_id %in% kept)) # every entry of a kept person
+})
+
+test_that("the hash SQL translates to every dialect without a bare modulo where it is not supported", {
+  for (dbms in SqlRender::listSupportedDialects()$dialect) {
+    sql <- SqlRender::translate(sprintf("SELECT %s FROM t;", personHashSql("subject_id", dbms)), targetDialect = dbms)
+    if (dbms %in% c("oracle", "iris", "bigquery")) expect_false(grepl("%", sql, fixed = TRUE), info = dbms)
+    if (dbms %in% c("oracle", "iris", "bigquery")) expect_true(grepl("MOD(", toupper(sql), fixed = TRUE), info = dbms)
+  }
 })

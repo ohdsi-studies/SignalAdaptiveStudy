@@ -5,7 +5,8 @@
 #   counts/<database>/<taskId>.csv       population and split counts
 #   models/<database>/<taskId>/<run>/    result.csv (one row), plpLog.txt and model/ (coefficients; private)
 #   log_<database>.txt                   timestamped log of every execute() call (PLP, FeatureExtraction, step times)
-#   steps_<database>.csv                 duration of each step: cohorts, extraction, cache, population, split, run
+#   steps_<database>.csv                 duration of each step: cohorts, extraction, cache, population, split, the
+#                                        data of a budget and ordering (prepare), run
 # A run whose result.csv exists is skipped; a failed run leaves error.txt and is tried again next time.
 #
 # A data source supplies, per task, the plpData, the population settings and the split of a budget and ordering
@@ -95,13 +96,6 @@ packageVersions <- function() {
          "; ", R.version.string)
 }
 
-# runPlp logs errors and carries on; the ERROR lines of its log in saveDirectory.
-plpLogErrors <- function(saveDirectory) {
-  lines <- unlist(lapply(list.files(saveDirectory, pattern = "\\.txt$", recursive = TRUE, full.names = TRUE), readLines))
-  errors <- grep("ERROR", lines, value = TRUE)
-  if (length(errors) == 0) "no error in the runPlp log" else paste(errors, collapse = " | ")
-}
-
 # PLP's trainingTime text ("12.3 secs") in seconds.
 trainingSeconds <- function(text) {
   if (is.null(text)) return(NULL)
@@ -109,37 +103,41 @@ trainingSeconds <- function(text) {
   as.numeric(parts[1]) * c(secs = 1, mins = 60, hours = 3600, days = 86400)[[parts[2]]]
 }
 
-runOne <- function(plpData, population, task, split, modelSettings, method, runFolder, dataSource, budget, ordering) {
+# The data of one budget and ordering, shared by its runs (one per method): PLP's split (the study split as an existing
+# split) and PLP's preprocessing of the training set, as runPlp() does them before the fit.
+prepareRunData <- function(plpData, population, split) {
+  splitSettings <- PatientLevelPrediction::createExistingSplitSettings(data.frame(rowId = split$rowId, index = split$index))
+  data <- PatientLevelPrediction::splitData(plpData = plpData, population = population, splitSettings = splitSettings)
+  data$Train$covariateData <- PatientLevelPrediction::preprocessData(data$Train$covariateData, studyPreprocessSettings())
+  data
+}
+
+# One run: what runPlp() does after the preprocessing, the fit and the test predictions (fitPlp(), predictPlp()), but
+# not its evaluation and saved result, which the study does not use.
+runOne <- function(data, population, task, split, modelSettings, method, runFolder, dataSource, budget, ordering) {
   start <- Sys.time()
   scratch <- tempfile("sar_run_")
   on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
-  # keep PLP's timestamped log of the run (its steps and their times) in the run folder, also when the run fails
-  on.exit(file.copy(file.path(scratch, basename(runFolder), "plpLog.txt"), file.path(runFolder, "plpLog.txt"),
-                    overwrite = TRUE), add = TRUE, after = FALSE)
-  result <- PatientLevelPrediction::runPlp(
-    plpData = plpData, outcomeId = task$outcomeId, analysisId = basename(runFolder), analysisName = basename(runFolder),
-    populationSettings = dataSource$populationSettings(task),
-    splitSettings = PatientLevelPrediction::createExistingSplitSettings(data.frame(rowId = split$rowId, index = split$index)),
-    preprocessSettings = studyPreprocessSettings(),
-    modelSettings = modelSettings,
-    logSettings = PatientLevelPrediction::createLogSettings(verbosity = "INFO", timeStamp = TRUE, logName = "runPlp"),
-    executeSettings = PatientLevelPrediction::createExecuteSettings(
-      runSplitData = TRUE, runSampleData = FALSE, runFeatureEngineering = FALSE, runPreprocessData = TRUE,
-      runModelDevelopment = TRUE, runCovariateSummary = FALSE),
-    saveDirectory = scratch
-  )
-  if (is.null(result$model) || isTRUE(result$model$noModel)) stop("model fit failed: ", plpLogErrors(scratch))
-  test <- result$prediction[result$prediction$evaluationType == "Test", ]
-  if (nrow(test) == 0) stop("no test predictions: ", plpLogErrors(scratch))
+  # PLP's timestamped log of the run, in the run folder
+  logger <- ParallelLogger::createLogger(name = "SignalAdaptiveStudyRun", threshold = "INFO", appenders = list(
+    ParallelLogger::createFileAppender(layout = ParallelLogger::layoutTimestamp,
+                                       fileName = file.path(runFolder, "plpLog.txt"))))
+  ParallelLogger::registerLogger(logger)
+  on.exit(ParallelLogger::unregisterLogger("SignalAdaptiveStudyRun", silent = TRUE), add = TRUE)
+  model <- PatientLevelPrediction::fitPlp(trainData = data$Train, modelSettings = modelSettings,
+                                          analysisId = basename(runFolder), analysisPath = scratch)
+  model$prediction <- NULL # the CV predictions, which runPlp() also takes out of the model
+  test <- PatientLevelPrediction::predictPlp(plpModel = model, plpData = data$Test, population = data$Test$labels)
+  if (nrow(test) == 0) stop("no test predictions")
   trainingRows <- split$rowId[split$index > 0]
   trainingY <- as.numeric(population$outcomeCount[match(trainingRows, population$rowId)] > 0)
   m <- testMetrics(as.numeric(test$outcomeCount > 0), test$value, trainingY)
-  fp <- result$model$trainDetails$finalModelParameters
+  fp <- model$trainDetails$finalModelParameters
   # other PLP models (e.g. Broken Adaptive Ridge) lack the SAR fields: NA, non-zeros from their coefficients
   value <- function(x) if (length(x) == 1) x else NA # BAR's variance, e.g., is one per coefficient
   shape <- unlist(fp$shape) %||% rep(NA, 3)
   if (is.null(fp$nonZero)) {
-    co <- result$model$model$coefficients
+    co <- model$model$coefficients
     fp$nonZero <- if (is.data.frame(co)) sum(co$betas != 0 & co$covariateIds != "(Intercept)") else NA
   }
   row <- data.frame(
@@ -152,11 +150,11 @@ runOne <- function(plpData, population, task, split, modelSettings, method, runF
     interceptOnly = isTRUE(fp$interceptOnly), c1 = shape[1], c2 = shape[2], c3 = shape[3],
     lambda = value(fp$lambda), variance = value(fp$variance), cvLoss = value(fp$cvLoss),
     ordinateLoss = value(fp$ordinateLoss), interceptCvLoss = value(fp$interceptCvLoss), nonZero = fp$nonZero,
-    kkt = value(fp$kkt), fitSeconds = value(fp$cvSeconds %||% trainingSeconds(result$model$trainDetails$trainingTime)),
+    kkt = value(fp$kkt), fitSeconds = value(fp$cvSeconds %||% trainingSeconds(model$trainDetails$trainingTime)),
     runSeconds = as.numeric(difftime(Sys.time(), start, units = "secs")),
     versions = packageVersions(), stringsAsFactors = FALSE
   )
-  PatientLevelPrediction::savePlpModel(result$model, file.path(runFolder, "model"))
+  PatientLevelPrediction::savePlpModel(model, file.path(runFolder, "model"))
   utils::write.csv(row, file.path(runFolder, "result.csv"), row.names = FALSE)
   row
 }
@@ -243,12 +241,15 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
       budget <- keys$budget[j]; ordering <- keys$ordering[j]
       splitIds <- tryCatch(timed(task$taskId, sprintf("split k%s o%d", budget, ordering),
                                  dataSource$split(population, task, budget, ordering)), error = function(e) e)
+      data <- if (inherits(splitIds, "error")) splitIds else tryCatch(
+        timed(task$taskId, sprintf("prepare k%s o%d", budget, ordering), prepareRunData(plpData, population, splitIds)),
+        error = function(e) e)
       runs <- todo[todo$budget == budget & todo$ordering == ordering, ]
       for (r in seq_len(nrow(runs))) {
         dir.create(runs$folder[r], recursive = TRUE, showWarnings = FALSE)
         unlink(file.path(runs$folder[r], "error.txt"))
-        outcome <- if (inherits(splitIds, "error")) splitIds else tryCatch(
-          timed(task$taskId, basename(runs$folder[r]), runOne(plpData, population, task, splitIds,
+        outcome <- if (inherits(data, "error")) data else tryCatch(
+          timed(task$taskId, basename(runs$folder[r]), runOne(data, population, task, splitIds,
                 methods[[runs$method[r]]], runs$method[r], runs$folder[r], dataSource, budget, ordering)),
           error = function(e) e)
         if (inherits(outcome, "error")) {

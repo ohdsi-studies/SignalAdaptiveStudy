@@ -11,6 +11,7 @@ Encoding: UTF-8
 Imports:
     CohortGenerator,
     Cyclops (>= 4.0.0),
+    DatabaseConnector,
     dplyr,
     FeatureExtraction,
     Matrix,
@@ -27,7 +28,6 @@ Suggests:
     Andromeda,
     bit64,
     BrokenAdaptiveRidge,
-    DatabaseConnector,
     duckdb,
     Eunomia,
     glmnet,
