@@ -54,12 +54,16 @@ print(counts[, c("taskId", "n", "poolEvents", "testEvents", "feasible")])
 exportResults(outputFolder, minCellCount = minCellCount)  # send this zip after 3b
 
 # ---- Step 3c: models on the feasible tasks -----------------------------------------------------------------------
-# SAR, SAL, LASSO and ridge, budgets 100/250/500, 3 orderings, within-database train/test.
-# Restartable: rerun the same lines after an interruption and finished runs are skipped.
+# SAR, SAL, LASSO and ridge, budgets 100/250/500/750/1000 events, 3 orderings, within-database train/test.
+# Tasks with more than 2 million persons are sampled at extraction to 2 million, or more where needed for 1.5 x 1000
+# expected training-pool events (addSampleSizes()); a task runs the budgets its pool supports.
 # Original tasks only: the new catalogue tasks get counts but no models, so they stay unseen.
-methods <- studyMethods()
-originalTasks <- originalCohortTasks()
-feasible <- originalTasks[originalTasks$taskId %in% counts$taskId[counts$feasible], ]
-results <- execute(dataSource, feasible, outputFolder, mode = "models", budgets = c(100, 250, 500), orderings = 1:3,
-                   methods = methods)
+# Restartable: rerun the same lines after an interruption and finished runs are skipped.
+counts <- execute(dataSource, tasks, outputFolder, mode = "counts")   # the 3b counts (read back, not recounted)
+modelTasks <- addSampleSizes(originalCohortTasks(), counts[counts$feasible, ])
+for (i in seq_len(nrow(modelTasks))) {
+  task <- modelTasks[i, ]
+  execute(dataSource, task, outputFolder, mode = "models", budgets = task$budgets[[1]], orderings = 1:3,
+          methods = studyMethods())
+}
 exportResults(outputFolder, minCellCount = minCellCount)  # send this zip after 3c

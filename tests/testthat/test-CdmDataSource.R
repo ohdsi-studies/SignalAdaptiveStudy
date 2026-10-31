@@ -54,3 +54,20 @@ test_that("population settings follow the original rules at the day boundaries",
   expect_setequal(population$rowId, which(cases$kept))
   expect_identical(as.numeric(population$outcomeCount[order(population$rowId)] > 0), cases$outcome[cases$kept])
 })
+
+test_that("large tasks are sampled for the model runs, enough for the largest budget", {
+  tasks <- data.frame(taskId = c("small", "large", "rare", "huge_but_rare"), targetId = 1, outcomeId = 2)
+  counts <- data.frame(taskId = tasks$taskId, n = c(5e5, 2.8e7, 2.8e7, 3e6), poolN = c(3.75e5, 2.1e7, 2.1e7, 2.25e6),
+                       poolEvents = c(400, 3e5, 1.69e4, 900))
+  s <- addSampleSizes(tasks, counts)
+  expect_true(is.na(s$sampleSize[s$taskId == "small"]))                 # under the cap: not sampled
+  expect_identical(s$sampleSize[s$taskId == "large"], 2e6)              # plenty of events at the cap
+  rare <- s[s$taskId == "rare", ]
+  expect_gt(rare$sampleSize, 2e6)                                      # the cap would give < 1.5 x 1000 events
+  expect_gte(rare$expectedPoolEvents, 1500)
+  expect_true(is.na(s$sampleSize[s$taskId == "huge_but_rare"]))         # needs more than the whole population
+  expect_identical(s$budgets[[which(s$taskId == "small")]], c(100, 250))  # budgets up to the pool events
+  expect_identical(s$budgets[[which(s$taskId == "large")]], c(100, 250, 500, 750, 1000))
+  expect_identical(taskRestrictSettings(s[s$taskId == "large", ])$sampleSize, 2e6)
+  expect_null(taskRestrictSettings(s[s$taskId == "small", ])$sampleSize)
+})

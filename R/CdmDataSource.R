@@ -91,6 +91,40 @@ studyCovariateSettings <- function() {
     longTermStartDays = -365, endDays = 0)
 }
 
+#' Sample sizes for the model runs
+#'
+#' Large populations are sampled at extraction (PLP's `sampleSize`, applied to the target cohort before covariates are
+#' extracted), so that a task needs neither the full covariates of millions of persons nor predictions for a test set
+#' of millions. A task larger than `cap` is sampled to the larger of `cap` and the size that gives `margin` x the
+#' largest budget in expected training-pool events; smaller tasks are not sampled. Counts ([execute()] with
+#' `mode = "counts"`) always use the full population.
+#'
+#' @param tasks Tasks, e.g. from [originalCohortTasks()].
+#' @param counts The counts of these tasks in one database, from [execute()] with `mode = "counts"`.
+#' @param budgets The event budgets of the model runs.
+#' @param cap Largest population that is not sampled.
+#' @param margin Expected training-pool events per event of the largest budget.
+#' @return `tasks` (those with counts) with `sampleSize` (`NA`: not sampled), `expectedPoolEvents` and `budgets`
+#'   (a list column: the budgets up to the expected training-pool events).
+#' @export
+addSampleSizes <- function(tasks, counts, budgets = c(100, 250, 500, 750, 1000), cap = 2e6, margin = 1.5) {
+  countColumns <- c("n", "poolN", "poolEvents", "testN", "testEvents")
+  tasks <- merge(tasks[, setdiff(names(tasks), countColumns)], counts[, c("taskId", "n", "poolN", "poolEvents")],
+                 by = "taskId", sort = FALSE)
+  eventsPerPerson <- tasks$poolEvents / tasks$n
+  needed <- ceiling(margin * max(budgets) / eventsPerPerson)
+  tasks$sampleSize <- ifelse(tasks$n <= cap | needed >= tasks$n, NA, pmax(cap, needed))
+  tasks$expectedPoolEvents <- ifelse(is.na(tasks$sampleSize), tasks$poolEvents, floor(tasks$sampleSize * eventsPerPerson))
+  tasks$budgets <- lapply(tasks$expectedPoolEvents, function(e) budgets[budgets <= e])
+  tasks[, setdiff(names(tasks), countColumns)]
+}
+
+# Extraction restrictions of a task: its sample size, if any.
+taskRestrictSettings <- function(task) {
+  sampleSize <- if (is.null(task$sampleSize) || is.na(task$sampleSize)) NULL else as.numeric(task$sampleSize)
+  PatientLevelPrediction::createRestrictPlpDataSettings(sampleSize = sampleSize)
+}
+
 # The PLP benchmark's population settings (PLPBenchmarks, BenchmarkModelDesignList): >= 365 days of prior
 # observation, no outcome any time before, the outcome in days 1 to the horizon, cases kept without full follow-up.
 benchmarkPopulationSettings <- function(timeAtRiskDays) {
@@ -124,8 +158,9 @@ originalProductionPopulationSettings <- function(timeAtRiskDays) {
 #' Data source: a CDM database
 #'
 #' Generates the cohorts of [studyCohortDefinitionSet()] once (in `cohortDatabaseSchema.cohortTable`), extracts
-#' each task's `plpData` with PLP and caches it in `outputFolder/data`. Counts ([execute()] with `mode = "counts"`)
-#' extract the cohorts and outcomes only (no covariates), so feasibility takes minutes. The study split applies: PLP's default 75/25
+#' each task's `plpData` with PLP and caches it in `outputFolder/data`, sampled to the task's `sampleSize` if it has
+#' one ([addSampleSizes()]). Counts ([execute()] with `mode = "counts"`) extract the full population's cohorts and
+#' outcomes only (no covariates), so feasibility takes minutes. The study split applies: PLP's default 75/25
 #' split fixes the test set, each ordering is a seeded random order of the training pool cut at the k-th event, and
 #' 3 stratified folds.
 #'
@@ -156,7 +191,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
                                        cohortDefinitionSet = cohortDefinitionSet, incremental = FALSE)
     state$generated <- TRUE
   }
-  extract <- function(task, covariateSettings) {
+  extract <- function(task, covariateSettings, restrictSettings = taskRestrictSettings(task)) {
     generate()
     details <- PatientLevelPrediction::createDatabaseDetails(
       connectionDetails = connectionDetails, cdmDatabaseSchema = cdmDatabaseSchema, cdmDatabaseName = databaseName,
@@ -164,7 +199,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       cohortDatabaseSchema = cohortDatabaseSchema, cohortTable = cohortTable,
       outcomeDatabaseSchema = cohortDatabaseSchema, outcomeTable = cohortTable,
       targetId = task$targetId, outcomeIds = task$outcomeId)
-    PatientLevelPrediction::getPlpData(details, covariateSettings, PatientLevelPrediction::createRestrictPlpDataSettings())
+    PatientLevelPrediction::getPlpData(details, covariateSettings, restrictSettings)
   }
   populationSettings <- taskPopulationSettings
   newDataSource(
@@ -182,7 +217,8 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
     split = studySplit,
     counts = function(task) {
       # PLP needs some covariate: sex, the cheapest
-      plpData <- extract(task, FeatureExtraction::createCovariateSettings(useDemographicsGender = TRUE))
+      plpData <- extract(task, FeatureExtraction::createCovariateSettings(useDemographicsGender = TRUE),
+                         PatientLevelPrediction::createRestrictPlpDataSettings())
       population <- PatientLevelPrediction::createStudyPopulation(plpData, task$outcomeId, populationSettings(task))
       s <- studySplit(population, task, NULL, 1)
       list(n = nrow(population), poolN = attr(s, "poolN"), poolEvents = attr(s, "poolEvents"),
