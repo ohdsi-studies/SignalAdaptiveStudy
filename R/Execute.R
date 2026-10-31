@@ -3,11 +3,36 @@
 # outputFolder/
 #   data/<database>/<taskId>/            cached plpData (patient-level; never exported)
 #   counts/<database>/<taskId>.csv       population and split counts
-#   models/<database>/<taskId>/<run>/    result.csv (one row) and model/ (coefficients; private)
+#   models/<database>/<taskId>/<run>/    result.csv (one row), plpLog.txt and model/ (coefficients; private)
+#   log_<database>.txt                   timestamped log of every execute() call (PLP, FeatureExtraction, step times)
+#   steps_<database>.csv                 duration of each step: cohorts, extraction, cache, population, split, run
 # A run whose result.csv exists is skipped; a failed run leaves error.txt and is tried again next time.
 #
 # A data source supplies, per task, the plpData, the population settings and the split of a budget and ordering
 # (and optionally a faster counts function); execute() itself has no data- or split-specific choices.
+
+# Step timings of the current execute() call: appended to .timing$file (steps_<database>.csv) when execute() set it,
+# and written to the log; a step that fails is recorded too (ok = FALSE).
+.timing <- new.env()
+
+timed <- function(taskId, step, expr) {
+  start <- Sys.time()
+  ok <- FALSE
+  on.exit({
+    seconds <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+    ParallelLogger::logInfo(sprintf("%s: %s %s %.1f secs", taskId, step, if (ok) "took" else "failed after", seconds))
+    if (!is.null(.timing$file)) {
+      row <- data.frame(taskId = taskId, step = step, started = format(start, "%Y-%m-%d %H:%M:%S"),
+                        seconds = round(seconds, 2), ok = ok)
+      if (file.exists(.timing$file)) {
+        utils::write.table(row, .timing$file, sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE)
+      } else utils::write.csv(row, .timing$file, row.names = FALSE)
+    }
+  })
+  value <- expr
+  ok <- TRUE
+  value
+}
 
 newDataSource <- function(databaseName, splitLabel, loadPlpData, populationSettings, split, counts = NULL) {
   structure(list(databaseName = databaseName, splitLabel = splitLabel, loadPlpData = loadPlpData,
@@ -167,6 +192,18 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
   if (is.null(names(methods)) || any(names(methods) == "")) stop("methods must be a named list")
   dir.create(outputFolder, recursive = TRUE, showWarnings = FALSE)
   database <- dataSource$databaseName
+  # timestamped log of this call (appended), and the step timings
+  logger <- ParallelLogger::createLogger(name = "SignalAdaptiveStudy", threshold = "TRACE", appenders = list(
+    ParallelLogger::createFileAppender(layout = ParallelLogger::layoutTimestamp,
+                                       fileName = file.path(outputFolder, sprintf("log_%s.txt", database)))))
+  ParallelLogger::unregisterLogger("SignalAdaptiveStudy", silent = TRUE)
+  ParallelLogger::registerLogger(logger)
+  .timing$file <- file.path(outputFolder, sprintf("steps_%s.csv", database))
+  on.exit({
+    ParallelLogger::unregisterLogger("SignalAdaptiveStudy", silent = TRUE)
+    .timing$file <- NULL
+  }, add = TRUE)
+  ParallelLogger::logInfo(sprintf("execute(%s, mode = %s): %d task(s)", database, mode, nrow(tasks)))
   if (mode == "counts") {
     # restartable like the models: a task with counts is skipped; a failed task leaves error.txt and is tried again
     folder <- file.path(outputFolder, "counts", database)
@@ -176,7 +213,7 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
       file <- file.path(folder, paste0(task$taskId, ".csv"))
       if (file.exists(file)) return(utils::read.csv(file))
       errorFile <- file.path(folder, paste0(task$taskId, "_error.txt"))
-      counts <- tryCatch(taskCounts(dataSource, task, outputFolder), error = function(e) {
+      counts <- tryCatch(timed(task$taskId, "counts", taskCounts(dataSource, task, outputFolder)), error = function(e) {
         writeLines(conditionMessage(e), errorFile)
         message(database, " ", task$taskId, " counts failed: ", conditionMessage(e))
         NULL
@@ -199,18 +236,20 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
     todo <- todo[!file.exists(file.path(todo$folder, "result.csv")), , drop = FALSE]
     if (nrow(todo) == 0) next
     plpData <- dataSource$loadPlpData(task, outputFolder)
-    population <- PatientLevelPrediction::createStudyPopulation(plpData, task$outcomeId, dataSource$populationSettings(task))
+    population <- timed(task$taskId, "population", PatientLevelPrediction::createStudyPopulation(
+      plpData, task$outcomeId, dataSource$populationSettings(task)))
     keys <- unique(todo[, c("budget", "ordering")])
     for (j in seq_len(nrow(keys))) {
       budget <- keys$budget[j]; ordering <- keys$ordering[j]
-      splitIds <- tryCatch(dataSource$split(population, task, budget, ordering), error = function(e) e)
+      splitIds <- tryCatch(timed(task$taskId, sprintf("split k%s o%d", budget, ordering),
+                                 dataSource$split(population, task, budget, ordering)), error = function(e) e)
       runs <- todo[todo$budget == budget & todo$ordering == ordering, ]
       for (r in seq_len(nrow(runs))) {
         dir.create(runs$folder[r], recursive = TRUE, showWarnings = FALSE)
         unlink(file.path(runs$folder[r], "error.txt"))
         outcome <- if (inherits(splitIds, "error")) splitIds else tryCatch(
-          runOne(plpData, population, task, splitIds, methods[[runs$method[r]]], runs$method[r], runs$folder[r],
-                 dataSource, budget, ordering),
+          timed(task$taskId, basename(runs$folder[r]), runOne(plpData, population, task, splitIds,
+                methods[[runs$method[r]]], runs$method[r], runs$folder[r], dataSource, budget, ordering)),
           error = function(e) e)
         if (inherits(outcome, "error")) {
           writeLines(conditionMessage(outcome), file.path(runs$folder[r], "error.txt"))

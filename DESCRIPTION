@@ -15,6 +15,7 @@ Imports:
     FeatureExtraction,
     Matrix,
     methods,
+    ParallelLogger,
     PatientLevelPrediction (>= 6.7.0),
     rlang,
     stats,

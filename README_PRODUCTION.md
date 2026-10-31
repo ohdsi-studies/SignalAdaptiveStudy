@@ -54,6 +54,13 @@ only takes effect before Java starts).
 tasks at IPCI feature density. Claims data carry more codes per person, so plan for 8–12 hours, plus data extraction
 (minutes per task, up to an hour for populations of millions). Disk: the plpData cache is a few GB.
 
+## Logs and timings
+
+`outputFolder` holds a timestamped log of every `execute()` call (`log_<database>.txt`), the duration of each step
+(`steps_<database>.csv`: cohort generation, extraction, the plpData cache, population, splits, model runs) and, per
+model run, PLP's log (`plpLog.txt` in the run folder). `Rscript extras/production/timingReport.R` summarises where the
+time goes and writes `timing_<database>.csv` (aggregate, fine to send).
+
 ## What leaves the site
 
 `exportResults()` writes one zip: per-run metrics (AUC, log loss, Brier), counts, selected hyperparameters,

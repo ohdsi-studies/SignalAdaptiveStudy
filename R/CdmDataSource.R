@@ -183,12 +183,14 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
   generate <- function() {
     if (state$generated) return(invisible())
     tables <- CohortGenerator::getCohortTableNames(cohortTable)
-    CohortGenerator::createCohortTables(connectionDetails = connectionDetails, cohortDatabaseSchema = cohortDatabaseSchema,
-                                        cohortTableNames = tables, incremental = TRUE)
-    CohortGenerator::generateCohortSet(connectionDetails = connectionDetails, cdmDatabaseSchema = cdmDatabaseSchema,
-                                       tempEmulationSchema = tempEmulationSchema,
-                                       cohortDatabaseSchema = cohortDatabaseSchema, cohortTableNames = tables,
-                                       cohortDefinitionSet = cohortDefinitionSet, incremental = FALSE)
+    timed("all", "generate cohorts", {
+      CohortGenerator::createCohortTables(connectionDetails = connectionDetails, cohortDatabaseSchema = cohortDatabaseSchema,
+                                          cohortTableNames = tables, incremental = TRUE)
+      CohortGenerator::generateCohortSet(connectionDetails = connectionDetails, cdmDatabaseSchema = cdmDatabaseSchema,
+                                         tempEmulationSchema = tempEmulationSchema,
+                                         cohortDatabaseSchema = cohortDatabaseSchema, cohortTableNames = tables,
+                                         cohortDefinitionSet = cohortDefinitionSet, incremental = FALSE)
+    })
     state$generated <- TRUE
   }
   extract <- function(task, covariateSettings, restrictSettings = taskRestrictSettings(task)) {
@@ -207,15 +209,15 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
     loadPlpData = function(task, outputFolder) {
       folder <- file.path(outputFolder, "data", databaseName, task$taskId)
       if (!file.exists(file.path(folder, "covariates"))) {
-        plpData <- extract(task, covariateSettings)
+        plpData <- timed(task$taskId, "extract", extract(task, covariateSettings))
         # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
         partial <- paste0(folder, "_partial")
         unlink(c(partial, folder), recursive = TRUE)
         dir.create(dirname(folder), recursive = TRUE, showWarnings = FALSE)
-        PatientLevelPrediction::savePlpData(plpData, partial)
+        timed(task$taskId, "save plpData", PatientLevelPrediction::savePlpData(plpData, partial))
         if (!file.rename(partial, folder)) stop("could not rename ", partial, " to ", folder)
       }
-      PatientLevelPrediction::loadPlpData(folder)
+      timed(task$taskId, "load plpData", PatientLevelPrediction::loadPlpData(folder))
     },
     populationSettings = populationSettings,
     split = studySplit,

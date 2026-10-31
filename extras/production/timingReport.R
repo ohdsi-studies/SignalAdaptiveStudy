@@ -48,3 +48,20 @@ print(do.call(rbind, lapply(split(runs, runs$taskId), function(d)
   data.frame(taskId = d$taskId[1], runs = nrow(d), maxTrain = max(d$nTrain), runHours = hours(d$runSeconds),
              gapHours = hours(d$gapSeconds)))), row.names = FALSE)
 message("written: ", file)
+
+# The steps around the runs (from steps_<database>.csv, written by runs with package versions from 2026-10-31 on):
+# cohort generation, extraction, saving and loading the plpData cache, the population and the splits.
+stepsFile <- file.path(outputFolder, sprintf("steps_%s.csv", runs$database[1]))
+if (file.exists(stepsFile)) {
+  steps <- utils::read.csv(stepsFile, stringsAsFactors = FALSE)
+  steps$kind <- ifelse(grepl("^k[0-9]+_o[0-9]_", steps$step), "model run", sub(" k[0-9]+ o[0-9]+$", "", steps$step))
+  cat("\nHours by step (steps file):\n")
+  print(do.call(rbind, lapply(split(steps, steps$kind), function(d)
+    data.frame(step = d$kind[1], count = nrow(d), failed = sum(!d$ok), hours = hours(d$seconds),
+               maxMinutes = round(max(d$seconds) / 60, 1)))), row.names = FALSE)
+  data <- steps[steps$kind %in% c("extract", "save plpData", "load plpData", "population"), ]
+  if (nrow(data)) {
+    cat("\nMinutes per task for the data steps:\n")
+    print(round(tapply(data$seconds, list(data$taskId, data$kind), sum) / 60, 1))
+  }
+}
