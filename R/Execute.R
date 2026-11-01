@@ -297,8 +297,9 @@ workerUnit <- function(payload, setup) {
       setup$outputFolder, "workers", sprintf("log_%s_%d.txt", setup$database, Sys.getpid()))))))
   .timing$rows <- list()
   on.exit(.timing$rows <- NULL)
-  failures <- runUnit(unit, function() timed(unit$task$taskId, "load plpData",
-                                             PatientLevelPrediction::loadPlpData(unit$plpDataFolder)))
+  work <- if (identical(unit$work, "repair")) repairUnit else runUnit # repairUnit(): R/Repair.R
+  failures <- work(unit, function() timed(unit$task$taskId, "load plpData",
+                                          PatientLevelPrediction::loadPlpData(unit$plpDataFolder)))
   list(steps = do.call(rbind, .timing$rows), failures = failures)
 }
 
