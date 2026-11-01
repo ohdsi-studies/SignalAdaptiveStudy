@@ -122,3 +122,11 @@ test_that("runs on the shared split and preprocessing give exactly what runPlp()
     expect_identical(shared$covariateImportance$covariateValue, saved$covariateImportance$covariateValue, info = method)
   }
 })
+
+test_that("the test AUC holds for large test sets (no integer overflow)", {
+  # 8,000 events and 492,000 non-events (8,000 x 492,000 > 2^31); events score 1, 3/4 of non-events 0 and 1/4 2
+  y <- c(rep(1, 8000), rep(0, 492000))
+  p <- c(rep(0.5, 8000), rep(0.1, 369000), rep(0.9, 123000))
+  expect_identical(aucMannWhitney(y, p), 0.75)
+  expect_identical(testMetrics(y, p, y)$auc, 0.75)
+})

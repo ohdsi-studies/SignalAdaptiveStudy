@@ -88,9 +88,10 @@ studyPreprocessSettings <- function() {
   PatientLevelPrediction::createPreprocessSettings(minFraction = 0, normalize = TRUE, removeRedundancy = FALSE)
 }
 
+# Counts as doubles: as integers, n1 * n0 overflows (NA) beyond 2^31, e.g. 8,000 events in a test set of 500,000.
 aucMannWhitney <- function(y, p) {
   r <- rank(p)
-  n1 <- sum(y == 1); n0 <- sum(y == 0)
+  n1 <- as.numeric(sum(y == 1)); n0 <- as.numeric(sum(y == 0))
   (sum(r[y == 1]) - n1 * (n1 + 1) / 2) / (n1 * n0)
 }
 
