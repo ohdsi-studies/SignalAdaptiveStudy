@@ -251,21 +251,44 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       targetId = task$targetId, outcomeIds = task$outcomeId)
     PatientLevelPrediction::getPlpData(details, covariateSettings, PatientLevelPrediction::createRestrictPlpDataSettings())
   }
-  # The folder of the task's cached plpData, extracted first if it is not there. The cache records its sample; a cache
-  # of another sample (or of PLP's sampleSize, before) is extracted again.
+  sampleLabel <- function(task) {
+    if (isSampled(task)) sprintf("person hash %.0f, fraction %.12g", SAMPLE_HASH$seed, task$sampleFraction) else "none"
+  }
+  cohortSql <- function(cohortId) cohortDefinitionSet$sql[cohortDefinitionSet$cohortId == cohortId]
+  # What a task's data depend on (R/Fingerprint.R).
+  dataFingerprint <- function(task) {
+    list(database = databaseName, cdm = cdmDatabaseSchema, targetId = as.numeric(task$targetId),
+         outcomeId = as.numeric(task$outcomeId),
+         targetCohort = cohortSql(task$targetId), outcomeCohort = cohortSql(task$outcomeId),
+         covariates = covariateSettings, sample = sampleLabel(task))
+  }
+  # The folder of the task's cached plpData, extracted first if it is not there or was made with other settings (its
+  # fingerprint). A cache from before fingerprints is checked by its sample only (sample.txt), as before.
   cache <- function(task, outputFolder) {
     folder <- file.path(outputFolder, "data", databaseName, task$taskId)
-    sample <- if (isSampled(task)) sprintf("person hash %.0f, fraction %.12g", SAMPLE_HASH$seed, task$sampleFraction) else "none"
-    sampleFile <- file.path(folder, "sample.txt")
-    cached <- if (file.exists(sampleFile)) readLines(sampleFile) else if (file.exists(file.path(folder, "covariates"))) "none" else ""
-    if (!identical(cached, sample)) {
+    fp <- fingerprint(dataFingerprint(task))
+    changes <- fingerprintChanges(fp, file.path(folder, FINGERPRINT_FILE))
+    current <- if (is.null(changes)) {
+      sampleFile <- file.path(folder, "sample.txt")
+      cached <- if (file.exists(sampleFile)) readLines(sampleFile) else if (file.exists(file.path(folder, "covariates"))) "none" else ""
+      if (identical(cached, sampleLabel(task))) {
+        ParallelLogger::logInfo(sprintf("%s: data cache from before fingerprints, same sample: used as it is", task$taskId))
+      }
+      identical(cached, sampleLabel(task))
+    } else {
+      if (length(changes)) ParallelLogger::logInfo(sprintf("%s: data cache made with other settings (%s), extracted again",
+                                                           task$taskId, paste(changes, collapse = ", ")))
+      !length(changes)
+    }
+    if (!current) {
       plpData <- timed(task$taskId, "extract", extract(task, covariateSettings, sample = isSampled(task)))
       # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
       partial <- paste0(folder, "_partial")
       unlink(c(partial, folder), recursive = TRUE)
       dir.create(dirname(folder), recursive = TRUE, showWarnings = FALSE)
       timed(task$taskId, "save plpData", PatientLevelPrediction::savePlpData(plpData, partial))
-      writeLines(sample, file.path(partial, "sample.txt"))
+      writeLines(sampleLabel(task), file.path(partial, "sample.txt"))
+      writeFingerprint(fp, file.path(partial, FINGERPRINT_FILE))
       if (!file.rename(partial, folder)) stop("could not rename ", partial, " to ", folder)
     }
     folder
@@ -277,6 +300,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       timed(task$taskId, "load plpData", PatientLevelPrediction::loadPlpData(cache(task, outputFolder)))
     },
     plpDataFolder = function(task, outputFolder) cache(task, outputFolder),
+    dataFingerprint = dataFingerprint,
     populationSettings = populationSettings,
     split = studySplit,
     counts = function(task) {

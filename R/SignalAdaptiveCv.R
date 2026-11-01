@@ -231,10 +231,10 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso"), shapes 
     setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized))
     result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
     records[[s]] <- result$record; traces[s] <- list(result$trace); states[s] <- list(result$state) # keep NULL slots
-    chosen <- if (is.na(result$record$lambda)) sprintf("variance %.4g", result$record$variance) else
-      sprintf("lambda %.4g", result$record$lambda)
+    best <- result$record[which.min(result$record$cvLoss), ] # one row (auto) or one per lambda (grid)
+    chosen <- if (is.na(best$lambda)) sprintf("variance %.4g", best$variance) else sprintf("lambda %.4g", best$lambda)
     ParallelLogger::logInfo(sprintf("shape %d/%d (c = %s): %s, CV loss %.6f; %.1f min so far", s, nrow(shapes),
-                                    paste(shape, collapse = ", "), chosen, result$record$cvLoss,
+                                    paste(shape, collapse = ", "), chosen, best$cvLoss,
                                     as.numeric(difftime(Sys.time(), start, units = "mins"))))
   }
   records <- do.call(rbind, records)

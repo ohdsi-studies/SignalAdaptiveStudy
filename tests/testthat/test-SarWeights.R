@@ -38,3 +38,16 @@ test_that("a dense matrix gives the same weights as a sparse one", {
   dense <- computeSarWeights(as.matrix(fixture$X), fixture$y, c(1, 1, -1))
   expect_equal(dense, sparse)
 })
+
+test_that("non-binary columns are kept when they vary, whatever their mean", {
+  set.seed(3)
+  n <- 200
+  binary <- Matrix::Matrix(stats::rbinom(n * 3, 1, 0.3), n, 3, sparse = TRUE)
+  X <- cbind(binary, age = stats::runif(n, 18, 90), constantHalf = 0.5, constantOne = 1, allZero = 0)
+  y <- stats::rbinom(n, 1, 0.2)
+  keep <- computeSarWeights(X, y, c(1, 1, -1))$keep
+  expect_identical(unname(keep), c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE))
+  # binary columns: the original rule (0 < mean < 1), including a column of all ones and one with a single 1
+  B <- Matrix::Matrix(cbind(stats::rbinom(n, 1, 0.5), 1, c(1, rep(0, n - 1)), 0), sparse = TRUE)
+  expect_identical(computeSarWeights(B, y, c(0, 0, 0))$keep, c(TRUE, FALSE, TRUE, FALSE))
+})

@@ -25,6 +25,6 @@ current fit (a CV training fold, or the whole training set for the final fit).
 With n rows, e events, \eqn{\mu_j} the column mean, \eqn{t = (e + 0.5)/(n + 1)},
 \eqn{h_j = n t (1 - t) \mathrm{var}(x_j)} and \eqn{s_j = x_j^\top (y - \bar{y})}:
 \deqn{\log w_j = c_1 \frac{\log(1 + n\mu_j)}{\log(1 + n)} + c_2 \log(1 + h_j) + c_3 \log\left(1 + \frac{s_j^2}{h_j + 0.5}\right)}
-minus its mean over the kept columns. Kept columns are those that are not constant in these rows
-(\eqn{0 < \mu_j < 1}); the others are left out of the fit and get coefficient 0.
+minus its mean over the kept columns. Kept columns are those that are not constant in these rows (variance > 0;
+for a binary column \eqn{0 < \mu_j < 1}); the others are left out of the fit and get coefficient 0.
 }

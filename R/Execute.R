@@ -3,13 +3,15 @@
 # outputFolder/
 #   data/<database>/<taskId>/            cached plpData (patient-level; never exported)
 #   counts/<database>/<taskId>.csv       population and split counts
-#   models/<database>/<taskId>/<run>/    result.csv (one row), plpLog.txt and model/ (coefficients; private)
+#   models/<database>/<taskId>/<run>/    result.csv (one row), plpLog.txt, model/ (coefficients; private) and
+#                                        fingerprint.json (the settings of the run, R/Fingerprint.R)
 #   log_<database>.txt                   timestamped log of every execute() call (PLP, FeatureExtraction, step times)
 #   steps_<database>.csv                 duration of each step: cohorts, extraction, cache, population, split, the
 #                                        data of a budget and ordering (prepare), run
 #   workers/log_<database>_<pid>.txt     with workers > 1: the log of each worker process
 #   tmp/                                 with workers > 1: the workers' temporary files (emptied at the next start)
-# A run whose result.csv exists is skipped; a failed run leaves error.txt and is tried again next time.
+# A run whose result.csv exists is skipped; a failed run leaves error.txt and is tried again next time. A finished run
+# whose recorded settings differ from the current ones stops execute() (R/Fingerprint.R).
 #
 # A data source supplies, per task, the plpData, the population settings and the split of a budget and ordering
 # (and optionally a faster counts function and the folder of the saved plpData); execute() itself has no data- or
@@ -46,11 +48,13 @@ appendSteps <- function(rows, file) {
 
 # plpDataFolder(task, outputFolder), optional: the folder of the task's saved plpData (extracted first if need be), which
 # workers load; without it, execute() with workers > 1 saves the plpData under outputFolder/tmp.
+# dataFingerprint(task), optional: a named list of what the task's data depend on (cohorts, covariates, sample), for
+# the fingerprints of counts and runs (R/Fingerprint.R).
 newDataSource <- function(databaseName, splitLabel, loadPlpData, populationSettings, split, counts = NULL,
-                          plpDataFolder = NULL) {
+                          plpDataFolder = NULL, dataFingerprint = NULL) {
   structure(list(databaseName = databaseName, splitLabel = splitLabel, loadPlpData = loadPlpData,
                  populationSettings = populationSettings, split = split, counts = counts,
-                 plpDataFolder = plpDataFolder), class = "sarDataSource")
+                 plpDataFolder = plpDataFolder, dataFingerprint = dataFingerprint), class = "sarDataSource")
 }
 
 #' Data source: an existing plpData object
@@ -128,7 +132,8 @@ prepareRunData <- function(plpData, population, split) {
 
 # One run: what runPlp() does after the preprocessing, the fit and the test predictions (fitPlp(), predictPlp()), but
 # not its evaluation and saved result, which the study does not use.
-runOne <- function(data, population, task, split, modelSettings, method, runFolder, dataSource, budget, ordering) {
+runOne <- function(data, population, task, split, modelSettings, method, runFolder, dataSource, budget, ordering,
+                   fingerprint = NULL) {
   start <- Sys.time()
   scratch <- tempfile("sar_run_")
   on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
@@ -169,6 +174,7 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     versions = packageVersions(), stringsAsFactors = FALSE
   )
   PatientLevelPrediction::savePlpModel(model, file.path(runFolder, "model"))
+  if (!is.null(fingerprint)) writeFingerprint(fingerprint, file.path(runFolder, FINGERPRINT_FILE))
   utils::write.csv(row, file.path(runFolder, "result.csv"), row.names = FALSE)
   row
 }
@@ -182,20 +188,45 @@ taskCounts <- function(dataSource, task, outputFolder) {
        testN = attr(s, "testN"), testEvents = attr(s, "testEvents"))
 }
 
+# A task's runs (budget x ordering x method) and their folders.
+runFolders <- function(task, budgets, orderings, methods, dataSource, outputFolder) {
+  runs <- expand.grid(budget = budgets, ordering = orderings, method = names(methods), stringsAsFactors = FALSE)
+  runs$folder <- file.path(outputFolder, "models", dataSource$databaseName, task$taskId,
+                           sprintf("k%s_o%d_%s", runs$budget, runs$ordering, runs$method))
+  runs
+}
+
+# Finished runs whose recorded settings differ from the current ones: one line each (folder: settings that changed).
+# Finished runs without a fingerprint (from before fingerprints) are counted in attr "legacy".
+changedRuns <- function(task, budgets, orderings, methods, dataSource, outputFolder) {
+  runs <- runFolders(task, budgets, orderings, methods, dataSource, outputFolder)
+  runs <- runs[file.exists(file.path(runs$folder, "result.csv")), , drop = FALSE]
+  legacy <- 0
+  changed <- character()
+  for (r in seq_len(nrow(runs))) {
+    fp <- runFingerprint(dataSource, task, methods[[runs$method[r]]], runs$budget[r], runs$ordering[r])
+    changes <- fingerprintChanges(fp, file.path(runs$folder[r], FINGERPRINT_FILE))
+    if (is.null(changes)) legacy <- legacy + 1
+    else if (length(changes)) changed <- c(changed, sprintf("%s: %s", runs$folder[r], paste(changes, collapse = ", ")))
+  }
+  structure(changed, legacy = legacy)
+}
+
 # The runs still to do of a task, grouped by budget and ordering: one unit per budget and ordering, with what its runs
 # need (and nothing of the data source beyond that, so a unit can go to a worker process).
 modelUnits <- function(task, budgets, orderings, methods, dataSource, outputFolder) {
-  todo <- expand.grid(budget = budgets, ordering = orderings, method = names(methods), stringsAsFactors = FALSE)
-  todo$folder <- file.path(outputFolder, "models", dataSource$databaseName, task$taskId,
-                           sprintf("k%s_o%d_%s", todo$budget, todo$ordering, todo$method))
+  todo <- runFolders(task, budgets, orderings, methods, dataSource, outputFolder)
   todo <- todo[!file.exists(file.path(todo$folder, "result.csv")), , drop = FALSE]
   keys <- unique(todo[, c("budget", "ordering")])
   source <- list(databaseName = dataSource$databaseName, splitLabel = dataSource$splitLabel, split = dataSource$split)
   lapply(seq_len(nrow(keys)), function(j) {
     runs <- todo[todo$budget == keys$budget[j] & todo$ordering == keys$ordering[j], c("method", "folder")]
+    fingerprints <- lapply(seq_len(nrow(runs)), function(r) {
+      runFingerprint(dataSource, task, methods[[runs$method[r]]], keys$budget[j], keys$ordering[j])
+    })
     list(task = task, budget = keys$budget[j], ordering = keys$ordering[j], runs = runs,
          methods = methods[unique(runs$method)], populationSettings = dataSource$populationSettings(task),
-         source = source)
+         source = source, fingerprints = stats::setNames(fingerprints, runs$folder))
   })
 }
 
@@ -240,7 +271,7 @@ runUnit <- function(unit, loadPlpData) {
     unlink(file.path(folder, "error.txt"))
     outcome <- if (inherits(data, "error")) data else tryCatch(
       timed(task$taskId, basename(folder), runOne(data, population, task, splitIds, unit$methods[[method]], method,
-                                                  folder, unit$source, budget, ordering)),
+                                                  folder, unit$source, budget, ordering, unit$fingerprints[[folder]])),
       error = function(e) e)
     if (inherits(outcome, "error")) {
       writeLines(conditionMessage(outcome), file.path(folder, "error.txt"))
@@ -455,7 +486,14 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
     rows <- lapply(seq_len(nrow(tasks)), function(i) {
       task <- tasks[i, ]
       file <- file.path(folder, paste0(task$taskId, ".csv"))
-      if (file.exists(file)) return(utils::read.csv(file))
+      fp <- countsFingerprint(dataSource, task)
+      fpFile <- file.path(folder, paste0(task$taskId, "_", FINGERPRINT_FILE))
+      if (file.exists(file)) {
+        changes <- fingerprintChanges(fp, fpFile)
+        if (!length(changes)) return(utils::read.csv(file)) # same settings, or counts from before fingerprints
+        ParallelLogger::logInfo(sprintf("%s: counts made with other settings (%s), counted again", task$taskId,
+                                        paste(changes, collapse = ", ")))
+      }
       errorFile <- file.path(folder, paste0(task$taskId, "_error.txt"))
       counts <- tryCatch(timed(task$taskId, "counts", taskCounts(dataSource, task, outputFolder)), error = function(e) {
         writeLines(conditionMessage(e), errorFile)
@@ -467,6 +505,7 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
       row <- data.frame(database = database, taskId = task$taskId, n = counts$n, poolN = counts$poolN,
                         poolEvents = counts$poolEvents, testN = counts$testN, testEvents = counts$testEvents,
                         feasible = counts$poolEvents >= 500 && counts$testEvents >= 80)
+      writeFingerprint(fp, fpFile)
       utils::write.csv(row, file, row.names = FALSE)
       row
     })
@@ -475,6 +514,18 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
   clearTaskData()
   on.exit(clearTaskData(), add = TRUE)
   taskBudgets <- function(task) if ("budgets" %in% names(task)) task$budgets[[1]] else budgets
+  # finished runs made with other settings: stop before anything runs, rather than mix two designs
+  changed <- lapply(seq_len(nrow(tasks)), function(i) changedRuns(tasks[i, ], taskBudgets(tasks[i, ]), orderings, methods,
+                                                                  dataSource, outputFolder))
+  legacy <- sum(vapply(changed, attr, numeric(1), "legacy"))
+  if (legacy > 0) ParallelLogger::logInfo(sprintf("%d finished run(s) from before fingerprints: accepted as they are", legacy))
+  changed <- unlist(changed)
+  if (length(changed)) {
+    stop(sprintf(paste0("%d finished run(s) were made with other settings than now (folder: settings that changed):\n%s%s\n",
+                        "Move these run folders away (or restore the settings) and run again."),
+                 length(changed), paste(utils::head(changed, 10), collapse = "\n"),
+                 if (length(changed) > 10) sprintf("\n... and %d more", length(changed) - 10) else ""), call. = FALSE)
+  }
   unitsOf <- function(task) modelUnits(task, taskBudgets(task), orderings, methods, dataSource, outputFolder)
   if (workers > 1) {
     # largest first: the tasks by the training rows of their largest budget, and within a task the largest budget first

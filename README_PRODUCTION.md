@@ -67,8 +67,18 @@ model run, PLP's log (`plpLog.txt` in the run folder). Each worker process logs 
 `Rscript extras/production/timingReport.R` summarises where the time goes and writes `timing_<database>.csv`
 (aggregate, fine to send).
 
+## Restarting after a change
+
+Every cached and finished output records the settings it was made with (`fingerprint.json`): a task's data cache
+(cohort definitions, covariate settings, sample), its counts and each model run (also the population rule, split and
+method settings). After a change of settings, a data cache is extracted again and counts are recounted
+automatically; finished model runs made with other settings stop `execute()` with an error naming the run folders and
+what changed (move them away, or restore the settings). Outputs from before fingerprints are accepted as they are.
+
 ## What leaves the site
 
 `exportResults()` writes one zip: per-run metrics (AUC, log loss, Brier), counts, selected hyperparameters,
-runtimes and package versions, with counts below `minCellCount` shown as `-minCellCount`. It contains no
+runtimes and package versions, with counts below `minCellCount` shown as `-minCellCount`. A run with `nonZero = 0`
+predicts the same risk for everyone (a constant model), whether the intercept-only model was selected
+(`interceptOnly = TRUE`) or a fitted model has no non-zero coefficient. It contains no
 patient-level data, predictions, models or credentials. `outputFolder/data` and `outputFolder/models` stay on site.
