@@ -269,13 +269,13 @@ runTaskDiagnostics <- function(connectionDetails, cdmDatabaseSchema, cohortDatab
     query <- function(sql) diagnosticQuery(connection, translate(sql))
     start <- Sys.time()
     result <- tryCatch(taskDiagnostics(connection, run, query, task, cohortDefinitionSet, tempEmulationSchema), error = function(e) e)
+    tryCatch(dropTemps(run), error = function(e) NULL) # on Spark these are real tables in the scratch schema
     if (inherits(result, "error")) {
       writeLines(conditionMessage(result), file.path(folder, "tasks", paste0(task$taskId, "_error.txt")))
       message(databaseName, " ", task$taskId, " diagnostics failed: ", conditionMessage(result))
       next
     }
     unlink(file.path(folder, "tasks", paste0(task$taskId, "_error.txt")))
-    tryCatch(dropTemps(run), error = function(e) NULL)
     result <- lapply(result, function(d) if (is.null(d)) NULL else censorCounts(as.data.frame(d), minCellCount))
     saveRDS(c(result, list(hash = hash, taskId = task$taskId, seconds = as.numeric(difftime(Sys.time(), start, units = "secs")))), file)
     message(sprintf("%s %s: population %s, events %s, %.0f s", databaseName, task$taskId, result$summary$population, result$summary$events,
@@ -411,4 +411,58 @@ taskScorecard <- function(folders, tasks, thresholds = taskScorecardThresholds()
   }))
   rownames(perTask) <- NULL
   list(scorecard = scorecard, tasks = perTask)
+}
+
+#' Screen the candidate tasks in a database
+#'
+#' Generates the candidate tasks' cohorts in their own cohort table, runs [runTaskDiagnostics()] and [taskScorecard()], and zips the
+#' aggregates to send. Cohorts and counts only: no covariates and no models. Restartable: cohorts and tasks already done are skipped.
+#'
+#' @param connectionDetails DatabaseConnector connection details.
+#' @param cdmDatabaseSchema Schema of the CDM tables and vocabulary.
+#' @param cohortDatabaseSchema A writable schema; the cohort table is `sar_screen_cohort_<database>`.
+#' @param databaseName Name used in the results.
+#' @param outputFolder Folder for the results.
+#' @param minCellCount Counts below this are shown as `-minCellCount`.
+#' @param tempEmulationSchema For platforms without temp tables (e.g. Spark, Oracle).
+#' @return The path of the zip file.
+#' @export
+runTaskScreening <- function(connectionDetails, cdmDatabaseSchema, cohortDatabaseSchema, databaseName, outputFolder, minCellCount = 5,
+                             tempEmulationSchema = getOption("sqlRenderTempEmulationSchema")) {
+  settings <- system.file("settings", "taskScreening", package = "SignalAdaptiveStudy")
+  definitions <- readRDS(file.path(settings, "cohorts.rds"))
+  tasks <- utils::read.csv(file.path(settings, "tasks.csv"), stringsAsFactors = FALSE)
+  dir.create(outputFolder, recursive = TRUE, showWarnings = FALSE)
+  folder <- file.path(outputFolder, "taskDiagnostics", databaseName)
+  dir.create(folder, recursive = TRUE, showWarnings = FALSE)
+  cohortTable <- paste0("sar_screen_cohort_", tolower(databaseName))
+  tables <- CohortGenerator::getCohortTableNames(cohortTable)
+  start <- Sys.time()
+  CohortGenerator::createCohortTables(connectionDetails = connectionDetails, cohortDatabaseSchema = cohortDatabaseSchema,
+                                      cohortTableNames = tables, incremental = TRUE)
+  generated <- CohortGenerator::generateCohortSet(connectionDetails = connectionDetails, cdmDatabaseSchema = cdmDatabaseSchema,
+                                                  tempEmulationSchema = tempEmulationSchema, cohortDatabaseSchema = cohortDatabaseSchema,
+                                                  cohortTableNames = tables, cohortDefinitionSet = definitions, stopOnError = FALSE,
+                                                  incremental = TRUE, incrementalFolder = file.path(folder, "incremental"))
+  generated <- as.data.frame(generated)[, intersect(c("cohortId", "generationStatus", "startTime", "endTime"), names(generated))]
+  utils::write.csv(generated, file.path(folder, "cohort_generation.csv"), row.names = FALSE)
+  message(sprintf("%s: %d cohorts, %s generated or skipped, in %.0f min", databaseName, nrow(generated),
+                  sum(generated$generationStatus %in% c("COMPLETE", "SKIPPED")), as.numeric(difftime(Sys.time(), start, units = "mins"))))
+  failed <- generated$cohortId[!generated$generationStatus %in% c("COMPLETE", "SKIPPED")]
+  if (length(failed)) message("cohorts that failed: ", paste(failed, collapse = ", "))
+  # A task with a failed cohort cannot be diagnosed.
+  usable <- !tasks$targetId %in% failed & !tasks$outcomeId %in% failed
+  start <- Sys.time()
+  runTaskDiagnostics(connectionDetails, cdmDatabaseSchema, cohortDatabaseSchema, cohortTable, tasks[usable, ], definitions, databaseName,
+                     outputFolder, minCellCount = minCellCount, tempEmulationSchema = tempEmulationSchema)
+  message(sprintf("%s: diagnostics in %.0f min", databaseName, as.numeric(difftime(Sys.time(), start, units = "mins"))))
+  card <- taskScorecard(folder, tasks[usable, ])
+  utils::write.csv(card$scorecard, file.path(folder, "scorecard.csv"), row.names = FALSE)
+  utils::write.csv(card$tasks, file.path(folder, "scorecard_tasks.csv"), row.names = FALSE)
+  errors <- list.files(file.path(folder, "tasks"), "_error\\.txt$", full.names = TRUE)
+  zipFile <- normalizePath(file.path(outputFolder, sprintf("SignalAdaptiveStudy_screening_%s_%s.zip", databaseName, format(Sys.Date(), "%Y%m%d"))), mustWork = FALSE)
+  unlink(zipFile)
+  zip::zipr(zipFile, c(list.files(folder, "\\.csv$", full.names = TRUE), errors))
+  message(sprintf("%s: %d of %d tasks diagnosed, %d failed. Send: %s", databaseName, nrow(card$scorecard), nrow(tasks), length(errors), zipFile))
+  zipFile
 }

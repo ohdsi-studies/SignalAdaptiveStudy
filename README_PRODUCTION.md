@@ -58,6 +58,14 @@ only takes effect before Java starts).
 With workers the wall-clock time falls about in proportion to the physical cores (8 vCPUs are often 4 cores with
 hyperthreading). Disk: the plpData cache is a few GB, plus the workers' temporary copies of the task data.
 
+## Screening candidate tasks
+
+`Rscript extras/production/runTaskScreening.R` checks the candidate tasks of the follow-up study in the database named in
+`extras/localSettings.R`: cohorts and counts only, no covariates and no models. Little CPU or memory is needed, as the work
+runs in the database. It has its own cohort table and can run next to a study. It writes
+`SignalAdaptiveStudy_screening/<database>/SignalAdaptiveStudy_screening_<database>_<date>.zip`; send that zip. Rerun after an
+interruption: finished work is skipped.
+
 ## Logs and timings
 
 `outputFolder` holds a timestamped log of every `execute()` call (`log_<database>.txt`), the duration of each step
