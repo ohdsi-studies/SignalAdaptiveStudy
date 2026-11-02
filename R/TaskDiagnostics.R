@@ -396,7 +396,7 @@ taskScorecard <- function(folders, tasks, thresholds = taskScorecardThresholds()
       flag(kind == "chronic" & d$secondRecordShare < th$minSecondRecord, "few-second-records"),
       flag(d$calendarJump > th$maxCalendarRatio, "calendar-jump"),
       flag(d$nonCasesCensoredShare > th$maxNonCasesCensored, "follow-up"),
-      flag(!is.na(events) & events > 0 & (is.na(d$records_found) | d$records_found == 0), "no-code-records")))
+      flag(kind != "death" & !is.na(events) & events > 0 & (is.na(d$records_found) | d$records_found == 0), "no-code-records")))
     d$flags <- gsub(" +", " ", d$flags)
     d
   })
