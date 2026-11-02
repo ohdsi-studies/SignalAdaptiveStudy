@@ -17,9 +17,9 @@ syntheticCdm <- function(dbms) {
   put("concept", data.frame(concept_id = c(100, 101, 102), domain_id = "Condition"))
   put("concept_ancestor", data.frame(ancestor_concept_id = c(100, 100, 100, 101, 102), descendant_concept_id = c(100, 101, 102, 101, 102)))
   conditions <- data.frame(
-    person_id = c(1, 1, 1, 2, 5, 6, 9),
-    condition_concept_id = c(100, 100, 100, 101, 100, 100, 102), # 102 is excluded from the concept set
-    condition_start_date = d(c("2010-01-06", "2010-04-16", "2005-01-01", "2010-07-20", "2010-01-31", "2005-01-01", "2010-06-01")))
+    person_id = c(1, 1, 1, 2, 2, 5, 6, 9),
+    condition_concept_id = c(100, 100, 100, 101, 100, 100, 100, 102), # 102 is excluded from the concept set
+    condition_start_date = d(c("2010-01-06", "2010-04-16", "2005-01-01", "2010-07-20", "1999-03-01", "2010-01-31", "2005-01-01", "2010-06-01")))
   put("condition_occurrence", conditions)
   put("visit_occurrence", data.frame(person_id = 2, visit_concept_id = 9201, visit_start_date = d("2010-07-19"), visit_end_date = d("2010-07-22")))
   put("death", data.frame(person_id = 10, death_date = d("2010-06-01")))
@@ -62,9 +62,10 @@ for (dbms in c("duckdb", "sqlite")) {
     expect_equal(s$person_days, 5 + 200 + 365 + 59 + 30 + 365 + 365)
     expect_equal(s$events_with_hospital_care, 1) # person 2
     expect_equal(s$deaths_at_risk, 1)     # person 10
-    expect_equal(s$records_found, 5)      # person 1: 3 records; persons 2 and 5: 1 each
+    expect_equal(s$records_found, 6)      # person 1: 3 records; person 2: 2; person 5: 1
     expect_equal(s$second_record_365, 1)  # person 1
-    expect_equal(s$events_with_earlier_record, 1) # person 1
+    expect_equal(s$events_with_earlier_record, 2) # person 1, in observation; person 2, before observation starts
+    expect_equal(s$events_with_record_before_observation, 1) # person 2
     expect_equal(s$recurrence_window_cases, 2)    # 1 and 2; person 5 left after 45 days
     timing <- utils::read.csv(file.path(folder, "timing.csv"))
     expect_equal(timing$events[match(c(7, 30, 365), timing$up_to_day)], c(1, 1, 1))
@@ -96,16 +97,16 @@ test_that("the scorecard turns diagnostics into gates and flags", {
                    events = c(4000, 4000, 100), non_cases_censored = c(1e4, 2e4, 1e4), cases_censored = 0,
                    person_days = 3e7, outcome_entries = 1e4, events_with_hospital_care = 100, deaths_at_risk = 10,
                    recurrence_window_cases = c(3000, 3000, 80), second_record_365 = c(2000, 100, 40),
-                   events_with_earlier_record = c(10, 1000, 1), records_found = c(9000, 3000, 200))
+                   events_with_earlier_record = c(10, 1000, 1), events_with_record_before_observation = 0, records_found = c(9000, 3000, 200))
   utils::write.csv(ok, file.path(folder, "summary.csv"), row.names = FALSE)
   timing <- rbind(data.frame(taskId = "good", up_to_day = c(7, 365), events = c(80, 3920)),
                   data.frame(taskId = "bad", up_to_day = c(7, 365), events = c(2000, 2000)),
                   data.frame(taskId = "few", up_to_day = c(7, 365), events = c(2, 98)))
   utils::write.csv(timing, file.path(folder, "timing.csv"), row.names = FALSE)
   years <- 2010:2017
-  calendar <- rbind(data.frame(taskId = "good", index_year = years, persons = 1000),
-                    data.frame(taskId = "bad", index_year = years, persons = c(1000, 1000, 1000, 5000, 5000, 5000, 5000, 5000)),
-                    data.frame(taskId = "few", index_year = years, persons = 1000))
+  calendar <- rbind(data.frame(taskId = "good", index_year = years, persons = 1000, events = 500, person_days = 1e6 * seq_along(years)^0 ),
+                    data.frame(taskId = "bad", index_year = years, persons = 1000, events = c(100, 100, 100, 500, 500, 500, 500, 500), person_days = 1e6),
+                    data.frame(taskId = "few", index_year = years, persons = 1000, events = 5, person_days = 1e6))
   utils::write.csv(calendar, file.path(folder, "calendar.csv"), row.names = FALSE)
   utils::write.csv(data.frame(persons = 1e6, deaths = 0, first_date = "2005-01-01", last_date = "2020-01-01"), file.path(folder, "database.csv"), row.names = FALSE)
   tasks <- data.frame(taskId = c("good", "bad", "few"), riskWindowEnd = 365, outcomeKind = c("chronic", "chronic", "death"))
@@ -142,4 +143,26 @@ test_that("the diagnostic SQL translates to every dialect", {
   scalars <- scalarsSql(c(a = "SELECT COUNT(*) AS n FROM x", b = "SELECT COUNT(*) AS n FROM y"))
   expect_match(scalars, "CROSS JOIN", fixed = TRUE)
   expect_match(scalars, "^SELECT s1.n AS a, s2.n AS b FROM")
+})
+
+test_that("the calendar check reads rates, not a database's growth, and early events count person-time", {
+  folder <- file.path(tempfile("sar_card2_"), "DB1")
+  dir.create(folder, recursive = TRUE)
+  on.exit(unlink(dirname(folder), recursive = TRUE), add = TRUE)
+  s <- data.frame(taskId = "growing", target_entries = 1e5, target_persons = 1e5, in_observation = 1e5, with_washout = 1e5, prior_outcome = 0,
+                  prior_outcome_365 = 0, population = 1e5, events = 4000, non_cases_censored = 1e4, cases_censored = 0,
+                  person_days = 1e5 * 500, outcome_entries = 4000, events_with_hospital_care = 0, deaths_at_risk = 0,
+                  recurrence_window_cases = 3000, second_record_365 = 2000, events_with_earlier_record = 0,
+                  events_with_record_before_observation = 0, records_found = 9000)
+  utils::write.csv(s, file.path(folder, "summary.csv"), row.names = FALSE)
+  # 5 years at risk per person on a horizon of 5 years but half censored: 7 days is 1.4% of 500 days' person-time.
+  utils::write.csv(data.frame(taskId = "growing", up_to_day = c(7, 9999), events = c(56, 3944)), file.path(folder, "timing.csv"), row.names = FALSE)
+  years <- 2010:2017; grow <- 3^(0:7) * 100 # entries triple every year, at a constant rate
+  utils::write.csv(data.frame(taskId = "growing", index_year = years, persons = grow, events = grow, person_days = grow * 100),
+                   file.path(folder, "calendar.csv"), row.names = FALSE)
+  utils::write.csv(data.frame(persons = 1e6, deaths = 1, first_date = "2005-01-01", last_date = "2020-01-01"), file.path(folder, "database.csv"), row.names = FALSE)
+  card <- taskScorecard(folder, data.frame(taskId = "growing", riskWindowEnd = 1825, outcomeKind = "chronic"))$scorecard
+  expect_equal(card$calendarJump, 1)
+  expect_equal(card$earlyRatio, 1)
+  expect_identical(card$flags, "")
 })

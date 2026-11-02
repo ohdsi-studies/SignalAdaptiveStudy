@@ -3,6 +3,9 @@
 # statement goes through SqlRender, so it runs on all OHDSI dialects. taskScorecard() turns the results into gates and
 # flags. What runTaskDiagnostics() writes is aggregate: counts below minCellCount are shown as -minCellCount.
 
+# Part of each task's restart check: raise it when what the diagnostics compute changes.
+DIAGNOSTICS_VERSION <- 2
+
 DIAGNOSTIC_DOMAINS <- list(
   Condition = c("condition_occurrence", "condition_concept_id", "condition_start_date"),
   Drug = c("drug_exposure", "drug_concept_id", "drug_exposure_start_date"),
@@ -73,7 +76,7 @@ createDiagnosticPopulation <- function(run, task) {
     GROUP BY o.subject_id;
 
     DROP TABLE IF EXISTS #diag_pop;
-    SELECT o.subject_id, o.index_date, o.follow_days
+    SELECT o.subject_id, o.index_date, o.prior_days, o.follow_days
     INTO #diag_pop
     FROM #diag_obs o
     LEFT JOIN #diag_prior p ON p.subject_id = o.subject_id
@@ -90,7 +93,7 @@ createDiagnosticPopulation <- function(run, task) {
     GROUP BY p.subject_id;
 
     DROP TABLE IF EXISTS #diag_risk;
-    SELECT p.subject_id, p.index_date, p.follow_days, e.event_date,
+    SELECT p.subject_id, p.index_date, p.prior_days, p.follow_days, e.event_date,
            CASE WHEN e.event_date IS NULL THEN 0 ELSE 1 END AS has_event,
            CASE WHEN e.event_date IS NOT NULL THEN DATEDIFF(dd, p.index_date, e.event_date)
                 WHEN p.follow_days < @risk_end THEN p.follow_days ELSE @risk_end END AS days_at_risk
@@ -184,24 +187,28 @@ taskDiagnostics <- function(connection, run, query, task, cohortDefinitionSet, t
     FROM #diag_risk r INNER JOIN @cdm.death d ON d.person_id = r.subject_id
       AND d.death_date > r.index_date AND d.death_date <= DATEADD(dd, @risk_end, r.index_date)")
   summary <- cbind(summary, care, death, recurrence_window_cases = NA_real_, second_record_365 = NA_real_,
-                   events_with_earlier_record = NA_real_, records_found = NA_real_)
+                   events_with_earlier_record = NA_real_, events_with_record_before_observation = NA_real_, records_found = NA_real_)
   codes <- NULL
   json <- cohortDefinitionSet$json[cohortDefinitionSet$cohortId == task$outcomeId]
   items <- if (length(json)) entryConceptItems(json) else NULL
   if (!is.null(items) && summary$events > 0) {
-    run("DROP TABLE IF EXISTS #diag_cases; SELECT subject_id, index_date, event_date INTO #diag_cases FROM #diag_risk WHERE has_event = 1;")
+    run("DROP TABLE IF EXISTS #diag_cases;
+         SELECT subject_id, index_date, event_date, prior_days,
+                CASE WHEN follow_days >= DATEDIFF(dd, index_date, event_date) + 365 THEN 1 ELSE 0 END AS full_year_after_event
+         INTO #diag_cases FROM #diag_risk WHERE has_event = 1;")
     if (createEntryRecords(connection, run, query, items, "#diag_cases", tempEmulationSchema)) {
       evidence <- query("
         SELECT COUNT(*) AS records_found,
-               COUNT(DISTINCT CASE WHEN r.record_date > c.event_date AND r.record_date <= DATEADD(dd, 365, c.event_date) THEN r.subject_id END) AS second_record_365,
-               COUNT(DISTINCT CASE WHEN r.record_date < c.index_date THEN r.subject_id END) AS events_with_earlier_record
+               COUNT(DISTINCT CASE WHEN c.full_year_after_event = 1 AND r.record_date > c.event_date
+                                    AND r.record_date <= DATEADD(dd, 365, c.event_date) THEN r.subject_id END) AS second_record_365,
+               COUNT(DISTINCT CASE WHEN r.record_date < c.index_date THEN r.subject_id END) AS events_with_earlier_record,
+               COUNT(DISTINCT CASE WHEN r.record_date < DATEADD(dd, -c.prior_days, c.index_date) THEN r.subject_id END) AS events_with_record_before_observation
         FROM #diag_cases c INNER JOIN #diag_records r ON r.subject_id = c.subject_id")
       summary$records_found <- evidence$records_found
       summary$second_record_365 <- evidence$second_record_365
       summary$events_with_earlier_record <- evidence$events_with_earlier_record
-      summary$recurrence_window_cases <- query("
-        SELECT COUNT(*) AS n FROM #diag_cases c INNER JOIN #diag_risk r ON r.subject_id = c.subject_id
-        WHERE r.follow_days >= DATEDIFF(dd, c.index_date, c.event_date) + 365")$n
+      summary$events_with_record_before_observation <- evidence$events_with_record_before_observation
+      summary$recurrence_window_cases <- query("SELECT COUNT(*) AS n FROM #diag_cases WHERE full_year_after_event = 1")$n
       codes <- query("
         SELECT r.concept_id, COUNT(DISTINCT r.subject_id) AS persons
         FROM #diag_records r INNER JOIN #diag_cases c ON c.subject_id = r.subject_id AND r.record_date = c.event_date
@@ -249,7 +256,7 @@ runTaskDiagnostics <- function(connectionDetails, cdmDatabaseSchema, cohortDatab
     task <- tasks[i, ]
     file <- file.path(folder, "tasks", paste0(task$taskId, ".rds"))
     definition <- cohortDefinitionSet$sql[match(c(task$targetId, task$outcomeId), cohortDefinitionSet$cohortId)]
-    settings <- list(database = databaseName, cdm = cdmDatabaseSchema, target = definition[1], outcome = definition[2],
+    settings <- list(version = DIAGNOSTICS_VERSION, database = databaseName, cdm = cdmDatabaseSchema, target = definition[1], outcome = definition[2],
                      riskStart = defaults(task, "riskWindowStart", 1), riskEnd = task$riskWindowEnd,
                      washout = defaults(task, "washoutDays", 365), minCellCount = minCellCount)
     hash <- rlang::hash(settings)
@@ -357,19 +364,22 @@ taskScorecard <- function(folders, tasks, thresholds = taskScorecardThresholds()
       n <- sum(positive(x$events), na.rm = TRUE)
       if (n == 0) NA_real_ else sum(positive(x$events[x$up_to_day <= th$earlyDays]), na.rm = TRUE) / n
     }, numeric(1))
-    d$earlyRatio <- d$earlyShare / pmin(1, th$earlyDays / d$riskWindowEnd)
+    # Against a constant hazard over the person-time observed, so that censoring does not make long horizons look early.
+    d$earlyRatio <- d$earlyShare / pmin(1, th$earlyDays * population / positive(d$person_days))
     d$earlierRecordShare <- positive(d$events_with_earlier_record) / events
+    d$recordBeforeObservationShare <- positive(d$events_with_record_before_observation) / events
     d$secondRecordShare <- positive(d$second_record_365) / positive(d$recurrence_window_cases)
     d$hospitalCareShare <- positive(d$events_with_hospital_care) / events
     d$calendarJump <- vapply(d$taskId, function(id) {
       if (is.null(calendar)) return(NA_real_)
       x <- calendar[calendar$taskId == id, ]
       x <- x[order(x$index_year), ]
-      x <- x[!x$index_year %in% 2020:2021 & !is.na(x$persons) & x$persons >= th$minCalendarEvents, ]
-      # first and last years are often partial
-      if (nrow(x) < 5) return(NA_real_)
-      x <- x[-c(1, nrow(x)), ]
-      r <- x$persons[-1] / x$persons[-nrow(x)]
+      # Rates, so that a database's growth does not count; first and last years are often partial; 2020-21 is left out.
+      if (nrow(x) > 2) x <- x[-c(1, nrow(x)), ]
+      x <- x[!x$index_year %in% 2020:2021 & !is.na(x$events) & x$events >= th$minCalendarEvents, ]
+      if (nrow(x) < 4) return(NA_real_)
+      rate <- x$events / x$person_days
+      r <- rate[-1] / rate[-length(rate)]
       max(r, 1 / r)
     }, numeric(1))
     d$deathsRecorded <- !is.null(info) && !is.na(info$deaths) && info$deaths > 0
@@ -386,7 +396,7 @@ taskScorecard <- function(folders, tasks, thresholds = taskScorecardThresholds()
       flag(kind == "chronic" & d$secondRecordShare < th$minSecondRecord, "few-second-records"),
       flag(d$calendarJump > th$maxCalendarRatio, "calendar-jump"),
       flag(d$nonCasesCensoredShare > th$maxNonCasesCensored, "follow-up"),
-      flag(is.na(d$records_found) | d$records_found == 0, "no-code-records")))
+      flag(!is.na(events) & events > 0 & (is.na(d$records_found) | d$records_found == 0), "no-code-records")))
     d$flags <- gsub(" +", " ", d$flags)
     d
   })
