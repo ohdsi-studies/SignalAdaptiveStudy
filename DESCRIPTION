@@ -14,6 +14,7 @@ Imports:
     DatabaseConnector,
     dplyr,
     FeatureExtraction,
+    jsonlite,
     Matrix,
     memuse,
     methods,
