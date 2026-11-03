@@ -60,11 +60,17 @@ hyperthreading). Disk: the plpData cache is a few GB, plus the workers' temporar
 
 ## Screening candidate tasks
 
-`Rscript extras/production/runTaskScreening.R` checks the candidate tasks of the follow-up study in the database named in
-`extras/localSettings.R`: cohorts and counts only, no covariates and no models. Little CPU or memory is needed, as the work
-runs in the database. It has its own cohort table and can run next to a study. It writes
-`SignalAdaptiveStudy_screening/<database>/SignalAdaptiveStudy_screening_<database>_<date>.zip`; send that zip. Rerun after an
-interruption: finished work is skipped.
+`Rscript extras/production/runTaskScreening.R` checks the candidate tasks of the follow-up study: cohorts and counts only, no
+covariates and no models. With no arguments it goes through every database in `cdmSchemas`, one after the other; name databases to run
+only those (`Rscript extras/production/runTaskScreening.R MDCD MDCR`). A database that fails does not stop the others, and the last
+message lists each database's result. Little CPU or memory is needed, as the work runs in the database. It is safe next to a running
+study, because it uses its own cohort table,
+`sar_screen_cohort_<database>`. For each database it writes
+`SignalAdaptiveStudy_screening/<database>/SignalAdaptiveStudy_screening_<database>_<date>.zip`; send those zips. Rerun after an
+interruption: cohorts and tasks already done are skipped, so a database screened before only runs what is new.
+
+The tasks marked `feasibility` in `inst/settings/taskScreening/tasks.csv` use rough cohorts, not study phenotypes: they show whether a task
+has enough events, not whether its definition is right.
 
 ## Logs and timings
 

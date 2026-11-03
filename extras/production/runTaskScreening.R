@@ -2,7 +2,9 @@
 # Writes a zip of aggregates (counts below minCellCount censored) to send back. Safe next to a running study: it uses its own
 # cohort table, sar_screen_cohort_<database>. Restartable: rerun after an interruption.
 #
-#   Rscript extras/production/runTaskScreening.R               (in the project folder; settings as for CodeToRun.R)
+#   Rscript extras/production/runTaskScreening.R               every database in cdmSchemas, one after the other
+#   Rscript extras/production/runTaskScreening.R MDCD MDCR     only these
+# (in the project folder; settings as for CodeToRun.R). A database that fails does not stop the others.
 
 # Needed by the Databricks JDBC driver, before Java starts (see CodeToRun.R)
 options(java.parameters = "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED")
@@ -18,7 +20,14 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
   dbms = "spark", connectionString = connectionString, user = "token", password = Sys.getenv("DATABASE_PASSWORD"),
   pathToDriver = Sys.getenv("DATABASE_DRIVER"))
 
-source("extras/localSettings.R")   # scratchSchema, minCellCount, cdmSchemas, databaseName
+source("extras/localSettings.R")   # scratchSchema, minCellCount, cdmSchemas
 options(sqlRenderTempEmulationSchema = scratchSchema)
-runTaskScreening(connectionDetails, cdmSchemas[[databaseName]], scratchSchema, databaseName,
-                 outputFolder = file.path(getwd(), "SignalAdaptiveStudy_screening", databaseName), minCellCount = minCellCount)
+args <- commandArgs(trailingOnly = TRUE)
+databases <- if (length(args)) args else names(cdmSchemas)
+stopifnot(all(databases %in% names(cdmSchemas)))
+results <- vapply(databases, function(database) {
+  tryCatch(runTaskScreening(connectionDetails, cdmSchemas[[database]], scratchSchema, database,
+                            outputFolder = file.path(getwd(), "SignalAdaptiveStudy_screening", database), minCellCount = minCellCount),
+           error = function(e) paste("FAILED:", conditionMessage(e)))
+}, "")
+message(paste(sprintf("%s: %s", databases, results), collapse = "\n"))
