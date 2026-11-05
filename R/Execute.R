@@ -99,11 +99,59 @@ aucMannWhitney <- function(y, p) {
   (sum(r[y == 1]) - n1 * (n1 + 1) / 2) / (n1 * n0)
 }
 
+# DeLong's standard error of an AUC (Sun & Xu's fast form), from midranks.
+aucDeLongSe <- function(y, p) {
+  n1 <- as.numeric(sum(y == 1)); n0 <- as.numeric(sum(y == 0))
+  if (n1 < 2 || n0 < 2) return(NA_real_)
+  all <- rank(p)
+  v10 <- (all[y == 1] - rank(p[y == 1])) / n0
+  v01 <- 1 - (all[y == 0] - rank(p[y == 0])) / n1
+  sqrt(stats::var(v10) / n1 + stats::var(v01) / n0)
+}
+
+# Calibration on the test rows: logistic slope and intercept on the model's linear predictor, the intercept with the
+# slope fixed at 1 (calibration in the large), and expected over observed. NA where the predictions are constant.
+calibrationMetrics <- function(y, p) {
+  eta <- stats::qlogis(p)
+  out <- list(calibrationSlope = NA_real_, calibrationIntercept = NA_real_, calibrationInTheLarge = NA_real_,
+              expectedOverObserved = if (sum(y) > 0) sum(p) / sum(y) else NA_real_)
+  if (length(unique(y)) < 2) return(out)
+  fit <- function(...) suppressWarnings(tryCatch(stats::glm.fit(..., family = stats::binomial()), error = function(e) NULL))
+  large <- fit(rep(1, length(y)), y, offset = eta)
+  if (!is.null(large) && large$converged) out$calibrationInTheLarge <- unname(large$coefficients[1])
+  if (stats::sd(eta) > 0) {
+    free <- fit(cbind(1, eta), y)
+    if (!is.null(free) && free$converged) {
+      out$calibrationIntercept <- unname(free$coefficients[1])
+      out$calibrationSlope <- unname(free$coefficients[2])
+    }
+  }
+  out
+}
+
 testMetrics <- function(y, p, trainingY) {
   p <- pmin(pmax(p, 1e-15), 1 - 1e-15)
   b0 <- stats::plogis(smoothedIntercept(trainingY)) # the null model: the training (support) rate
-  list(auc = aucMannWhitney(y, p), logLoss = -mean(y * log(p) + (1 - y) * log(1 - p)),
-       nullLogLoss = -mean(y * log(b0) + (1 - y) * log(1 - b0)), brier = mean((p - y)^2))
+  c(list(auc = aucMannWhitney(y, p), aucSe = aucDeLongSe(y, p), logLoss = -mean(y * log(p) + (1 - y) * log(1 - p)),
+         nullLogLoss = -mean(y * log(b0) + (1 - y) * log(1 - b0)), brier = mean((p - y)^2)),
+    calibrationMetrics(y, p))
+}
+
+# The same metrics on the test rows with the full time at risk: the secondary test set without patients lost to
+# follow-up (cases and non-cases), for the rule that keeps them in the primary one.
+followUpMetrics <- function(test, population, settings, trainingY) {
+  horizon <- settings$riskWindowEnd - settings$riskWindowStart + 1
+  atRisk <- population$timeAtRisk[match(test$rowId, population$rowId)]
+  keep <- !is.na(atRisk) & atRisk >= horizon
+  y <- as.numeric(test$outcomeCount[keep] > 0)
+  out <- list(nTestFullFollowUp = sum(keep), eventsTestFullFollowUp = sum(y), aucFullFollowUp = NA_real_,
+              logLossFullFollowUp = NA_real_, calibrationInTheLargeFullFollowUp = NA_real_)
+  if (length(unique(y)) == 2) {
+    m <- testMetrics(y, test$value[keep], trainingY)
+    out$aucFullFollowUp <- m$auc; out$logLossFullFollowUp <- m$logLoss
+    out$calibrationInTheLargeFullFollowUp <- m$calibrationInTheLarge
+  }
+  out
 }
 
 packageVersions <- function() {
@@ -151,6 +199,7 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
   trainingRows <- split$rowId[split$index > 0]
   trainingY <- as.numeric(population$outcomeCount[match(trainingRows, population$rowId)] > 0)
   m <- testMetrics(as.numeric(test$outcomeCount > 0), test$value, trainingY)
+  full <- followUpMetrics(test, population, dataSource$populationSettings(task), trainingY)
   fp <- model$trainDetails$finalModelParameters
   # other PLP models (e.g. Broken Adaptive Ridge) lack the SAR fields: NA, non-zeros from their coefficients
   value <- function(x) if (length(x) == 1) x else NA # BAR's variance, e.g., is one per coefficient
@@ -160,12 +209,18 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     fp$nonZero <- if (is.data.frame(co)) sum(co$betas != 0 & co$covariateIds != "(Intercept)") else NA
   }
   row <- data.frame(
-    database = dataSource$databaseName, taskId = task$taskId, budget = if (is.null(budget)) NA else budget,
+    database = dataSource$databaseName, taskId = task$taskId, featureSet = task$featureSet %||% NA,
+    budget = if (is.null(budget)) NA else budget,
     ordering = ordering, method = method, split = dataSource$splitLabel, search = value(fp$search),
     cSelection = value(modelSettings$param$cSelection),
     nTrain = attr(split, "trainingN"), eventsTrain = attr(split, "trainingEvents"),
     nTest = nrow(test), eventsTest = sum(test$outcomeCount > 0),
-    auc = m$auc, logLoss = m$logLoss, nullLogLoss = m$nullLogLoss, brier = m$brier,
+    auc = m$auc, aucSe = m$aucSe, logLoss = m$logLoss, nullLogLoss = m$nullLogLoss, brier = m$brier,
+    calibrationSlope = m$calibrationSlope, calibrationIntercept = m$calibrationIntercept,
+    calibrationInTheLarge = m$calibrationInTheLarge, expectedOverObserved = m$expectedOverObserved,
+    nTestFullFollowUp = full$nTestFullFollowUp, eventsTestFullFollowUp = full$eventsTestFullFollowUp,
+    aucFullFollowUp = full$aucFullFollowUp, logLossFullFollowUp = full$logLossFullFollowUp,
+    calibrationInTheLargeFullFollowUp = full$calibrationInTheLargeFullFollowUp,
     interceptOnly = isTRUE(fp$interceptOnly), c1 = shape[1], c2 = shape[2], c3 = shape[3],
     lambda = value(fp$lambda), variance = value(fp$variance), cvLoss = value(fp$cvLoss),
     ordinateLoss = value(fp$ordinateLoss), interceptCvLoss = value(fp$interceptCvLoss), nonZero = fp$nonZero,
@@ -218,7 +273,8 @@ modelUnits <- function(task, budgets, orderings, methods, dataSource, outputFold
   todo <- runFolders(task, budgets, orderings, methods, dataSource, outputFolder)
   todo <- todo[!file.exists(file.path(todo$folder, "result.csv")), , drop = FALSE]
   keys <- unique(todo[, c("budget", "ordering")])
-  source <- list(databaseName = dataSource$databaseName, splitLabel = dataSource$splitLabel, split = dataSource$split)
+  source <- list(databaseName = dataSource$databaseName, splitLabel = dataSource$splitLabel, split = dataSource$split,
+                 populationSettings = dataSource$populationSettings)
   lapply(seq_len(nrow(keys)), function(j) {
     runs <- todo[todo$budget == keys$budget[j] & todo$ordering == keys$ordering[j], c("method", "folder")]
     fingerprints <- lapply(seq_len(nrow(runs)), function(r) {

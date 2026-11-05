@@ -1,28 +1,46 @@
-# Cohorts of the new catalogue tasks (3b counts only, so the tasks stay unseen): the PLP benchmark definitions of
-# SAR-017, SAR-175, SAR-287 and SAR-288 (investigator, 2026-10-30: use the benchmark definitions as they are), copied
-# from the PLPBenchmarks package with cohort ID 3000 + the benchmark's ID. Writes inst/cohorts/<cohortId>.json and
-# .sql (CirceR) and adds them to inst/settings/cohorts.csv.
+# Cohorts and tasks of the PLP benchmark run. Copies the PLP benchmark definitions as they are from the PLPBenchmarks
+# package (cohort ID 3000 + the benchmark's ID), and the 64 phenotype features of the PLP vignette "Constrained Predictors" from
+# PhenotypeLibrary (cohort ID 100000 + the library's ID). Writes inst/cohorts/<cohortId>.json and .sql (CirceR), adds them to
+# inst/settings/cohorts.csv, and writes inst/settings/benchmarkTasks.csv from the benchmark's problem specification and model designs.
 #
-# CirceR is not in renv; run outside the project folder with the user library:
+# CirceR and PhenotypeLibrary are not in renv; run outside the project folder with the user library:
 #   cd /tmp && Rscript --no-init-file <repo>/extras/production/addBenchmarkCohorts.R <repo> <PLPBenchmarks checkout>
 
 args <- commandArgs(trailingOnly = TRUE)
 .libPaths(c("~/R/x86_64-pc-linux-gnu-library/4.6", .libPaths()))
 repo <- normalizePath(args[1]); benchmarks <- normalizePath(args[2])
-benchmarkIds <- c(2, 1, 3, 4, 17, 25, 24, 18) # T2dm_second_line, HF, anemia, colorectal cancer, afib, non-hem-stroke, mdd, bipolar
+problems <- utils::read.csv(file.path(benchmarks, "inst/extdata/ProblemSpecification.csv"), stringsAsFactors = FALSE)
+designs <- readRDS(file.path(benchmarks, "inst/extdata/BenchmarkModelDesignList.Rds"))
+stopifnot(length(designs) == nrow(problems),
+          all(vapply(designs, function(d) d$targetId, 1) == problems$targetId),
+          all(vapply(designs, function(d) d$outcomeId, 1) == problems$outcomeId),
+          all(vapply(designs, function(d) d$populationSettings$riskWindowStart, 1) == problems$TAR_start_day),
+          all(vapply(designs, function(d) d$populationSettings$riskWindowEnd, 1) == problems$TAR_end_day))
 names <- utils::read.csv(file.path(benchmarks, "inst/settings/CohortsToCreate.csv"))
-roles <- c("target", "outcome")[c(1, 2, 1, 2, 1, 2, 1, 2)]
-new <- data.frame(cohortId = 3000 + benchmarkIds,
-                  cohortName = paste(names$cohort_name[match(benchmarkIds, names$cohort_id)], roles),
-                  phenotype = names$cohort_name[match(benchmarkIds, names$cohort_id)], role = roles)
-for (i in seq_len(nrow(new))) {
-  json <- paste(readLines(file.path(benchmarks, "inst/cohorts", paste0(benchmarkIds[i], ".json"))), collapse = "\n")
+nameOf <- function(id) names$cohort_name[match(id, names$cohort_id)]
+write <- function(cohortId, json) {
   sql <- CirceR::buildCohortQuery(CirceR::cohortExpressionFromJson(json), CirceR::createGenerateOptions(generateStats = FALSE))
-  writeLines(json, file.path(repo, "inst/cohorts", sprintf("%d.json", new$cohortId[i])))
-  writeLines(sql, file.path(repo, "inst/cohorts", sprintf("%d.sql", new$cohortId[i])))
+  writeLines(json, file.path(repo, "inst/cohorts", sprintf("%d.json", cohortId)))
+  writeLines(sql, file.path(repo, "inst/cohorts", sprintf("%d.sql", cohortId)))
 }
 cohorts <- utils::read.csv(file.path(repo, "inst/settings/cohorts.csv"))
-cohorts <- rbind(cohorts[!cohorts$cohortId %in% new$cohortId, ], new)
-utils::write.csv(cohorts, file.path(repo, "inst/settings/cohorts.csv"), row.names = FALSE)
+ids <- sort(unique(c(problems$targetId, problems$outcomeId)))
+role <- ifelse(ids %in% problems$targetId, "target", "outcome")
+new <- data.frame(cohortId = 3000 + ids, cohortName = paste(nameOf(ids), role), phenotype = nameOf(ids), role = role, use = "benchmark")
+new <- new[!new$cohortId %in% cohorts$cohortId, ]
+for (id in ids) write(3000L + id, paste(readLines(file.path(benchmarks, "inst/cohorts", paste0(id, ".json"))), collapse = "\n"))
+
+library <- as.data.frame(PhenotypeLibrary::getPlCohortDefinitionSet(1152:1215))
+stopifnot(nrow(library) == 64)
+for (i in seq_len(nrow(library))) write(100000L + library$cohortId[i], library$json[i])
+features <- data.frame(cohortId = 100000 + library$cohortId, cohortName = library$cohortName, phenotype = library$cohortName, role = "feature", use = "feature")
+cohorts <- rbind(cohorts[cohorts$use == "study" | cohorts$cohortId %in% c(), ], new, features)
+utils::write.csv(cohorts[order(cohorts$cohortId), ], file.path(repo, "inst/settings/cohorts.csv"), row.names = FALSE)
+
+tasks <- data.frame(taskId = paste0("benchmark_", problems$analysisName), benchmark = problems$analysisName, target = nameOf(problems$targetId),
+                    outcome = nameOf(problems$outcomeId), timeAtRiskDays = problems$TAR_end_day, riskWindowStart = problems$TAR_start_day,
+                    firstExposureOnly = vapply(designs, function(d) d$populationSettings$firstExposureOnly, TRUE),
+                    targetId = 3000 + problems$targetId, outcomeId = 3000 + problems$outcomeId, populationRule = "benchmark")
+utils::write.csv(tasks, file.path(repo, "inst/settings/benchmarkTasks.csv"), row.names = FALSE)
 commit <- tryCatch(system2("git", c("-C", benchmarks, "rev-parse", "--short", "HEAD"), stdout = TRUE), error = function(e) NA)
-message("CirceR ", packageVersion("CirceR"), "; PLPBenchmarks ", commit, ": ", nrow(new), " cohorts added")
+message("CirceR ", packageVersion("CirceR"), "; PLPBenchmarks ", commit, "; PhenotypeLibrary ", packageVersion("PhenotypeLibrary"), ": ", nrow(new), " benchmark and ", nrow(features), " feature cohorts added, ", nrow(tasks), " tasks")

@@ -160,8 +160,8 @@
       "RemoteHost": "api.github.com",
       "RemoteUsername": "OHDSI",
       "RemoteRepo": "Cyclops",
-      "RemoteRef": "c04f498ad945f131a4ebb1ad158b150590343721",
-      "RemoteSha": "c04f498ad945f131a4ebb1ad158b150590343721"
+      "RemoteRef": "develop",
+      "RemoteSha": "e6519b9ee7b93e08db430f3bfb0f3ab46d4c5cce"
     },
     "DBI": {
       "Package": "DBI",

@@ -20,11 +20,15 @@ originalTasks <- function() {
 #' `extras/production/buildOriginalCohorts.R`); for the new catalogue tasks, the PLP benchmark definitions (ID 3000
 #' + the benchmark's cohort ID, `extras/production/addBenchmarkCohorts.R`).
 #'
+#' @param uses Which cohorts: `"study"` (the original tasks and the 4 catalogue tasks), `"benchmark"` (the other PLP
+#'   benchmark cohorts) and `"feature"` (the phenotype features, PhenotypeLibrary IDs + 100000), as in
+#'   `inst/settings/cohorts.csv`.
 #' @return A cohort definition set (`cohortId`, `cohortName`, `json`, `sql`) for CohortGenerator, with `phenotype`
 #'   and `role`.
 #' @export
-studyCohortDefinitionSet <- function() {
+studyCohortDefinitionSet <- function(uses = "study") {
   cohorts <- utils::read.csv(system.file("settings", "cohorts.csv", package = "SignalAdaptiveStudy"))
+  cohorts <- cohorts[cohorts$use %in% uses, ]
   read <- function(id, ext) {
     paste(readLines(system.file("cohorts", paste0(id, ext), package = "SignalAdaptiveStudy")), collapse = "\n")
   }
@@ -165,12 +169,14 @@ WHERE cohort_definition_id = @target_id AND @hash < @threshold;"
 }
 
 # The PLP benchmark's population settings (PLPBenchmarks, BenchmarkModelDesignList): >= 365 days of prior
-# observation, no outcome any time before, the outcome in days 1 to the horizon, cases kept without full follow-up.
-benchmarkPopulationSettings <- function(timeAtRiskDays) {
+# observation, no outcome any time before, the outcome in the risk window, cases kept without full follow-up. The
+# risk window's start and first-entry rule differ between benchmarks: day 0 for MACE; every entry for the COVID, lung
+# cancer and dementia problems. A task without those columns: day 1, first entry.
+benchmarkPopulationSettings <- function(timeAtRiskDays, riskWindowStart = 1, firstExposureOnly = TRUE) {
   PatientLevelPrediction::createStudyPopulationSettings(
-    binary = TRUE, includeAllOutcomes = TRUE, firstExposureOnly = TRUE, washoutPeriod = 365,
+    binary = TRUE, includeAllOutcomes = TRUE, firstExposureOnly = firstExposureOnly, washoutPeriod = 365,
     removeSubjectsWithPriorOutcome = TRUE, priorOutcomeLookback = 999999, requireTimeAtRisk = FALSE,
-    minTimeAtRisk = 1, riskWindowStart = 1, startAnchor = "cohort start", riskWindowEnd = timeAtRiskDays,
+    minTimeAtRisk = 1, riskWindowStart = riskWindowStart, startAnchor = "cohort start", riskWindowEnd = timeAtRiskDays,
     endAnchor = "cohort start")
 }
 
@@ -179,7 +185,8 @@ taskPopulationSettings <- function(task) {
   rule <- if (is.null(task$populationRule)) "original" else task$populationRule
   switch(rule,
     original = originalProductionPopulationSettings(task$timeAtRiskDays),
-    benchmark = benchmarkPopulationSettings(task$timeAtRiskDays),
+    benchmark = benchmarkPopulationSettings(task$timeAtRiskDays, task$riskWindowStart %||% 1,
+                                            as.logical(task$firstExposureOnly %||% TRUE)),
     stop("unknown population rule: ", rule))
 }
 
@@ -209,14 +216,17 @@ originalProductionPopulationSettings <- function(timeAtRiskDays) {
 #' @param databaseName Name used in the results.
 #' @param cohortTable Name of the cohort table (CohortGenerator also creates its statistics tables).
 #' @param tempEmulationSchema For platforms without temp tables (e.g. Spark, Oracle).
-#' @param covariateSettings FeatureExtraction covariate settings.
+#' @param covariateSettings FeatureExtraction covariate settings, or a function of a task that returns them.
 #' @param cohortDefinitionSet Cohorts to generate.
+#' @param incremental Skip cohorts already generated with the same definition (CohortGenerator keeps the record in the
+#'   database). `FALSE`: every cohort is generated again in each run.
 #' @return A data source for [execute()], with tasks from [studyTasks()].
 #' @export
 createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortDatabaseSchema, databaseName,
                                 cohortTable = "sar_study_cohort", tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                 covariateSettings = studyCovariateSettings(),
-                                cohortDefinitionSet = studyCohortDefinitionSet()) {
+                                cohortDefinitionSet = studyCohortDefinitionSet(), incremental = FALSE) {
+  taskCovariates <- function(task) if (is.function(covariateSettings)) covariateSettings(task) else covariateSettings
   state <- new.env()
   state$generated <- FALSE
   generate <- function() {
@@ -228,7 +238,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       CohortGenerator::generateCohortSet(connectionDetails = connectionDetails, cdmDatabaseSchema = cdmDatabaseSchema,
                                          tempEmulationSchema = tempEmulationSchema,
                                          cohortDatabaseSchema = cohortDatabaseSchema, cohortTableNames = tables,
-                                         cohortDefinitionSet = cohortDefinitionSet, incremental = FALSE)
+                                         cohortDefinitionSet = cohortDefinitionSet, incremental = incremental)
     })
     state$generated <- TRUE
   }
@@ -260,7 +270,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
     list(database = databaseName, cdm = cdmDatabaseSchema, targetId = as.numeric(task$targetId),
          outcomeId = as.numeric(task$outcomeId),
          targetCohort = cohortSql(task$targetId), outcomeCohort = cohortSql(task$outcomeId),
-         covariates = covariateSettings, sample = sampleLabel(task))
+         covariates = taskCovariates(task), sample = sampleLabel(task))
   }
   # The folder of the task's cached plpData, extracted first if it is not there or was made with other settings (its
   # fingerprint). A cache from before fingerprints is checked by its sample only (sample.txt), as before.
@@ -281,7 +291,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       !length(changes)
     }
     if (!current) {
-      plpData <- timed(task$taskId, "extract", extract(task, covariateSettings, sample = isSampled(task)))
+      plpData <- timed(task$taskId, "extract", extract(task, taskCovariates(task), sample = isSampled(task)))
       # saved under a temporary name and renamed when complete, so a crash mid-save leaves no half-written cache
       partial <- paste0(folder, "_partial")
       unlink(c(partial, folder), recursive = TRUE)

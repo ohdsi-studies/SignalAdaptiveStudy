@@ -51,17 +51,40 @@ trainingFolds <- function(y, nfold, seed) {
   stratifiedFolds(y, nSplits, seed)
 }
 
+# Several entries per person (PLP's firstExposureOnly = FALSE, as in the COVID benchmarks): the rows of one person stay
+# together, in the test split, in the ordering and in the folds, so that no person is on both sides of a split.
+hasRepeatedPersons <- function(population) "subjectId" %in% names(population) && anyDuplicated(population$subjectId) > 0
+
+# The pool's rows in the order of a seeded random order of its persons, a person's rows together.
+orderByPerson <- function(pool, subjects, seed) {
+  persons <- unique(subjects[pool])
+  shuffled <- persons[withSeed(seed, sample.int(length(persons)))]
+  pool[order(match(subjects[pool], shuffled))]
+}
+
+# Folds stratified on whether the person has any event; every row of a person in the person's fold.
+personFolds <- function(y, subjects, nfold, seed) {
+  personY <- tapply(y, subjects, max)
+  folds <- trainingFolds(as.numeric(personY), nfold, seed)
+  folds[match(as.character(subjects), names(personY))]
+}
+
 # The study split of one budget (NULL: the whole training pool) and ordering (1, 2, 3).
 studySplit <- function(population, task, budget, ordering, nfold = 3) {
+  repeated <- hasRepeatedPersons(population)
   settings <- PatientLevelPrediction::createDefaultSplitSetting(testFraction = 0.25, trainFraction = 0.75, nfold = 3,
-                                                                splitSeed = STUDY_SEEDS$testSplit)
+                                                                splitSeed = STUDY_SEEDS$testSplit,
+                                                                type = if (repeated) "subject" else "stratified")
   splitter <- utils::getFromNamespace(attr(settings, "fun"), "PatientLevelPrediction")
   plpSplit <- withSeed(STUDY_SEEDS$testSplit, splitter(population = population, splitSettings = settings))
   isTest <- population$rowId %in% plpSplit$rowId[plpSplit$index < 0]
   outcome <- as.integer(population$outcomeCount > 0)
   pool <- which(!isTest)
-  ordered <- pool[withSeed(STUDY_SEEDS$orderings[ordering], sample.int(length(pool)))]
+  ordered <- if (repeated) orderByPerson(pool, population$subjectId, STUDY_SEEDS$orderings[ordering])
+             else pool[withSeed(STUDY_SEEDS$orderings[ordering], sample.int(length(pool)))]
   size <- if (is.null(budget)) length(ordered) else budgetPrefixLength(outcome[ordered], budget)
   training <- ordered[seq_len(size)]
-  assembleSplit(population, training, trainingFolds(outcome[training], nfold, STUDY_SEEDS$folds), isTest)
+  folds <- if (repeated) personFolds(outcome[training], population$subjectId[training], nfold, STUDY_SEEDS$folds)
+           else trainingFolds(outcome[training], nfold, STUDY_SEEDS$folds)
+  assembleSplit(population, training, folds, isTest)
 }

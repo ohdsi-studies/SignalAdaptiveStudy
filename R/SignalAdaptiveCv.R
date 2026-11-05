@@ -5,13 +5,17 @@
 # are left out with coefficient 0):
 #   SAR (ridge)  (lambda / 2) * sum_j w_j beta_j^2
 #   SAL (lasso)  lambda * sum_j sqrt(w_j) |beta_j|
+#   elastic net  lambda * sum_j (alpha |beta_j| + (1 - alpha) / 2 * beta_j^2), Cyclops's prior, without weights (w_j = 1)
 # Cyclops minimises -sum loglik + prior, so with n rows in the fit the per-covariate prior variance is
 #   ridge  v_j = 1 / (n lambda w_j)          (normal: beta^2 / (2 v))
-#   lasso  v_j = 2 / (n^2 lambda^2 w_j)      (Laplace: rate sqrt(2 / v))
+#   lasso, elastic net  v_j = 2 / (n^2 lambda^2 w_j)      (Laplace: rate sqrt(2 / v))
 # and, in the Cyclops convention, v_j = sigma^2 / w_j for both.
 #
 # The penalty is chosen per shape by a search strategy. The study uses "auto": Cyclops's auto-search over sigma^2
 # (R/AutoSearch.R), with the same sigma^2 on every fold and on the final fit, as in Cyclops.
+
+# The elastic net's mixing parameter in the study (Cyclops's laplaceFraction, glmnet's alpha).
+ELASTIC_NET_ALPHA <- 0.5
 
 # Cyclops data for the rows of X (binary columns become indicator columns).
 makeCyclopsData <- function(X, y) {
@@ -69,15 +73,17 @@ kktResidual <- function(X, y, problem, coefficients, variances, keep, penalty) {
     v <- abs(g + b / (problem$n * variances))
   } else {
     rate <- sqrt(2 / variances) / problem$n
-    v <- ifelse(abs(b) > 1e-8, abs(g + rate * sign(b)), pmax(abs(g) - rate, 0))
+    alpha <- if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1
+    v <- ifelse(abs(b) > 1e-8, abs(g + alpha * rate * sign(b) + (1 - alpha) * rate * b), pmax(abs(g) - alpha * rate, 0))
   }
   max(abs(mean(r)), v[keep], 0)
 }
 
 fitProblem <- function(problem, penalty, variances, keep, start, control) {
-  type <- if (penalty == "ridge") "normal" else "laplace"
+  type <- switch(penalty, ridge = "normal", lasso = "laplace", elasticnet = "elasticnet")
   free <- is.infinite(variances) # unpenalised (weight 0)
-  prior <- Cyclops::createPrior(c("none", ifelse(free, "none", type)), variance = c(0, ifelse(free, 0, variances)))
+  prior <- Cyclops::createPrior(c("none", ifelse(free, "none", type)), variance = c(0, ifelse(free, 0, variances)),
+                                laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA)
   fixed <- NULL
   if (any(!keep)) {
     fixed <- c(FALSE, !keep)
@@ -105,8 +111,9 @@ smoothedIntercept <- function(y) log((sum(y) + 0.5) / (length(y) - sum(y) + 0.5)
 # The variance below which every penalised coefficient of the LASSO is 0 (Cyclops PR #101's null-model variance,
 # 2 / lambdaMax^2 without weights). At the fit of the unpenalised coefficients alone (the intercept and any unpenalised
 # columns) on the problem's rows, coefficient j stays 0 while |g_j| <= sqrt(2 w_j / sigma^2), g the log-likelihood
-# gradient, so all are 0 for sigma^2 <= min_j 2 w_j / g_j^2. NA when no penalised column has a gradient.
-nullModelVariance <- function(X, y, problem, setup, control) {
+# gradient, so all are 0 for sigma^2 <= min_j 2 w_j / g_j^2. The elastic net's kink at 0 is alpha times that of the
+# LASSO, so its bound is alpha^2 times as large. NA when no penalised column has a gradient.
+nullModelVariance <- function(X, y, problem, setup, control, alpha = 1) {
   free <- setup$keep & setup$weights == 0
   penalised <- setup$keep & !free
   if (!any(penalised)) return(NA_real_)
@@ -116,7 +123,7 @@ nullModelVariance <- function(X, y, problem, setup, control) {
   Xs <- X[problem$rows, problem$ids, drop = FALSE]
   g <- as.numeric(Matrix::crossprod(Xs, y[problem$rows] - stats::plogis(fit$coefficients[1] +
                                                                            as.numeric(Xs %*% fit$coefficients[-1]))))
-  bound <- 2 * setup$weights[penalised] / g[penalised]^2
+  bound <- 2 * alpha^2 * setup$weights[penalised] / g[penalised]^2
   if (!any(is.finite(bound))) NA_real_ else min(bound[is.finite(bound)])
 }
 
@@ -162,8 +169,9 @@ autoStrategy <- function() {
           heldOutLogLikelihood(X, y, p, fit$coefficients)
         }, numeric(1))
       }
-      nullVariance <- if (penalty == "lasso") {
-        nullModelVariance(X, y, context$full, problemWeights(X, y, context$full, shape, context$unpenalized), finalControl)
+      nullVariance <- if (penalty != "ridge") {
+        nullModelVariance(X, y, context$full, problemWeights(X, y, context$full, shape, context$unpenalized), finalControl,
+                          alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1)
       } else NA_real_
       search <- autoSearch(evaluate, start = context$startVariance, firstCut = 0, refine = TRUE,
                            nullVariance = nullVariance)
@@ -202,7 +210,7 @@ autoStrategy <- function() {
 #   ("ordinate"; auto only). Both are recorded.
 #   interceptOnly: the intercept-only model wins if its CV loss is not worse (the original's rule).
 #   unpenalized: logical, one per column of X: columns left out of the penalty (and of the weights' centring).
-signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso"), shapes = sarShapes(), interceptOnly = TRUE,
+signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elasticnet"), shapes = sarShapes(), interceptOnly = TRUE,
                              search = "auto", cSelection = c("observed", "ordinate"), searchSettings = list(),
                              unpenalized = rep(FALSE, ncol(X))) {
   penalty <- match.arg(penalty); cSelection <- match.arg(cSelection)

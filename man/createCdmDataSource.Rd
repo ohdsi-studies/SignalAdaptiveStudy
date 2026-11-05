@@ -12,7 +12,8 @@ createCdmDataSource(
   cohortTable = "sar_study_cohort",
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   covariateSettings = studyCovariateSettings(),
-  cohortDefinitionSet = studyCohortDefinitionSet()
+  cohortDefinitionSet = studyCohortDefinitionSet(),
+  incremental = FALSE
 )
 }
 \arguments{
@@ -28,9 +29,12 @@ createCdmDataSource(
 
 \item{tempEmulationSchema}{For platforms without temp tables (e.g. Spark, Oracle).}
 
-\item{covariateSettings}{FeatureExtraction covariate settings.}
+\item{covariateSettings}{FeatureExtraction covariate settings, or a function of a task that returns them.}
 
 \item{cohortDefinitionSet}{Cohorts to generate.}
+
+\item{incremental}{Skip cohorts already generated with the same definition (CohortGenerator keeps the record in the
+database). \code{FALSE}: every cohort is generated again in each run.}
 }
 \value{
 A data source for \code{\link[=execute]{execute()}}, with tasks from \code{\link[=studyTasks]{studyTasks()}}.

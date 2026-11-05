@@ -4,7 +4,12 @@
 \alias{studyCohortDefinitionSet}
 \title{Cohort definitions of the study}
 \usage{
-studyCohortDefinitionSet()
+studyCohortDefinitionSet(uses = "study")
+}
+\arguments{
+\item{uses}{Which cohorts: \code{"study"} (the original tasks and the 4 catalogue tasks), \code{"benchmark"} (the other PLP
+benchmark cohorts) and \code{"feature"} (the phenotype features, PhenotypeLibrary IDs + 100000), as in
+\code{inst/settings/cohorts.csv}.}
 }
 \value{
 A cohort definition set (\code{cohortId}, \code{cohortName}, \code{json}, \code{sql}) for CohortGenerator, with \code{phenotype}

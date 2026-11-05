@@ -72,6 +72,37 @@ interruption: cohorts and tasks already done are skipped, so a database screened
 The tasks marked `feasibility` in `inst/settings/taskScreening/tasks.csv` use rough cohorts, not study phenotypes: they show whether a task
 has enough events, not whether its definition is right.
 
+## PLP benchmark tasks
+
+`Rscript extras/production/runBenchmarks.R` runs the 13 PLP benchmark tasks with the final study's settings, on every database in
+`cdmSchemas` (or those you name: `Rscript extras/production/runBenchmarks.R MDCD`). Start with one small database.
+
+**Cyclops:** the study runs on the latest `develop` of Cyclops, which it also helps to test. Before a run, update it and reinstall the
+package:
+
+```r
+renv::install("OHDSI/Cyclops@develop")
+install.packages(".", repos = NULL, type = "source")
+```
+
+The script prints the Cyclops commit, and each result row records it in `versions`. Finished runs are not redone when Cyclops changes, so
+use a new output folder if results should all come from one commit.
+
+**Settings:**
+
+- **Tasks:** PLPBenchmarks' cohorts, risk windows and population rules, as defined there. A task runs in a database with at least 1,000
+  training-pool and 333 test events. Tasks with repeat entries per person (the COVID tasks) are split by person.
+- **Feature sets**, all binary and all penalised:
+  - `defaults`: FeatureExtraction's defaults without its continuous scores (Charlson, DCSI, CHADS2, CHA2DS2-VASc);
+  - `phenotypes`: gender, 5-year age groups and the 64 phenotypes of the PLP vignette "Constrained Predictors".
+- **Covariate window:** ends before the risk window starts. All benchmark tasks end at day -1, as PLPBenchmarks does.
+- **Budgets and orderings:** 100, 250, 500 and 1000 events; 3 orderings.
+- **Methods:** SAR, LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), and SAR
+  without its third term (secondary).
+
+It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
+AUC's standard error, and the metrics on test rows with full follow-up.
+
 ## Logs and timings
 
 `outputFolder` holds a timestamped log of every `execute()` call (`log_<database>.txt`), the duration of each step
