@@ -22,7 +22,7 @@ exportResults(
 The path of the zip file.
 }
 \description{
-Writes the result rows and counts of \code{\link[=execute]{execute()}} as CSV files and zips them into one file, with counts below
+Writes the result rows and counts of \code{\link[=execute]{execute()}} as CSV files, with the step timings, and zips them into one file, with counts below
 \code{minCellCount} replaced by \code{-minCellCount}. Only aggregates leave: no patient-level data, predictions, models or
 coefficients.
 }

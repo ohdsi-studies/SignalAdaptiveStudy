@@ -24,7 +24,7 @@ test_that("workers give the same results as one process, and a worker that dies 
   parallel <- suppressMessages(execute(dataSource, tasks, folders[["workers"]], mode = "models", orderings = 1:2,
                                        methods = methods, workers = 2))
   expect_identical(nrow(serial), 12L)
-  key <- function(r) r[order(r$taskId, r$budget, r$ordering, r$method), setdiff(names(r), c("fitSeconds", "runSeconds"))]
+  key <- function(r) r[order(r$taskId, r$budget, r$ordering, r$method), setdiff(names(r), grep("Seconds$", names(r), value = TRUE))]
   expect_identical(`rownames<-`(key(parallel), NULL), `rownames<-`(key(serial), NULL))
   # the workers' step timings reach the steps file; each worker has its log
   steps <- utils::read.csv(file.path(folders[["workers"]], "steps_SIM.csv"))

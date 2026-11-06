@@ -202,7 +202,9 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     })
   for (w in unique(fitWarnings)) ParallelLogger::logWarn(paste("fit warning:", w))
   model$prediction <- NULL # the CV predictions, which runPlp() also takes out of the model
+  predictStart <- Sys.time()
   test <- PatientLevelPrediction::predictPlp(plpModel = model, plpData = data$Test, population = data$Test$labels)
+  predictSeconds <- as.numeric(difftime(Sys.time(), predictStart, units = "secs"))
   if (nrow(test) == 0) stop("no test predictions")
   trainingRows <- split$rowId[split$index > 0]
   trainingY <- as.numeric(population$outcomeCount[match(trainingRows, population$rowId)] > 0)
@@ -222,6 +224,9 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
   if (!is.na(status) && !status %in% c("SUCCESS", "OK", "INTERCEPT_ONLY")) {
     ParallelLogger::logWarn(sprintf("%s %s: model status %s", task$taskId, basename(runFolder), status))
   }
+  saveStart <- Sys.time()
+  PatientLevelPrediction::savePlpModel(model, file.path(runFolder, "model"))
+  saveSeconds <- as.numeric(difftime(Sys.time(), saveStart, units = "secs"))
   row <- data.frame(
     database = dataSource$databaseName, taskId = task$taskId, featureSet = task$featureSet %||% NA,
     budget = if (is.null(budget)) NA else budget,
@@ -240,11 +245,12 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     ordinateLoss = value(fp$ordinateLoss), interceptCvLoss = value(fp$interceptCvLoss), nonZero = fp$nonZero,
     kkt = value(fp$kkt), modelStatus = status, finalIterations = value(fp$finalIterations),
     foldFitsFailed = value(fp$foldFitsFailed), foldFitStatus = value(fp$foldFitStatus),
-    fitWarnings = paste(unique(fitWarnings), collapse = " | "), fitSeconds = value(fp$cvSeconds %||% trainingSeconds(model$trainDetails$trainingTime)),
+    fitWarnings = paste(unique(fitWarnings), collapse = " | "),
+    cyclopsFitSeconds = value(fp$cyclopsFitSeconds), cyclopsDataSeconds = value(fp$cyclopsDataSeconds),
+    cyclopsFits = value(fp$cyclopsFits), predictSeconds = predictSeconds, saveSeconds = saveSeconds, fitSeconds = value(fp$cvSeconds %||% trainingSeconds(model$trainDetails$trainingTime)),
     runSeconds = as.numeric(difftime(Sys.time(), start, units = "secs")),
     versions = packageVersions(), stringsAsFactors = FALSE
   )
-  PatientLevelPrediction::savePlpModel(model, file.path(runFolder, "model"))
   if (!is.null(fingerprint)) writeFingerprint(fingerprint, file.path(runFolder, FINGERPRINT_FILE))
   utils::write.csv(row, file.path(runFolder, "result.csv"), row.names = FALSE)
   row

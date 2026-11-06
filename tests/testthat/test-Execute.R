@@ -53,7 +53,7 @@ test_that("execute() runs end to end on simulated data", {
 
   # export: aggregates only, small counts censored
   zipFile <- exportResults(outputFolder, minCellCount = 200)
-  expect_setequal(utils::unzip(zipFile, list = TRUE)$Name, c("results.csv", "counts.csv", "export.txt"))
+  expect_setequal(utils::unzip(zipFile, list = TRUE)$Name, c("results.csv", "counts.csv", "export.txt", "steps_SIM.csv"))
   exported <- utils::read.csv(unz(zipFile, "results.csv"))
   expect_true(all(exported$eventsTrain == -200))
   expect_identical(exported$auc, collectResults(outputFolder)$auc)

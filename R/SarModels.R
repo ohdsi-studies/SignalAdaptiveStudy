@@ -137,7 +137,7 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
       modelName = settings$modelName,
       finalModelParameters = c(fit$selected, list(penalty = fit$penalty, search = fit$search, kkt = fit$kkt,
                                                   nonZero = fit$nonZero, interceptCvLoss = fit$interceptCvLoss,
-                                                  cvSeconds = fit$seconds), fit$convergence),
+                                                  cvSeconds = fit$seconds), fit$convergence, fit$timing),
       hyperParamSearch = fit$records,
       searchTrace = fit$trace
     ),

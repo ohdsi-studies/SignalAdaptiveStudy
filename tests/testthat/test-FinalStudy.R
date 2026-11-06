@@ -134,6 +134,15 @@ test_that("every method of the final study runs end to end, saves, and gives the
   for (column in c("aucSe", "calibrationSlope", "calibrationInTheLarge", "expectedOverObserved", "nTestFullFollowUp", "aucFullFollowUp")) expect_false(anyNA(results[[column]]), info = column)
   expect_true(all(results$nTestFullFollowUp <= results$nTest))
   for (column in c("modelStatus", "foldFitsFailed", "foldFitStatus", "fitWarnings", "finalIterations")) expect_true(column %in% names(results), info = column)
+  # time inside Cyclops is part of the fit, which is part of the run; PLP's LASSO does not report it
+  study <- results[results$method != "PLP_LASSO", ]
+  expect_true(all(study$cyclopsFits > 0 & study$cyclopsFitSeconds > 0 & study$cyclopsDataSeconds >= 0))
+  expect_true(all(study$cyclopsFitSeconds + study$cyclopsDataSeconds <= study$fitSeconds + 1))
+  expect_true(all(results$predictSeconds > 0 & results$saveSeconds > 0))
+  expect_true(all(results$fitSeconds + results$predictSeconds + results$saveSeconds <= results$runSeconds + 1))
+  expect_gt(study$cyclopsFits[study$method == "SAR"], study$cyclopsFits[study$method == "LASSO"])
+  zipFile <- exportResults(folder, minCellCount = 5)
+  expect_true(any(grepl("^steps_SIM\\.csv$", utils::unzip(zipFile, list = TRUE)$Name)))
   expect_true(all(results$modelStatus %in% c("SUCCESS", "OK", "INTERCEPT_ONLY", "POOR_BLR_STEP")))
   expect_true(all(results$foldFitsFailed[results$method != "PLP_LASSO"] >= 0))
   # the same training set for every method

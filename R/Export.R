@@ -1,6 +1,6 @@
 #' Export aggregate results
 #'
-#' Writes the result rows and counts of [execute()] as CSV files and zips them into one file, with counts below
+#' Writes the result rows and counts of [execute()] as CSV files, with the step timings, and zips them into one file, with counts below
 #' `minCellCount` replaced by `-minCellCount`. Only aggregates leave: no patient-level data, predictions, models or
 #' coefficients.
 #'
@@ -26,6 +26,9 @@ exportResults <- function(outputFolder, minCellCount = 5,
   countFiles <- list.files(file.path(outputFolder, "counts"), pattern = "\\.csv$", recursive = TRUE, full.names = TRUE)
   counts <- if (length(countFiles)) do.call(rbind, lapply(countFiles, utils::read.csv, stringsAsFactors = FALSE)) else data.frame()
   utils::write.csv(censor(counts, c("n", "poolN", "poolEvents", "testN", "testEvents")), file.path(folder, "counts.csv"), row.names = FALSE)
+  # The duration of each step (cohorts, extraction, cache, population, split, preparation, runs): task names and seconds only
+  stepFiles <- list.files(outputFolder, pattern = "^steps_.*\\.csv$", full.names = TRUE)
+  if (length(stepFiles)) file.copy(stepFiles, folder)
   writeLines(c(paste("Exported", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")), packageVersions(),
                paste("minCellCount", minCellCount, "(smaller counts shown as", -minCellCount, ")")),
              file.path(folder, "export.txt"))

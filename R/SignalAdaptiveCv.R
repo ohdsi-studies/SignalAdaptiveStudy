@@ -17,15 +17,26 @@
 # The elastic net's mixing parameter in the study (Cyclops's laplaceFraction, glmnet's alpha).
 ELASTIC_NET_ALPHA <- 0.5
 
+# Time spent inside Cyclops during one cross-validated fit: its data conversion and its model fits, and how many fits.
+# Reset at the start of signalAdaptiveCv() and reported with its result.
+.cyclopsTiming <- new.env()
+resetCyclopsTiming <- function() { .cyclopsTiming$dataSeconds <- 0; .cyclopsTiming$fitSeconds <- 0; .cyclopsTiming$fits <- 0L }
+resetCyclopsTiming()
+timeCyclops <- function(kind, expr) {
+  start <- proc.time()[["elapsed"]]
+  on.exit(.cyclopsTiming[[kind]] <- .cyclopsTiming[[kind]] + proc.time()[["elapsed"]] - start)
+  expr
+}
+
 # Cyclops data for the rows of X (binary columns become indicator columns).
 makeCyclopsData <- function(X, y) {
   triplets <- Matrix::summary(methods::as(X, "TsparseMatrix"))
   triplets <- triplets[order(triplets$i, triplets$j), ]
-  Cyclops::convertToCyclopsData(
+  timeCyclops("dataSeconds", Cyclops::convertToCyclopsData(
     outcomes = data.frame(rowId = seq_len(nrow(X)), y = y),
     covariates = data.frame(rowId = triplets$i, covariateId = triplets$j, covariateValue = triplets$x),
     modelType = "lr", addIntercept = TRUE, quiet = TRUE
-  )
+  ))
 }
 
 # One fit problem: the Cyclops data of the fit rows and the columns it holds (indices into X).
@@ -90,8 +101,10 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
     if (is.null(start)) start <- numeric(length(problem$ids) + 1)
     start[fixed] <- 0
   }
-  fit <- Cyclops::fitCyclopsModel(problem$data, prior = prior, control = control, startingCoefficients = start,
-                                  fixedCoefficients = fixed, warnings = FALSE)
+  .cyclopsTiming$fits <- .cyclopsTiming$fits + 1L
+  fit <- timeCyclops("fitSeconds", Cyclops::fitCyclopsModel(problem$data, prior = prior, control = control,
+                                                            startingCoefficients = start, fixedCoefficients = fixed,
+                                                            warnings = FALSE))
   coefficients <- if (is.null(fit$estimation)) NULL else as.numeric(stats::coef(fit, ignoreConvergence = TRUE))
   # converged as Cyclops's own CV counts it: SUCCESS, or POOR_BLR_STEP under the kkt criterion
   list(coefficients = coefficients, status = fit$return_flag, iterations = fit$iterations %||% NA_integer_,
@@ -228,6 +241,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   penalty <- match.arg(penalty); cSelection <- match.arg(cSelection)
   strategy <- searchStrategy(search, searchSettings)
   start <- Sys.time()
+  resetCyclopsTiming()
   X <- methods::as(methods::as(X, "CsparseMatrix"), "generalMatrix")
   y <- as.numeric(y)
   shapes <- normalizeShapes(shapes)
@@ -307,6 +321,8 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     convergence = list(foldFitsFailed = sum(records$foldFitsFailed %||% 0),
                        foldFitStatus = statusSummary(unlist(strsplit(records$foldFitStatus %||% "", "; "))),
                        finalStatus = finalStatus, finalIterations = finalIterations),
+    timing = list(cyclopsFitSeconds = .cyclopsTiming$fitSeconds, cyclopsDataSeconds = .cyclopsTiming$dataSeconds,
+                  cyclopsFits = .cyclopsTiming$fits),
     records = records, trace = if (length(Filter(Negate(is.null), traces))) do.call(rbind, traces) else NULL,
     cvPrediction = cvPrediction, folds = folds,
     seconds = as.numeric(difftime(Sys.time(), start, units = "secs"))
