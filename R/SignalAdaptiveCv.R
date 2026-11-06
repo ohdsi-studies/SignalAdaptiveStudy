@@ -94,7 +94,7 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
                                   fixedCoefficients = fixed, warnings = FALSE)
   coefficients <- if (is.null(fit$estimation)) NULL else as.numeric(stats::coef(fit, ignoreConvergence = TRUE))
   # converged as Cyclops's own CV counts it: SUCCESS, or POOR_BLR_STEP under the kkt criterion
-  list(coefficients = coefficients, status = fit$return_flag,
+  list(coefficients = coefficients, status = fit$return_flag, iterations = fit$iterations %||% NA_integer_,
        converged = !is.null(coefficients) && fit$return_flag %in% c("SUCCESS", "POOR_BLR_STEP"))
 }
 
@@ -119,7 +119,10 @@ nullModelVariance <- function(X, y, problem, setup, control, alpha = 1) {
   if (!any(penalised)) return(NA_real_)
   fit <- fitProblem(problem, "lasso", priorVariances("lasso", setup$weights, free, 1, "variance", problem$n), free, NULL,
                     control)
-  if (!fit$converged) return(NA_real_)
+  if (!fit$converged) {
+    ParallelLogger::logWarn(sprintf("null-model bound: the fit of the unpenalised coefficients did not converge (%s); search without the bound", fit$status))
+    return(NA_real_)
+  }
   Xs <- X[problem$rows, problem$ids, drop = FALSE]
   g <- as.numeric(Matrix::crossprod(Xs, y[problem$rows] - stats::plogis(fit$coefficients[1] +
                                                                            as.numeric(Xs %*% fit$coefficients[-1]))))
@@ -157,13 +160,17 @@ autoStrategy <- function() {
     searchShape = function(X, y, problems, setups, shape, penalty, context) {
       n <- length(y)
       cache <- lapply(problems, function(p) list(variances = numeric(), coefficients = list()))
+      failed <- character() # status of each fold fit that did not converge
       evaluate <- function(sigma2) {
         vapply(seq_along(problems), function(f) {
           p <- problems[[f]]; s <- setups[[f]]; ca <- cache[[f]]
           warm <- if (length(ca$variances)) ca$coefficients[[which.min(abs(log(ca$variances) - log(sigma2)))]] else NULL
           fit <- fitProblem(p, penalty, priorVariances(penalty, s$weights, s$keep, sigma2, "variance", p$n), s$keep,
                             warm, foldControl)
-          if (!fit$converged) return(NaN) # as Cyclops: not scored and not used as a warm start
+          if (!fit$converged) { # as Cyclops: not scored and not used as a warm start
+            failed <<- c(failed, as.character(fit$status %||% "NO_FIT"))
+            return(NaN)
+          }
           cache[[f]]$variances <<- c(ca$variances, sigma2)
           cache[[f]]$coefficients[[length(ca$variances) + 1]] <<- fit$coefficients
           heldOutLogLikelihood(X, y, p, fit$coefficients)
@@ -175,6 +182,10 @@ autoStrategy <- function() {
       } else NA_real_
       search <- autoSearch(evaluate, start = context$startVariance, firstCut = 0, refine = TRUE,
                            nullVariance = nullVariance)
+      if (length(failed)) {
+        ParallelLogger::logWarn(sprintf("shape c = %s: %d fold fit(s) did not converge and were left out of their mean (%s)",
+                                        paste(shape, collapse = ", "), length(failed), statusSummary(failed)))
+      }
       chosen <- search$variance
       i <- which(abs(log(search$tried) - log(chosen)) < 1e-12)
       observed <- if (length(i)) search$scores[[i[1]]] else evaluate(chosen) # observed score at the chosen variance
@@ -182,7 +193,8 @@ autoStrategy <- function() {
       list(
         record = data.frame(c1 = shape[1], c2 = shape[2], c3 = shape[3], lambda = NA_real_, variance = chosen,
                             cvLoss = -sum(observed) / n, ordinateLoss = -search$ordinate * length(problems) / n,
-                            nullVariance = nullVariance),
+                            nullVariance = nullVariance, foldFitsFailed = length(failed),
+                            foldFitStatus = statusSummary(failed)),
         trace = data.frame(c1 = shape[1], c2 = shape[2], c3 = shape[3], step = seq_along(search$tried),
                            variance = search$tried, meanFoldLogLikelihood = vapply(search$scores, mean, numeric(1))),
         state = cache
@@ -192,7 +204,7 @@ autoStrategy <- function() {
     finalFit = function(X, y, full, penalty, w, record) {
       v <- priorVariances(penalty, w$weights, w$keep, record$variance, "variance", full$n)
       fit <- fitProblem(full, penalty, v, w$keep, NULL, finalControl)
-      if (!fit$converged) stop("the final fit did not converge (", fit$status, ")")
+      if (!fit$converged) stop("the final fit did not converge (", fit$status, " after ", fit$iterations, " iterations)")
       list(fit = fit, variances = v, variance = record$variance, lambda = varianceToLambda(penalty, record$variance, full$n))
     },
     foldCoefficients = function(X, y, problem, f, penalty, setup, record, state) {
@@ -258,6 +270,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   }
 
   p <- ncol(X); beta <- numeric(p); weights <- rep(NA_real_, p); kkt <- NA_real_; cvPrediction <- numeric(length(y))
+  finalStatus <- "INTERCEPT_ONLY"; finalIterations <- NA_integer_
   if (is.null(selected)) {
     intercept <- smoothedIntercept(y)
     for (pr in problems) cvPrediction[!pr$rows] <- stats::plogis(smoothedIntercept(y[pr$rows]))
@@ -269,6 +282,8 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     final <- strategy$finalFit(X, y, full, penalty, w, record)
     lambda <- final$lambda; variance <- final$variance
     kkt <- kktResidual(X, y, full, final$fit$coefficients, final$variances, w$keep, penalty)
+    finalStatus <- final$fit$status %||% NA_character_; finalIterations <- final$fit$iterations %||% NA_integer_
+    if (!identical(finalStatus, "SUCCESS")) ParallelLogger::logWarn(sprintf("final fit accepted with status %s", finalStatus))
     intercept <- final$fit$coefficients[1]
     beta[full$ids] <- final$fit$coefficients[-1]
     weights <- w$full$weights
@@ -289,6 +304,9 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
                     cvLoss = if (is.null(selected)) interceptLoss else records$cvLoss[selected],
                     ordinateLoss = if (is.null(selected)) NA_real_ else records$ordinateLoss[selected]),
     interceptCvLoss = interceptLoss, weights = weights, kkt = kkt, nonZero = sum(beta != 0),
+    convergence = list(foldFitsFailed = sum(records$foldFitsFailed %||% 0),
+                       foldFitStatus = statusSummary(unlist(strsplit(records$foldFitStatus %||% "", "; "))),
+                       finalStatus = finalStatus, finalIterations = finalIterations),
     records = records, trace = if (length(Filter(Negate(is.null), traces))) do.call(rbind, traces) else NULL,
     cvPrediction = cvPrediction, folds = folds,
     seconds = as.numeric(difftime(Sys.time(), start, units = "secs"))
@@ -308,4 +326,14 @@ sarShapes <- function() {
 normalizeShapes <- function(shapes) {
   if (is.list(shapes) && !is.data.frame(shapes)) shapes <- do.call(rbind, shapes)
   matrix(as.numeric(as.matrix(shapes)), ncol = 3, dimnames = list(NULL, c("c1", "c2", "c3")))
+}
+
+# "MAX_ITERATIONS x 3; ILLCONDITIONED x 1" from a vector of statuses (or of such summaries), "" when there are none.
+statusSummary <- function(statuses) {
+  statuses <- statuses[nzchar(statuses)]
+  if (!length(statuses)) return("")
+  parts <- regmatches(statuses, regexec("^(.*?)(?: x ([0-9]+))?$", statuses))
+  names <- vapply(parts, `[`, "", 2); counts <- as.numeric(ifelse(vapply(parts, `[`, "", 3) == "", 1, vapply(parts, `[`, "", 3)))
+  totals <- tapply(counts, names, sum)
+  paste(sprintf("%s x %d", names(totals), as.integer(totals)), collapse = "; ")
 }

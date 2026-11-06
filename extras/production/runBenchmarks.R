@@ -34,7 +34,7 @@ runDatabase <- function(database) {
   dataSource <- createCdmDataSource(connectionDetails, cdmSchemas[[database]], scratchSchema, database, cohortTable = cohortTable,
                                     covariateSettings = finalCovariateSettings(scratchSchema, cohortTable),
                                     cohortDefinitionSet = benchmarkCohortDefinitionSet(),
-                                    incremental = TRUE)
+                                    incremental = TRUE, combinedCohorts = combinedFeatureCohorts())
   counts <- execute(dataSource, benchmarkTasks(), outputFolder, mode = "counts")
   print(counts[, c("taskId", "n", "poolEvents", "testEvents")])
   feasible <- feasibleCounts(counts)

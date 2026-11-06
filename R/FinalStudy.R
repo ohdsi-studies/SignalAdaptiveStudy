@@ -54,10 +54,30 @@ defaultFeatureSettings <- function(endDay) {
                  shortTermStartDays = defaults$shortTermStartDays, endDays = endDay)))
 }
 
-# Gender, 5-year age groups and the 64 phenotypes of the PLP vignette "Constrained Predictors" (Reps et al. 2025), each an
-# indicator of a cohort episode overlapping the window, covariate ID = cohort ID x 1000 + 456.
-phenotypeFeatureSettings <- function(endDay, cohortDatabaseSchema, cohortTable) {
+#' Combined phenotype features
+#'
+#' The 14 antibiotic classes of the phenotype features (PhenotypeLibrary 1201-1214) as one indicator: an episode of any of
+#' them. For [createCdmDataSource()], which makes it after generating the cohorts.
+#'
+#' @return A data frame: `cohortId`, `cohortName`, `sourceIds` (a list column).
+#' @export
+combinedFeatureCohorts <- function() {
+  data.frame(cohortId = 199001, cohortName = "Antibiotics (any of 14 classes)", sourceIds = I(list(100000 + 1201:1214)))
+}
+
+# The phenotype features as covariates: the 64 phenotypes of the PLP vignette "Constrained Predictors" with the antibiotic
+# classes combined (51 indicators).
+phenotypeFeatureCohorts <- function() {
   features <- studyCohortDefinitionSet("feature")
+  combined <- combinedFeatureCohorts()
+  features <- features[!features$cohortId %in% unlist(combined$sourceIds), c("cohortId", "cohortName")]
+  rbind(features, data.frame(cohortId = combined$cohortId, cohortName = combined$cohortName))
+}
+
+# Gender, 5-year age groups and the phenotype features, each an indicator of a cohort episode overlapping the window,
+# covariate ID = cohort ID x 1000 + 456.
+phenotypeFeatureSettings <- function(endDay, cohortDatabaseSchema, cohortTable) {
+  features <- phenotypeFeatureCohorts()
   list(FeatureExtraction::createCovariateSettings(useDemographicsGender = TRUE, useDemographicsAgeGroup = TRUE),
        FeatureExtraction::createCohortBasedCovariateSettings(
          analysisId = 456, covariateCohortDatabaseSchema = cohortDatabaseSchema, covariateCohortTable = cohortTable,
@@ -69,7 +89,8 @@ phenotypeFeatureSettings <- function(endDay, cohortDatabaseSchema, cohortTable) 
 #'
 #' Two feature sets, all binary and all penalised. `"defaults"`: FeatureExtraction's
 #' `createDefaultCovariateSettings()` without Charlson, DCSI, CHADS2 and CHA2DS2-VASc. `"phenotypes"`: gender, 5-year age
-#' groups and the 64 phenotypes of the PLP vignette "Constrained Predictors". The window starts at day -365 (FeatureExtraction's
+#' groups and the 64 phenotypes of the PLP vignette "Constrained Predictors", the 14 antibiotic classes as one (51
+#' indicators; the data source must make the combined cohort, [combinedFeatureCohorts()]). The window starts at day -365 (FeatureExtraction's
 #' default windows in the first set) and ends before the risk window starts.
 #'
 #' @param cohortDatabaseSchema,cohortTable Where the phenotype cohorts are generated: as in [createCdmDataSource()].

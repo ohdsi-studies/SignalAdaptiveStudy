@@ -191,8 +191,16 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
                                        fileName = file.path(runFolder, "plpLog.txt"))))
   ParallelLogger::registerLogger(logger)
   on.exit(ParallelLogger::unregisterLogger("SignalAdaptiveStudyRun", silent = TRUE), add = TRUE)
-  model <- PatientLevelPrediction::fitPlp(trainData = data$Train, modelSettings = modelSettings,
-                                          analysisId = basename(runFolder), analysisPath = scratch)
+  # Warnings of the fit (e.g. Cyclops's failed cross-validation folds) go to the result row and the run's log.
+  fitWarnings <- character()
+  model <- withCallingHandlers(
+    PatientLevelPrediction::fitPlp(trainData = data$Train, modelSettings = modelSettings,
+                                   analysisId = basename(runFolder), analysisPath = scratch),
+    warning = function(w) {
+      fitWarnings <<- c(fitWarnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  for (w in unique(fitWarnings)) ParallelLogger::logWarn(paste("fit warning:", w))
   model$prediction <- NULL # the CV predictions, which runPlp() also takes out of the model
   test <- PatientLevelPrediction::predictPlp(plpModel = model, plpData = data$Test, population = data$Test$labels)
   if (nrow(test) == 0) stop("no test predictions")
@@ -207,6 +215,12 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
   if (is.null(fp$nonZero)) {
     co <- model$model$coefficients
     fp$nonZero <- if (is.data.frame(co)) sum(co$betas != 0 & co$covariateIds != "(Intercept)") else NA
+  }
+  # Convergence: the study's search reports its fold and final fits; PLP's Cyclops models their status, where
+  # "REACHED MAXIMUM NUMBER OF ITERATIONS" or "ILL CONDITIONED" means PLP returned an all-zero model.
+  status <- fp$finalStatus %||% model$model$modelStatus %||% NA_character_
+  if (!is.na(status) && !status %in% c("SUCCESS", "OK", "INTERCEPT_ONLY")) {
+    ParallelLogger::logWarn(sprintf("%s %s: model status %s", task$taskId, basename(runFolder), status))
   }
   row <- data.frame(
     database = dataSource$databaseName, taskId = task$taskId, featureSet = task$featureSet %||% NA,
@@ -224,7 +238,9 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     interceptOnly = isTRUE(fp$interceptOnly), c1 = shape[1], c2 = shape[2], c3 = shape[3],
     lambda = value(fp$lambda), variance = value(fp$variance), cvLoss = value(fp$cvLoss),
     ordinateLoss = value(fp$ordinateLoss), interceptCvLoss = value(fp$interceptCvLoss), nonZero = fp$nonZero,
-    kkt = value(fp$kkt), fitSeconds = value(fp$cvSeconds %||% trainingSeconds(model$trainDetails$trainingTime)),
+    kkt = value(fp$kkt), modelStatus = status, finalIterations = value(fp$finalIterations),
+    foldFitsFailed = value(fp$foldFitsFailed), foldFitStatus = value(fp$foldFitStatus),
+    fitWarnings = paste(unique(fitWarnings), collapse = " | "), fitSeconds = value(fp$cvSeconds %||% trainingSeconds(model$trainDetails$trainingTime)),
     runSeconds = as.numeric(difftime(Sys.time(), start, units = "secs")),
     versions = packageVersions(), stringsAsFactors = FALSE
   )
@@ -600,8 +616,24 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
       }
     }
   }
-  collectResults(outputFolder)
+  results <- collectResults(outputFolder)
+  convergenceReport(results)
+  results
 }
+
+# One message on runs whose fits had trouble: a model status other than success, failed fold fits, or fit warnings.
+convergenceReport <- function(results) {
+  if (!NROW(results) || !"modelStatus" %in% names(results)) return(invisible())
+  bad <- !is.na(results$modelStatus) & !results$modelStatus %in% c("SUCCESS", "OK", "INTERCEPT_ONLY")
+  folds <- !is.na(results$foldFitsFailed) & results$foldFitsFailed > 0
+  warned <- !is.na(results$fitWarnings) & nzchar(results$fitWarnings)
+  if (any(bad | folds | warned)) {
+    message(sprintf("Convergence: %d run(s) with a model status other than success, %d with failed fold fits, %d with fit warnings. See the modelStatus, foldFitsFailed, foldFitStatus and fitWarnings columns.",
+                    sum(bad), sum(folds), sum(warned)))
+  } else message("Convergence: every fit converged, no fold fit failed, no fit warnings.")
+  invisible()
+}
+
 
 #' Collect the result rows
 #'

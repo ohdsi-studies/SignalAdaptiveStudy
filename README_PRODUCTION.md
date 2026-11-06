@@ -94,7 +94,8 @@ use a new output folder if results should all come from one commit.
   training-pool and 333 test events. Tasks with repeat entries per person (the COVID tasks) are split by person.
 - **Feature sets**, all binary and all penalised:
   - `defaults`: FeatureExtraction's defaults without its continuous scores (Charlson, DCSI, CHADS2, CHA2DS2-VASc);
-  - `phenotypes`: gender, 5-year age groups and the 64 phenotypes of the PLP vignette "Constrained Predictors".
+  - `phenotypes`: gender, 5-year age groups and the 64 phenotypes of the PLP vignette "Constrained Predictors", with the 14
+    antibiotic classes combined into one (51 indicators).
 - **Covariate window:** ends before the risk window starts. All benchmark tasks end at day -1, as PLPBenchmarks does.
 - **Budgets and orderings:** 100, 250, 500 and 1000 events; 3 orderings.
 - **Methods:** SAR, LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), and SAR

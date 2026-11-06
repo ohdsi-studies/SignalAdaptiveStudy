@@ -15,6 +15,7 @@ A function of a task (with \code{featureSet}) that gives its covariate settings,
 \description{
 Two feature sets, all binary and all penalised. \code{"defaults"}: FeatureExtraction's
 \code{createDefaultCovariateSettings()} without Charlson, DCSI, CHADS2 and CHA2DS2-VASc. \code{"phenotypes"}: gender, 5-year age
-groups and the 64 phenotypes of the PLP vignette "Constrained Predictors". The window starts at day -365 (FeatureExtraction's
+groups and the 64 phenotypes of the PLP vignette "Constrained Predictors", the 14 antibiotic classes as one (51
+indicators; the data source must make the combined cohort, \code{\link[=combinedFeatureCohorts]{combinedFeatureCohorts()}}). The window starts at day -365 (FeatureExtraction's
 default windows in the first set) and ends before the risk window starts.
 }

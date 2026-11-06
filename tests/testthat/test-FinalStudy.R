@@ -52,11 +52,13 @@ test_that("the default feature set is FeatureExtraction's defaults without the s
   expect_equal(f(list(featureSet = "defaults", populationRule = "other", riskWindowStart = 1))$endDays, 0)
 })
 
-test_that("the phenotype feature set has gender, age groups and 64 binary cohort indicators", {
+test_that("the phenotype feature set has gender, age groups and 51 binary cohort indicators, the antibiotics combined", {
   s <- finalCovariateSettings("schema", "table")(expandFeatureSets(benchmarkTasks()[1, ], "phenotypes"))
   expect_length(s, 2)
   expect_true(isTRUE(s[[1]]$DemographicsGender)); expect_true(isTRUE(s[[1]]$DemographicsAgeGroup)); expect_false(isTRUE(s[[1]][["DemographicsAge"]]))
-  expect_equal(nrow(s[[2]]$covariateCohorts), 64)
+  expect_equal(nrow(s[[2]]$covariateCohorts), 51)
+  expect_false(any(s[[2]]$covariateCohorts$cohortId %in% (100000 + 1201:1214)))
+  expect_true(199001 %in% s[[2]]$covariateCohorts$cohortId)
   expect_equal(s[[2]]$valueType, "binary"); expect_equal(s[[2]]$startDay, -365); expect_equal(s[[2]]$endDay, -1)
   expect_equal(s[[2]]$covariateCohortTable, "table")
 })
@@ -131,6 +133,9 @@ test_that("every method of the final study runs end to end, saves, and gives the
   expect_true(all(results$featureSet == "defaults"))
   for (column in c("aucSe", "calibrationSlope", "calibrationInTheLarge", "expectedOverObserved", "nTestFullFollowUp", "aucFullFollowUp")) expect_false(anyNA(results[[column]]), info = column)
   expect_true(all(results$nTestFullFollowUp <= results$nTest))
+  for (column in c("modelStatus", "foldFitsFailed", "foldFitStatus", "fitWarnings", "finalIterations")) expect_true(column %in% names(results), info = column)
+  expect_true(all(results$modelStatus %in% c("SUCCESS", "OK", "INTERCEPT_ONLY", "POOR_BLR_STEP")))
+  expect_true(all(results$foldFitsFailed[results$method != "PLP_LASSO"] >= 0))
   # the same training set for every method
   expect_equal(length(unique(results$nTrain)), 1)
   # each saved model predicts the same as when it was fitted
@@ -195,7 +200,17 @@ test_that("the phenotype features and benchmark population run through the real 
   tasks$outcomeId <- features$cohortId[grepl("gastrointestinal bleeding", features$cohortName, ignore.case = TRUE)][1]
   source <- createCdmDataSource(details, cdmDatabaseSchema = "main", cohortDatabaseSchema = "main", databaseName = "EUNOMIA",
                                 covariateSettings = finalCovariateSettings("main", "sar_study_cohort"), cohortDefinitionSet = features,
-                                incremental = TRUE)
+                                incremental = TRUE, combinedCohorts = combinedFeatureCohorts())
+  # the combined cohort is the union of the 14 antibiotic classes, each episode once
+  invisible(suppressWarnings(source$loadPlpData(expandFeatureSets(tasks, "phenotypes"), outputFolder)))
+  connection <- DatabaseConnector::connect(details)
+  on.exit(DatabaseConnector::disconnect(connection), add = TRUE)
+  q <- function(sql) DatabaseConnector::querySql(connection, sql)[[1]]
+  union <- q(sprintf("SELECT COUNT(*) FROM (SELECT DISTINCT subject_id, cohort_start_date, cohort_end_date FROM main.sar_study_cohort WHERE cohort_definition_id IN (%s)) x",
+                     paste(100000 + 1201:1214, collapse = ",")))
+  combined <- q("SELECT COUNT(*) FROM main.sar_study_cohort WHERE cohort_definition_id = 199001")
+  expect_gt(union, 0)
+  expect_equal(combined, union)
   for (set in c("defaults", "phenotypes")) {
     task <- expandFeatureSets(tasks, set)
     plpData <- suppressWarnings(source$loadPlpData(task, outputFolder))
@@ -208,10 +223,26 @@ test_that("the phenotype features and benchmark population run through the real 
     if (set == "phenotypes") {
       cohorts <- ref$covariateId[ref$analysisId == 456]
       expect_gt(length(cohorts), 0)
-      expect_true(all(((cohorts - 456) / 1000) %in% (100000 + 1152:1215)))
+      ids <- (cohorts - 456) / 1000
+      expect_true(all(ids %in% c(100000 + setdiff(1152:1215, 1201:1214), 199001)))
       expect_true(all(ref$analysisId %in% c(1, 3, 456)))
     } else {
       expect_gt(length(unique(ref$analysisId)), 3)
     }
   }
+})
+
+test_that("failed fits are counted, summarised and reported", {
+  expect_equal(statusSummary(c("MAX_ITERATIONS", "MAX_ITERATIONS", "ILLCONDITIONED")), "ILLCONDITIONED x 1; MAX_ITERATIONS x 2")
+  expect_equal(statusSummary(c("MAX_ITERATIONS x 2", "MAX_ITERATIONS", "")), "MAX_ITERATIONS x 3")
+  expect_equal(statusSummary(character()), "")
+  # a fit stopped by the iteration limit is not converged, and says why
+  d <- simulateDesign()
+  problem <- createFitProblem(d$X, d$y, rep(TRUE, length(d$y)))
+  fit <- fitProblem(problem, "lasso", rep(0.5, length(problem$ids)), rep(TRUE, length(problem$ids)), NULL,
+                    Cyclops::createControl(fitter = "super", convergenceType = "kkt", tolerance = 1e-12, maxIterations = 1, threads = 1))
+  expect_false(fit$converged)
+  expect_equal(fit$status, "MAX_ITERATIONS")
+  results <- data.frame(modelStatus = c("SUCCESS", "REACHED MAXIMUM NUMBER OF ITERATIONS, CANNOT FIT"), foldFitsFailed = c(2, NA), fitWarnings = c("", ""))
+  expect_message(convergenceReport(results), "1 run\\(s\\) with a model status other than success, 1 with failed fold fits, 0 with fit warnings")
 })

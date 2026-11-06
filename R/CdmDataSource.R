@@ -218,6 +218,8 @@ originalProductionPopulationSettings <- function(timeAtRiskDays) {
 #' @param tempEmulationSchema For platforms without temp tables (e.g. Spark, Oracle).
 #' @param covariateSettings FeatureExtraction covariate settings, or a function of a task that returns them.
 #' @param cohortDefinitionSet Cohorts to generate.
+#' @param combinedCohorts Cohorts made after generation as the union of generated ones: a data frame with `cohortId`,
+#'   `cohortName` and `sourceIds` (a list column), as from [combinedFeatureCohorts()]. `NULL`: none.
 #' @param incremental Skip cohorts already generated with the same definition (CohortGenerator keeps the record in the
 #'   database). `FALSE`: every cohort is generated again in each run.
 #' @return A data source for [execute()], with tasks from [studyTasks()].
@@ -225,8 +227,12 @@ originalProductionPopulationSettings <- function(timeAtRiskDays) {
 createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortDatabaseSchema, databaseName,
                                 cohortTable = "sar_study_cohort", tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
                                 covariateSettings = studyCovariateSettings(),
-                                cohortDefinitionSet = studyCohortDefinitionSet(), incremental = FALSE) {
+                                cohortDefinitionSet = studyCohortDefinitionSet(), incremental = FALSE,
+                                combinedCohorts = NULL) {
   taskCovariates <- function(task) if (is.function(covariateSettings)) covariateSettings(task) else covariateSettings
+  combinedFingerprint <- if (NROW(combinedCohorts)) lapply(seq_len(nrow(combinedCohorts)), function(i) {
+    list(cohortId = as.numeric(combinedCohorts$cohortId[i]), sourceIds = as.numeric(combinedCohorts$sourceIds[[i]]))
+  })
   state <- new.env()
   state$generated <- FALSE
   generate <- function() {
@@ -239,6 +245,11 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
                                          tempEmulationSchema = tempEmulationSchema,
                                          cohortDatabaseSchema = cohortDatabaseSchema, cohortTableNames = tables,
                                          cohortDefinitionSet = cohortDefinitionSet, incremental = incremental)
+      if (NROW(combinedCohorts)) {
+        connection <- DatabaseConnector::connect(connectionDetails)
+        on.exit(DatabaseConnector::disconnect(connection), add = TRUE)
+        createCombinedCohorts(connection, cohortDatabaseSchema, cohortTable, combinedCohorts, tempEmulationSchema)
+      }
     })
     state$generated <- TRUE
   }
@@ -270,7 +281,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
     list(database = databaseName, cdm = cdmDatabaseSchema, targetId = as.numeric(task$targetId),
          outcomeId = as.numeric(task$outcomeId),
          targetCohort = cohortSql(task$targetId), outcomeCohort = cohortSql(task$outcomeId),
-         covariates = taskCovariates(task), sample = sampleLabel(task))
+         covariates = taskCovariates(task), combined = combinedFingerprint, sample = sampleLabel(task))
   }
   # The folder of the task's cached plpData, extracted first if it is not there or was made with other settings (its
   # fingerprint). A cache from before fingerprints is checked by its sample only (sample.txt), as before.
@@ -322,4 +333,19 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
            testN = attr(s, "testN"), testEvents = attr(s, "testEvents"))
     }
   )
+}
+
+# A cohort that is the union of others already in the cohort table: every episode of any of them, once. Made again on
+# each run (cheap), so it always follows its sources.
+createCombinedCohorts <- function(connection, cohortDatabaseSchema, cohortTable, combinedCohorts, tempEmulationSchema) {
+  for (i in seq_len(nrow(combinedCohorts))) {
+    DatabaseConnector::renderTranslateExecuteSql(connection, "
+      DELETE FROM @schema.@cohort_table WHERE cohort_definition_id = @cohort_id;
+      INSERT INTO @schema.@cohort_table (cohort_definition_id, subject_id, cohort_start_date, cohort_end_date)
+      SELECT DISTINCT CAST(@cohort_id AS BIGINT), subject_id, cohort_start_date, cohort_end_date
+      FROM @schema.@cohort_table WHERE cohort_definition_id IN (@source_ids);",
+      schema = cohortDatabaseSchema, cohort_table = cohortTable, cohort_id = combinedCohorts$cohortId[i],
+      source_ids = as.numeric(combinedCohorts$sourceIds[[i]]), tempEmulationSchema = tempEmulationSchema,
+      progressBar = FALSE, reportOverallTime = FALSE)
+  }
 }

@@ -13,7 +13,8 @@ createCdmDataSource(
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
   covariateSettings = studyCovariateSettings(),
   cohortDefinitionSet = studyCohortDefinitionSet(),
-  incremental = FALSE
+  incremental = FALSE,
+  combinedCohorts = NULL
 )
 }
 \arguments{
@@ -35,6 +36,9 @@ createCdmDataSource(
 
 \item{incremental}{Skip cohorts already generated with the same definition (CohortGenerator keeps the record in the
 database). \code{FALSE}: every cohort is generated again in each run.}
+
+\item{combinedCohorts}{Cohorts made after generation as the union of generated ones: a data frame with \code{cohortId},
+\code{cohortName} and \code{sourceIds} (a list column), as from \code{\link[=combinedFeatureCohorts]{combinedFeatureCohorts()}}. \code{NULL}: none.}
 }
 \value{
 A data source for \code{\link[=execute]{execute()}}, with tasks from \code{\link[=studyTasks]{studyTasks()}}.
