@@ -133,7 +133,8 @@ test_that("every method of the final study runs end to end, saves, and gives the
   expect_true(all(results$featureSet == "defaults"))
   for (column in c("aucSe", "calibrationSlope", "calibrationInTheLarge", "expectedOverObserved", "nTestFullFollowUp", "aucFullFollowUp")) expect_false(anyNA(results[[column]]), info = column)
   expect_true(all(results$nTestFullFollowUp <= results$nTest))
-  for (column in c("modelStatus", "foldFitsFailed", "foldFitStatus", "fitWarnings", "finalIterations")) expect_true(column %in% names(results), info = column)
+  for (column in c("modelStatus", "foldFitsFailed", "foldFitStatus", "fitWarnings", "finalIterations", "finalAlgorithm", "finalNewtonIterations",
+                   "finalGapEstimate", "foldFitIterationsTotal", "foldFitIterationsMax", "foldNewtonIterations", "foldFitAlgorithms")) expect_true(column %in% names(results), info = column)
   # time inside Cyclops is part of the fit, which is part of the run; PLP's LASSO does not report it
   study <- results[results$method != "PLP_LASSO", ]
   expect_true(all(study$cyclopsFits > 0 & study$cyclopsFitSeconds > 0 & study$cyclopsDataSeconds >= 0))
@@ -239,6 +240,25 @@ test_that("the phenotype features and benchmark population run through the real 
       expect_gt(length(unique(ref$analysisId)), 3)
     }
   }
+})
+
+test_that("the two fitting algorithms reach the same fit, and report how", {
+  skip_on_cran()
+  d <- simulateDesign()
+  ccd <- signalAdaptiveCv(d$X, d$y, d$folds, penalty = "lasso", shapes = c(0, 0, 0), searchSettings = list(fitAlgorithm = "ccd"))
+  auto <- signalAdaptiveCv(d$X, d$y, d$folds, penalty = "lasso", shapes = c(0, 0, 0), searchSettings = list(fitAlgorithm = "auto"))
+  expect_equal(ccd$convergence$finalAlgorithm, "ccd")
+  expect_true(auto$convergence$finalAlgorithm %in% c("newton", "ccd", "auto"))
+  expect_gt(ccd$convergence$foldFitIterationsTotal, 0)
+  expect_gte(ccd$convergence$foldFitIterationsMax, 1)
+  expect_equal(ccd$convergence$foldNewtonIterations, 0)
+  expect_true(grepl("ccd", ccd$convergence$foldFitAlgorithms))
+  expect_lt(abs(ccd$selected$cvLoss - auto$selected$cvLoss), 1e-3)
+  expect_error(signalAdaptiveCv(d$X, d$y, d$folds, penalty = "lasso", shapes = c(0, 0, 0), searchSettings = list(fitAlgorithm = "x")), "unknown fit algorithm")
+  methods <- fitAlgorithmComparisonMethods()
+  expect_length(methods, 10)
+  expect_equal(methods$LASSO_ccd$param$searchSettings$fitAlgorithm, "ccd")
+  expect_equal(methods$SAR_fixed_auto$param$searchSettings$fitAlgorithm, "auto")
 })
 
 test_that("failed fits are counted, summarised and reported", {

@@ -85,7 +85,7 @@ renv::install("OHDSI/Cyclops@develop")
 install.packages(".", repos = NULL, type = "source")
 ```
 
-The script prints the Cyclops commit, and each result row records it in `versions`. Finished runs are not redone when Cyclops changes, so
+The script prints the Cyclops commit, and each result row records it in `versions`, with each fit's algorithm, iterations and status. Finished runs are not redone when Cyclops changes, so
 use a new output folder if results should all come from one commit.
 
 **Settings:**
@@ -103,6 +103,13 @@ use a new output folder if results should all come from one commit.
 
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.
+
+## Comparing Cyclops's fitting algorithms
+
+`Rscript extras/production/compareFitAlgorithms.R CCAE` fits one benchmark task (HFT2DM, both feature sets, one ordering, all budgets) with
+SAR, SAR with a fixed shape, LASSO, ridge and elastic net, each by coordinate descent (`_ccd`) and by Cyclops's newer automatic algorithm
+(`_auto`). It reuses the cohorts and data of `runBenchmarks.R` and writes `SignalAdaptiveStudy_fit_comparison/<database>/`. Send the zip that
+the last message names: it includes how far apart the coefficients of the two algorithms are.
 
 ## Logs and timings
 

@@ -4,7 +4,10 @@
 \alias{finalStudyMethods}
 \title{Methods of the final study}
 \usage{
-finalStudyMethods()
+finalStudyMethods(fitAlgorithm = "auto")
+}
+\arguments{
+\item{fitAlgorithm}{As in \code{\link[=setSar]{setSar()}}; PLP's LASSO uses PLP's own settings.}
 }
 \value{
 A named list of model settings.

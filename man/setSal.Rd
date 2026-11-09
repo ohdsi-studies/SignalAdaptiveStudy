@@ -4,7 +4,12 @@
 \alias{setSal}
 \title{Signal-adaptive LASSO (SAL) model settings}
 \usage{
-setSal(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL")
+setSal(
+  shapes = sarShapes(),
+  interceptOnly = TRUE,
+  name = "SAL",
+  fitAlgorithm = "auto"
+)
 }
 \arguments{
 \item{shapes}{Shapes c = (c1, c2, c3) to choose from: a matrix with one row per shape, or one vector.
@@ -13,6 +18,9 @@ Default: the 12 shapes of \code{\link[=sarShapes]{sarShapes()}}.}
 \item{interceptOnly}{Allow the intercept-only model to win the cross-validation, as the original does.}
 
 \item{name}{Model name shown by PLP.}
+
+\item{fitAlgorithm}{\code{"auto"}: Cyclops's coordinate descent that moves to Newton or prox-Newton steps, stopped by its
+certified gap. \code{"ccd"}: coordinate descent stopped by the KKT criterion. Used for fold and final fits alike.}
 }
 \value{
 An object of class \code{modelSettings}.

@@ -31,7 +31,8 @@ timeCyclops <- function(kind, expr) {
 # Cyclops data for the rows of X (binary columns become indicator columns).
 makeCyclopsData <- function(X, y) {
   triplets <- Matrix::summary(methods::as(X, "TsparseMatrix"))
-  triplets <- triplets[order(triplets$i, triplets$j), ]
+  keep <- order(triplets$i, triplets$j)
+  triplets <- list(i = triplets$i[keep], j = triplets$j[keep], x = triplets$x[keep]) # far cheaper than sorting a data frame
   timeCyclops("dataSeconds", Cyclops::convertToCyclopsData(
     outcomes = data.frame(rowId = seq_len(nrow(X)), y = y),
     covariates = data.frame(rowId = triplets$i, covariateId = triplets$j, covariateValue = triplets$x),
@@ -42,7 +43,9 @@ makeCyclopsData <- function(X, y) {
 # One fit problem: the Cyclops data of the fit rows and the columns it holds (indices into X).
 createFitProblem <- function(X, y, rows) {
   data <- makeCyclopsData(X[rows, , drop = FALSE], y[rows])
-  list(rows = rows, n = sum(rows), data = data, ids = as.integer(Cyclops::getCovariateIds(data)[-1]))
+  ids <- as.integer(Cyclops::getCovariateIds(data)[-1])
+  list(rows = rows, n = sum(rows), data = data, ids = ids,
+       heldOutX = if (any(!rows)) X[!rows, ids, drop = FALSE])  # kept: held-out losses are computed at every variance tried
 }
 
 # Weights of one shape for a fit problem, from that problem's rows only, restricted to the columns it holds. The SAR
@@ -50,7 +53,8 @@ createFitProblem <- function(X, y, rows) {
 # prior variance (a flat prior), and is kept when it varies in these rows.
 problemWeights <- function(X, y, problem, shape, unpenalized = rep(FALSE, ncol(X))) {
   penalized <- !unpenalized
-  w <- computeSarWeights(X[problem$rows, penalized, drop = FALSE], y[problem$rows], shape)
+  statistics <- problem$statistics %||% sarStatistics(X[problem$rows, penalized, drop = FALSE], y[problem$rows])
+  w <- weightsFromStatistics(statistics, shape)
   weights <- rep(NA_real_, ncol(X)); keep <- logical(ncol(X))
   weights[penalized] <- w$weights; keep[penalized] <- w$keep
   if (any(unpenalized)) {
@@ -107,7 +111,10 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
                                                             warnings = FALSE))
   coefficients <- if (is.null(fit$estimation)) NULL else as.numeric(stats::coef(fit, ignoreConvergence = TRUE))
   # converged as Cyclops's own CV counts it: SUCCESS, or POOR_BLR_STEP under the kkt criterion
+  convergence <- fit$convergence
   list(coefficients = coefficients, status = fit$return_flag, iterations = fit$iterations %||% NA_integer_,
+       algorithm = fit$algorithm %||% "ccd", newtonIterations = convergence$newtonIterations %||% 0L, # Cyclops names an algorithm only for newer fits
+       gapEstimate = convergence$gapEstimate %||% NA_real_, ineligible = convergence$ineligible %||% "",
        converged = !is.null(coefficients) && fit$return_flag %in% c("SUCCESS", "POOR_BLR_STEP"))
 }
 
@@ -115,7 +122,7 @@ softplus <- function(z) ifelse(z > 0, z + log1p(exp(-z)), log1p(exp(z)))
 
 heldOutLogLikelihood <- function(X, y, problem, coefficients) {
   heldOut <- !problem$rows
-  eta <- coefficients[1] + as.numeric(X[heldOut, problem$ids, drop = FALSE] %*% coefficients[-1])
+  eta <- coefficients[1] + as.numeric(problem$heldOutX %*% coefficients[-1])
   -sum((1 - y[heldOut]) * softplus(eta) + y[heldOut] * softplus(-eta))
 }
 
@@ -155,7 +162,7 @@ shapeKey <- function(shape) c(sum(shape != 0), sum(abs(shape)))
 # list(fit, variances, lambda, variance); foldCoefficients(X, y, problem, f, penalty, setup, record, state).
 searchStrategy <- function(search, settings = list()) {
   switch(search,
-    auto = autoStrategy(),
+    auto = autoStrategy(settings$fitAlgorithm %||% "auto"),
     stop("unknown search: ", search)
   )
 }
@@ -163,23 +170,39 @@ searchStrategy <- function(search, settings = list()) {
 # Cyclops's auto-search over sigma^2 (fold fits as Cyclops's own CV under fitter = "super"), final fit at the same
 # sigma^2 on all rows.
 # One thread per fit (Cyclops's default, explicit): execute() runs fits in parallel in worker processes instead.
-autoStrategy <- function() {
-  foldControl <- Cyclops::createControl(fitter = "super", convergenceType = "kkt", tolerance = 3e-3, maxIterations = 5000,
-                                        threads = 1)
-  # Cyclops's final-fit settings (super: kkt, 1e-4) with more iterations than its default 5000, which a weighted
-  # LASSO on 283k rows exceeded; a fit that converges sooner stops at the same point either way.
-  finalControl <- Cyclops::createControl(fitter = "super", maxIterations = 100000, threads = 1)
+# fitAlgorithm: "auto" is Cyclops's default on develop, coordinate descent that moves to Newton or prox-Newton steps, stopped by
+# its certified duality gap; "ccd" is coordinate descent stopped by the KKT criterion, as in the pilot. Fold and final fits use
+# the same algorithm.
+autoStrategy <- function(fitAlgorithm = "auto") {
+  if (!fitAlgorithm %in% c("auto", "ccd")) stop("unknown fit algorithm: ", fitAlgorithm)
+  # Cyclops's final-fit settings with more iterations than its default 5000, which a weighted LASSO on 283k rows exceeded; a
+  # fit that converges sooner stops at the same point either way.
+  if (fitAlgorithm == "ccd") {
+    foldControl <- Cyclops::createControl(fitter = "super", algorithm = "ccd", convergenceType = "kkt", tolerance = 3e-3,
+                                          maxIterations = 5000, threads = 1)
+    finalControl <- Cyclops::createControl(fitter = "super", algorithm = "ccd", maxIterations = 100000, threads = 1)
+  } else {
+    foldControl <- Cyclops::createControl(fitter = "super", algorithm = "auto", convergenceType = "gap", tolerance = 1e-5,
+                                          maxIterations = 5000, threads = 1)
+    finalControl <- Cyclops::createControl(fitter = "super", algorithm = "auto", convergenceType = "gap", tolerance = 1e-6,
+                                           maxIterations = 100000, threads = 1)
+  }
   list(
     searchShape = function(X, y, problems, setups, shape, penalty, context) {
       n <- length(y)
       cache <- lapply(problems, function(p) list(variances = numeric(), coefficients = list()))
       failed <- character() # status of each fold fit that did not converge
+      foldStats <- list(iterations = numeric(), newton = numeric(), algorithms = character(), ineligible = character())
       evaluate <- function(sigma2) {
         vapply(seq_along(problems), function(f) {
           p <- problems[[f]]; s <- setups[[f]]; ca <- cache[[f]]
           warm <- if (length(ca$variances)) ca$coefficients[[which.min(abs(log(ca$variances) - log(sigma2)))]] else NULL
           fit <- fitProblem(p, penalty, priorVariances(penalty, s$weights, s$keep, sigma2, "variance", p$n), s$keep,
                             warm, foldControl)
+          foldStats$iterations <<- c(foldStats$iterations, fit$iterations)
+          foldStats$newton <<- c(foldStats$newton, fit$newtonIterations)
+          foldStats$algorithms <<- c(foldStats$algorithms, as.character(fit$algorithm))
+          if (nzchar(fit$ineligible)) foldStats$ineligible <<- c(foldStats$ineligible, fit$ineligible)
           if (!fit$converged) { # as Cyclops: not scored and not used as a warm start
             failed <<- c(failed, as.character(fit$status %||% "NO_FIT"))
             return(NaN)
@@ -207,7 +230,12 @@ autoStrategy <- function() {
         record = data.frame(c1 = shape[1], c2 = shape[2], c3 = shape[3], lambda = NA_real_, variance = chosen,
                             cvLoss = -sum(observed) / n, ordinateLoss = -search$ordinate * length(problems) / n,
                             nullVariance = nullVariance, foldFitsFailed = length(failed),
-                            foldFitStatus = statusSummary(failed)),
+                            foldFitStatus = statusSummary(failed),
+                            foldFitIterationsTotal = sum(foldStats$iterations, na.rm = TRUE),
+                            foldFitIterationsMax = if (length(foldStats$iterations)) max(foldStats$iterations, na.rm = TRUE) else NA_real_,
+                            foldNewtonIterations = sum(foldStats$newton, na.rm = TRUE),
+                            foldFitAlgorithms = statusSummary(foldStats$algorithms),
+                            foldFitIneligible = statusSummary(foldStats$ineligible)),
         trace = data.frame(c1 = shape[1], c2 = shape[2], c3 = shape[3], step = seq_along(search$tried),
                            variance = search$tried, meanFoldLogLikelihood = vapply(search$scores, mean, numeric(1))),
         state = cache
@@ -254,6 +282,11 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     a <- smoothedIntercept(y[p$rows]); ho <- !p$rows
     sum((1 - y[ho]) * softplus(a) + y[ho] * softplus(-a))
   }, numeric(1))) / length(y)
+  # the weight statistics of every shape, once per fit problem
+  penalized <- !unpenalized
+  addStatistics <- function(p) { p$statistics <- sarStatistics(X[p$rows, penalized, drop = FALSE], y[p$rows]); p }
+  problems <- lapply(problems, addStatistics)
+  full <- addStatistics(full)
   context <- list(startVariance = defaultStartVariance(X, length(full$ids)), full = full, unpenalized = unpenalized)
 
   # progress in the log (PLP's plpLog.txt of the run): one line per shape
@@ -284,7 +317,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   }
 
   p <- ncol(X); beta <- numeric(p); weights <- rep(NA_real_, p); kkt <- NA_real_; cvPrediction <- numeric(length(y))
-  finalStatus <- "INTERCEPT_ONLY"; finalIterations <- NA_integer_
+  finalStatus <- "INTERCEPT_ONLY"; finalIterations <- NA_integer_; finalFit <- NULL
   if (is.null(selected)) {
     intercept <- smoothedIntercept(y)
     for (pr in problems) cvPrediction[!pr$rows] <- stats::plogis(smoothedIntercept(y[pr$rows]))
@@ -296,7 +329,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     final <- strategy$finalFit(X, y, full, penalty, w, record)
     lambda <- final$lambda; variance <- final$variance
     kkt <- kktResidual(X, y, full, final$fit$coefficients, final$variances, w$keep, penalty)
-    finalStatus <- final$fit$status %||% NA_character_; finalIterations <- final$fit$iterations %||% NA_integer_
+    finalFit <- final$fit; finalStatus <- finalFit$status %||% NA_character_; finalIterations <- finalFit$iterations %||% NA_integer_
     if (!identical(finalStatus, "SUCCESS")) ParallelLogger::logWarn(sprintf("final fit accepted with status %s", finalStatus))
     intercept <- final$fit$coefficients[1]
     beta[full$ids] <- final$fit$coefficients[-1]
@@ -320,7 +353,15 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     interceptCvLoss = interceptLoss, weights = weights, kkt = kkt, nonZero = sum(beta != 0),
     convergence = list(foldFitsFailed = sum(records$foldFitsFailed %||% 0),
                        foldFitStatus = statusSummary(unlist(strsplit(records$foldFitStatus %||% "", "; "))),
-                       finalStatus = finalStatus, finalIterations = finalIterations),
+                       finalStatus = finalStatus, finalIterations = finalIterations,
+                       finalAlgorithm = if (is.null(finalFit)) NA_character_ else finalFit$algorithm,
+                       finalNewtonIterations = if (is.null(finalFit)) NA_real_ else finalFit$newtonIterations,
+                       finalGapEstimate = if (is.null(finalFit)) NA_real_ else finalFit$gapEstimate,
+                       foldFitIterationsTotal = sum(records$foldFitIterationsTotal %||% 0),
+                       foldFitIterationsMax = max(records$foldFitIterationsMax %||% NA_real_),
+                       foldNewtonIterations = sum(records$foldNewtonIterations %||% 0),
+                       foldFitAlgorithms = statusSummary(unlist(strsplit(records$foldFitAlgorithms %||% "", "; "))),
+                       foldFitIneligible = statusSummary(unlist(strsplit(records$foldFitIneligible %||% "", "; ")))),
     timing = list(cyclopsFitSeconds = .cyclopsTiming$fitSeconds, cyclopsDataSeconds = .cyclopsTiming$dataSeconds,
                   cyclopsFits = .cyclopsTiming$fits),
     records = records, trace = if (length(Filter(Negate(is.null), traces))) do.call(rbind, traces) else NULL,

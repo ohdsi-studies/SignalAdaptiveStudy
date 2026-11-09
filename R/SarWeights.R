@@ -24,17 +24,29 @@
 computeSarWeights <- function(X, y, c) {
   if (length(c) != 3) stop("c must be c(c1, c2, c3)")
   if (nrow(X) != length(y)) stop("X and y have different numbers of rows")
+  weightsFromStatistics(sarStatistics(X, y), c)
+}
+
+# What the weights of every shape share, computed once per fit problem: n, the column means, variances and scores. The
+# mean squares come from the stored values of a sparse column matrix, which is far cheaper than X * X.
+sarStatistics <- function(X, y) {
   n <- nrow(X)
   y <- as.numeric(y)
   target <- (sum(y) + 0.5) / (n + 1)
   mu <- Matrix::colMeans(X)
-  variance <- pmax(Matrix::colMeans(X * X) - mu * mu, 0)
-  score <- as.numeric(Matrix::crossprod(X, y - mean(y)))
-  info <- n * target * (1 - target) * variance
-  logWeights <- c[1] * log1p(n * mu) / log1p(n) + c[2] * log1p(info) + c[3] * log1p(score^2 / (info + 0.5))
+  square <- X
+  if (methods::is(square, "dgCMatrix")) square@x <- square@x^2 else square <- X * X
+  meanSquare <- Matrix::colMeans(square)
+  variance <- pmax(meanSquare - mu * mu, 0)
+  list(n = n, mu = mu, variance = variance, meanSquare = meanSquare, score = as.numeric(Matrix::crossprod(X, y - mean(y))),
+       info = n * target * (1 - target) * variance)
+}
+
+weightsFromStatistics <- function(s, c) {
+  logWeights <- c[1] * log1p(s$n * s$mu) / log1p(s$n) + c[2] * log1p(s$info) + c[3] * log1p(s$score^2 / (s$info + 0.5))
   # not constant in these rows; relative to the mean square, so that rounding in a constant column (about 1e-16 of it)
   # does not count, while a binary column's variance / mean square is 1 - mu >= 1/n
-  keep <- variance > 1e-10 * Matrix::colMeans(X * X)
+  keep <- s$variance > 1e-10 * s$meanSquare
   logWeights <- logWeights - mean(logWeights[keep])
   logWeights[!keep] <- NA
   list(logWeights = logWeights, weights = exp(logWeights), keep = keep)

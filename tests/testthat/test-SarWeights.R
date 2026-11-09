@@ -51,3 +51,14 @@ test_that("non-binary columns are kept when they vary, whatever their mean", {
   B <- Matrix::Matrix(cbind(stats::rbinom(n, 1, 0.5), 1, c(1, rep(0, n - 1)), 0), sparse = TRUE)
   expect_identical(computeSarWeights(B, y, c(0, 0, 0))$keep, c(TRUE, FALSE, TRUE, FALSE))
 })
+
+test_that("the weights are the same whatever the values of a sparse column, by the mean-square shortcut or X * X", {
+  set.seed(3)
+  X <- Matrix::rsparsematrix(800, 120, 0.1)
+  X@x <- abs(X@x) * stats::runif(length(X@x), 0.5, 40)
+  X <- methods::as(X, "CsparseMatrix")
+  y <- stats::rbinom(800, 1, 0.15)
+  for (shape in list(c(0, 0, 0), c(1, 1, -1), c(1, 0, -0.5), c(0, 1, -1))) {
+    expect_identical(computeSarWeights(X, y, shape), computeSarWeights(methods::as(X, "TsparseMatrix"), y, shape))
+  }
+})

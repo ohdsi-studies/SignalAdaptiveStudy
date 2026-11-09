@@ -14,11 +14,13 @@
 #'   Default: the 12 shapes of [sarShapes()].
 #' @param interceptOnly Allow the intercept-only model to win the cross-validation, as the original does.
 #' @param name Model name shown by PLP.
+#' @param fitAlgorithm `"auto"`: Cyclops's coordinate descent that moves to Newton or prox-Newton steps, stopped by its
+#'   certified gap. `"ccd"`: coordinate descent stopped by the KKT criterion. Used for fold and final fits alike.
 #'
 #' @return An object of class `modelSettings`.
 #' @export
-setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR") {
-  signalAdaptiveSettings("ridge", shapes, interceptOnly, name)
+setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR", fitAlgorithm = "auto") {
+  signalAdaptiveSettings("ridge", shapes, interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm))
 }
 
 #' Signal-adaptive LASSO (SAL) model settings
@@ -29,8 +31,8 @@ setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR") {
 #' @inheritParams setSar
 #' @return An object of class `modelSettings`.
 #' @export
-setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL") {
-  signalAdaptiveSettings("lasso", shapes, interceptOnly, name)
+setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL", fitAlgorithm = "auto") {
+  signalAdaptiveSettings("lasso", shapes, interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm))
 }
 
 # search, cSelection, searchSettings and unpenalizedCovariateIds are for development comparisons; the study uses the

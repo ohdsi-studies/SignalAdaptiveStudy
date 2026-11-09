@@ -227,7 +227,7 @@
       "RemoteUsername": "OHDSI",
       "RemoteRepo": "Cyclops",
       "RemoteRef": "develop",
-      "RemoteSha": "e6519b9ee7b93e08db430f3bfb0f3ab46d4c5cce"
+      "RemoteSha": "8cd071e78a98627cf55820ef17c1c58a1fdb8009"
     },
     "DBI": {
       "Package": "DBI",

@@ -4,10 +4,12 @@
 \alias{setElasticNet}
 \title{Elastic net model settings}
 \usage{
-setElasticNet(name = "ElasticNet")
+setElasticNet(name = "ElasticNet", fitAlgorithm = "auto")
 }
 \arguments{
 \item{name}{Model name shown by PLP.}
+
+\item{fitAlgorithm}{As in \code{\link[=setSar]{setSar()}}.}
 }
 \value{
 An object of class \code{modelSettings}.
