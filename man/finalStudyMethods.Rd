@@ -13,6 +13,6 @@ finalStudyMethods(fitAlgorithm = "auto")
 A named list of model settings.
 }
 \description{
-Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), and two reduced versions of SAR, the
-shape fixed at (0, 1, -1) and without the third term.
+Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), two reduced versions of SAR, the
+shape fixed at (0, 1, -1) and without the third term, and posterior-moment ridge (\code{\link[=setPosteriorMomentRidge]{setPosteriorMomentRidge()}}, kappa = 0.5).
 }

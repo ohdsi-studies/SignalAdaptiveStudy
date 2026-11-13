@@ -124,7 +124,7 @@ test_that("every method of the final study runs end to end, saves, and gives the
   folder <- tempfile("sar_final_")
   on.exit(unlink(folder, recursive = TRUE), add = TRUE)
   methods <- finalStudyMethods()
-  expect_setequal(names(methods), c("SAR", "LASSO", "Ridge", "PLP_LASSO", "ElasticNet", "SAR_fixed", "SAR_no_c3"))
+  expect_setequal(names(methods), c("SAR", "LASSO", "Ridge", "PLP_LASSO", "ElasticNet", "SAR_fixed", "SAR_no_c3", "PM_ridge"))
   task$budgets <- list(100)
   results <- execute(source, task, folder, mode = "models", orderings = 1, methods = methods, workers = 1)
   expect_equal(nrow(results), length(methods))
@@ -157,6 +157,10 @@ test_that("every method of the final study runs end to end, saves, and gives the
   expect_equal(results$c2[results$method == "SAR_fixed"], 1)
   expect_equal(results$c3[results$method == "SAR_fixed"], -1)
   expect_equal(results$c3[results$method == "SAR_no_c3"], 0)
+  pm <- results[results$method == "PM_ridge", ]
+  expect_identical(pm$weightRule, "posteriorMoment(kappa=0.5)")
+  expect_true(pm$kappa == 0.5 && is.na(pm$c1) && is.na(pm$c2) && is.na(pm$c3))
+  expect_true(all(results$weightRule[!results$method %in% c("PM_ridge", "PLP_LASSO")] == "SAR"))
   # a restart skips finished runs
   again <- execute(source, task, folder, mode = "models", orderings = 1, methods = methods, workers = 1)
   expect_identical(sort(again$auc), sort(results$auc))

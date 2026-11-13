@@ -42,12 +42,40 @@ sarStatistics <- function(X, y) {
        info = n * target * (1 - target) * variance)
 }
 
-weightsFromStatistics <- function(s, c) {
-  logWeights <- c[1] * log1p(s$n * s$mu) / log1p(s$n) + c[2] * log1p(s$info) + c[3] * log1p(s$score^2 / (s$info + 0.5))
+weightsFromStatistics <- function(s, c, weightRule = NULL) {
+  logWeights <- if (is.null(weightRule)) {
+    c[1] * log1p(s$n * s$mu) / log1p(s$n) + c[2] * log1p(s$info) + c[3] * log1p(s$score^2 / (s$info + 0.5))
+  } else {
+    posteriorMomentLogWeights(s, weightRule$kappa)
+  }
   # not constant in these rows; relative to the mean square, so that rounding in a constant column (about 1e-16 of it)
   # does not count, while a binary column's variance / mean square is 1 - mu >= 1/n
   keep <- s$variance > 1e-10 * s$meanSquare
   logWeights <- logWeights - mean(logWeights[keep])
   logWeights[!keep] <- NA
   list(logWeights = logWeights, weights = exp(logWeights), keep = keep)
+}
+
+# Posterior-moment ridge (PM-ridge; a secondary method, added 2026-11-13 after a pilot on development tasks). Under a N(0, 1/kappa) prior and the
+# diagonal quadratic approximation of the log-likelihood at the intercept-only model (score s_j, information h_j, the
+# same statistics as SAR), the posterior of beta_j has mean s_j / D_j and variance 1 / D_j, D_j = h_j + kappa. The
+# weight is the inverse of the posterior second moment, u_j = D_j^2 / (D_j + s_j^2): one EM update of beta_j's prior
+# variance. Centred in the log over the same columns as SAR. With kappa = 0.5 its ratio to SAR's c = (0, 1, -1) before
+# centring is (h_j + 0.5) / (h_j + 1).
+posteriorMomentLogWeights <- function(s, kappa) {
+  if (!is.numeric(kappa) || length(kappa) != 1 || !is.finite(kappa) || kappa <= 0) stop("kappa must be positive and finite")
+  d <- s$info + kappa
+  log(d) - log1p(s$score^2 / d)
+}
+
+# NULL (SAR's formula) or list(type = "posteriorMoment", kappa); checked once, where the settings are made.
+checkWeightRule <- function(weightRule) {
+  if (is.null(weightRule)) return(NULL)
+  if (!is.list(weightRule) || !identical(weightRule$type, "posteriorMoment")) stop("unknown weight rule")
+  posteriorMomentLogWeights(list(info = 0, score = 0), weightRule$kappa)
+  list(type = "posteriorMoment", kappa = as.numeric(weightRule$kappa))
+}
+
+weightRuleLabel <- function(weightRule) {
+  if (is.null(weightRule)) "SAR" else sprintf("posteriorMoment(kappa=%g)", weightRule$kappa)
 }

@@ -214,6 +214,7 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
   # other PLP models (e.g. Broken Adaptive Ridge) lack the SAR fields: NA, non-zeros from their coefficients
   value <- function(x) if (length(x) == 1) x else NA # BAR's variance, e.g., is one per coefficient
   shape <- unlist(fp$shape) %||% rep(NA, 3)
+  if (!is.null(fp$weightRule) && fp$weightRule != "SAR") shape <- rep(NA, 3) # another weight rule: c does not apply
   if (is.null(fp$nonZero)) {
     co <- model$model$coefficients
     fp$nonZero <- if (is.data.frame(co)) sum(co$betas != 0 & co$covariateIds != "(Intercept)") else NA
@@ -241,6 +242,7 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     aucFullFollowUp = full$aucFullFollowUp, logLossFullFollowUp = full$logLossFullFollowUp,
     calibrationInTheLargeFullFollowUp = full$calibrationInTheLargeFullFollowUp,
     interceptOnly = isTRUE(fp$interceptOnly), c1 = shape[1], c2 = shape[2], c3 = shape[3],
+    weightRule = value(fp$weightRule %||% NA), kappa = value(fp$kappa %||% NA),
     lambda = value(fp$lambda), variance = value(fp$variance), cvLoss = value(fp$cvLoss),
     ordinateLoss = value(fp$ordinateLoss), interceptCvLoss = value(fp$interceptCvLoss), nonZero = fp$nonZero,
     kkt = value(fp$kkt), modelStatus = status, finalIterations = value(fp$finalIterations),

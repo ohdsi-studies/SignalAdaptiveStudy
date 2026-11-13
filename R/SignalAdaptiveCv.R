@@ -51,10 +51,10 @@ createFitProblem <- function(X, y, rows) {
 # Weights of one shape for a fit problem, from that problem's rows only, restricted to the columns it holds. The SAR
 # weights (and their centring) cover the penalised columns; an unpenalised column gets weight 0, i.e. an infinite
 # prior variance (a flat prior), and is kept when it varies in these rows.
-problemWeights <- function(X, y, problem, shape, unpenalized = rep(FALSE, ncol(X))) {
+problemWeights <- function(X, y, problem, shape, unpenalized = rep(FALSE, ncol(X)), weightRule = NULL) {
   penalized <- !unpenalized
   statistics <- problem$statistics %||% sarStatistics(X[problem$rows, penalized, drop = FALSE], y[problem$rows])
-  w <- weightsFromStatistics(statistics, shape)
+  w <- weightsFromStatistics(statistics, shape, weightRule)
   weights <- rep(NA_real_, ncol(X)); keep <- logical(ncol(X))
   weights[penalized] <- w$weights; keep[penalized] <- w$keep
   if (any(unpenalized)) {
@@ -213,8 +213,8 @@ autoStrategy <- function(fitAlgorithm = "auto") {
         }, numeric(1))
       }
       nullVariance <- if (penalty != "ridge") {
-        nullModelVariance(X, y, context$full, problemWeights(X, y, context$full, shape, context$unpenalized), finalControl,
-                          alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1)
+        setup <- problemWeights(X, y, context$full, shape, context$unpenalized, context$weightRule)
+        nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1)
       } else NA_real_
       search <- autoSearch(evaluate, start = context$startVariance, firstCut = 0, refine = TRUE,
                            nullVariance = nullVariance)
@@ -265,7 +265,7 @@ autoStrategy <- function(fitAlgorithm = "auto") {
 #   unpenalized: logical, one per column of X: columns left out of the penalty (and of the weights' centring).
 signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elasticnet"), shapes = sarShapes(), interceptOnly = TRUE,
                              search = "auto", cSelection = c("observed", "ordinate"), searchSettings = list(),
-                             unpenalized = rep(FALSE, ncol(X))) {
+                             unpenalized = rep(FALSE, ncol(X)), weightRule = NULL) {
   penalty <- match.arg(penalty); cSelection <- match.arg(cSelection)
   strategy <- searchStrategy(search, searchSettings)
   start <- Sys.time()
@@ -287,7 +287,10 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   addStatistics <- function(p) { p$statistics <- sarStatistics(X[p$rows, penalized, drop = FALSE], y[p$rows]); p }
   problems <- lapply(problems, addStatistics)
   full <- addStatistics(full)
-  context <- list(startVariance = defaultStartVariance(X, length(full$ids)), full = full, unpenalized = unpenalized)
+  weightRule <- checkWeightRule(weightRule)
+  if (!is.null(weightRule) && (nrow(shapes) != 1 || any(shapes != 0))) stop("a weight rule takes the one shape c(0, 0, 0)")
+  context <- list(startVariance = defaultStartVariance(X, length(full$ids)), full = full, unpenalized = unpenalized,
+                  weightRule = weightRule)
 
   # progress in the log (PLP's plpLog.txt of the run): one line per shape
   ParallelLogger::logInfo(sprintf("%s cross-validation: %d rows, %d events, %d columns, %d folds, %d shape(s)",
@@ -295,7 +298,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   records <- list(); traces <- list(); states <- list()
   for (s in seq_len(nrow(shapes))) {
     shape <- unname(shapes[s, ])
-    setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized))
+    setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized, weightRule))
     result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
     records[[s]] <- result$record; traces[s] <- list(result$trace); states[s] <- list(result$state) # keep NULL slots
     best <- result$record[which.min(result$record$cvLoss), ] # one row (auto) or one per lambda (grid)
@@ -325,7 +328,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   } else {
     record <- records[selected, ]
     shape <- unname(unlist(record[c("c1", "c2", "c3")]))
-    w <- problemWeights(X, y, full, shape, unpenalized)
+    w <- problemWeights(X, y, full, shape, unpenalized, weightRule)
     final <- strategy$finalFit(X, y, full, penalty, w, record)
     lambda <- final$lambda; variance <- final$variance
     kkt <- kktResidual(X, y, full, final$fit$coefficients, final$variances, w$keep, penalty)
@@ -337,7 +340,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     state <- states[[which(apply(shapes, 1, function(r) all(r == shape)))[1]]]
     for (f in seq_along(problems)) {
       pr <- problems[[f]]
-      co <- strategy$foldCoefficients(X, y, pr, f, penalty, problemWeights(X, y, pr, shape, unpenalized), record,
+      co <- strategy$foldCoefficients(X, y, pr, f, penalty, problemWeights(X, y, pr, shape, unpenalized, weightRule), record,
                                       state)
       cvPrediction[!pr$rows] <- stats::plogis(co[1] + as.numeric(X[!pr$rows, pr$ids, drop = FALSE] %*% co[-1]))
     }
@@ -347,6 +350,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
                                   as.numeric(difftime(Sys.time(), start, units = "mins"))))
   list(
     intercept = unname(intercept), beta = beta, penalty = penalty, search = search, cSelection = cSelection,
+    weightRule = weightRuleLabel(weightRule),
     selected = list(shape = shape, lambda = lambda, variance = variance, interceptOnly = is.null(selected),
                     cvLoss = if (is.null(selected)) interceptLoss else records$cvLoss[selected],
                     ordinateLoss = if (is.null(selected)) NA_real_ else records$ordinateLoss[selected]),

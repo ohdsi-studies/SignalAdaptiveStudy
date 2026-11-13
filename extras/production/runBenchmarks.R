@@ -1,5 +1,5 @@
 # The PLP benchmark tasks with the final study's settings: two feature sets, budgets 100 to 1000, 3 orderings, SAR, LASSO and ridge,
-# with PLP's default LASSO, elastic net and two reduced SARs as secondary methods. Writes a zip of aggregates per database, to send
+# with PLP's default LASSO, elastic net, two reduced SARs and posterior-moment ridge as secondary methods. Writes a zip of aggregates per database, to send
 # back. Restartable: rerun after an interruption and finished runs are skipped.
 #
 #   Rscript extras/production/runBenchmarks.R               every database in cdmSchemas, one after the other

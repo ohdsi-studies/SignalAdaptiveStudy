@@ -109,8 +109,8 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 
 #' Methods of the final study
 #'
-#' Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), and two reduced versions of SAR, the
-#' shape fixed at (0, 1, -1) and without the third term.
+#' Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), two reduced versions of SAR, the
+#' shape fixed at (0, 1, -1) and without the third term, and posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5).
 #'
 #' @param fitAlgorithm As in [setSar()]; PLP's LASSO uses PLP's own settings.
 #' @return A named list of model settings.
@@ -123,7 +123,8 @@ finalStudyMethods <- function(fitAlgorithm = "auto") {
        PLP_LASSO = PatientLevelPrediction::setLassoLogisticRegression(seed = STUDY_SEEDS$folds, threads = 1),
        ElasticNet = setElasticNet(fitAlgorithm = fitAlgorithm),
        SAR_fixed = setSar(shapes = c(0, 1, -1), name = "SAR_fixed", fitAlgorithm = fitAlgorithm),
-       SAR_no_c3 = setSar(shapes = shapes[shapes[, "c3"] == 0, , drop = FALSE], name = "SAR_no_c3", fitAlgorithm = fitAlgorithm))
+       SAR_no_c3 = setSar(shapes = shapes[shapes[, "c3"] == 0, , drop = FALSE], name = "SAR_no_c3", fitAlgorithm = fitAlgorithm),
+       PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm))
 }
 
 #' Methods for comparing Cyclops's fitting algorithms

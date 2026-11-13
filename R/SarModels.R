@@ -35,11 +35,29 @@ setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL", fit
   signalAdaptiveSettings("lasso", shapes, interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm))
 }
 
+#' Posterior-moment ridge
+#'
+#' Ridge with each coefficient's prior variance proportional to its posterior second moment under a N(0, 1/kappa) pilot
+#' prior and the diagonal quadratic approximation of the likelihood at the intercept-only model: weight
+#' (h + kappa)^2 / (h + kappa + s^2), with SAR's score s and information h, centred like SAR's weights. The overall
+#' variance is searched as for SAR. A secondary method of the study, added after a pilot on the development tasks.
+#'
+#' @param kappa The pilot prior precision; 0.5 matches SAR's stabiliser.
+#' @inheritParams setSar
+#' @return PLP model settings.
+#' @export
+setPosteriorMomentRidge <- function(kappa = 0.5, interceptOnly = TRUE, name = "PM_ridge", fitAlgorithm = "auto") {
+  signalAdaptiveSettings("ridge", c(0, 0, 0), interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm),
+                         weightRule = list(type = "posteriorMoment", kappa = kappa))
+}
+
 # search, cSelection, searchSettings and unpenalizedCovariateIds are for development comparisons; the study uses the
 # defaults (Cyclops's auto-search, c chosen by the observed CV loss, every covariate penalised).
 signalAdaptiveSettings <- function(penalty, shapes, interceptOnly, name, search = "auto", cSelection = "observed",
-                                   searchSettings = list(), unpenalizedCovariateIds = c()) {
+                                   searchSettings = list(), unpenalizedCovariateIds = c(), weightRule = NULL) {
   shapes <- normalizeShapes(shapes)
+  weightRule <- checkWeightRule(weightRule)
+  if (!is.null(weightRule) && (nrow(shapes) != 1 || any(shapes != 0))) stop("a weight rule takes the one shape c(0, 0, 0)")
   if (any(!is.finite(shapes))) stop("shapes must be finite")
   if (!is.null(unpenalizedCovariateIds) && (!is.numeric(unpenalizedCovariateIds) || anyNA(unpenalizedCovariateIds))) {
     stop("unpenalizedCovariateIds must be numeric covariate IDs")
@@ -48,7 +66,8 @@ signalAdaptiveSettings <- function(penalty, shapes, interceptOnly, name, search 
   structure(list(
     fitFunction = "SignalAdaptiveStudy::fitSignalAdaptive",
     param = list(shapes = shapes, interceptOnly = interceptOnly, search = search, cSelection = cSelection,
-                 searchSettings = searchSettings, unpenalizedCovariateIds = unpenalizedCovariateIds),
+                 searchSettings = searchSettings, unpenalizedCovariateIds = unpenalizedCovariateIds,
+                 weightRule = weightRule)[c(rep(TRUE, 6), !is.null(weightRule))], # SAR's settings, so their fingerprints, as before
     settings = list(modelName = name, penalty = penalty, modelType = "binary", saveType = "RtoJson")
   ), class = "modelSettings")
 }
@@ -81,7 +100,8 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
                           penalty = settings$penalty, shapes = param$shapes, interceptOnly = param$interceptOnly,
                           search = param$search %||% "auto", cSelection = param$cSelection %||% "observed",
                           searchSettings = param$searchSettings %||% list(),
-                          unpenalized = covariateIds %in% (param$unpenalizedCovariateIds %||% c()))
+                          unpenalized = covariateIds %in% (param$unpenalizedCovariateIds %||% c()),
+                          weightRule = param$weightRule)
 
   ids <- c("(Intercept)", as.character(covariateIds))
   betas <- c(fit$intercept, fit$beta)
@@ -137,7 +157,8 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
       trainingTime = paste(as.character(abs(delta)), attr(delta, "units")),
       trainingDate = Sys.Date(),
       modelName = settings$modelName,
-      finalModelParameters = c(fit$selected, list(penalty = fit$penalty, search = fit$search, kkt = fit$kkt,
+      finalModelParameters = c(fit$selected, list(penalty = fit$penalty, search = fit$search, weightRule = fit$weightRule,
+                                                  kappa = param$weightRule$kappa %||% NA_real_, kkt = fit$kkt,
                                                   nonZero = fit$nonZero, interceptCvLoss = fit$interceptCvLoss,
                                                   cvSeconds = fit$seconds), fit$convergence, fit$timing),
       hyperParamSearch = fit$records,
