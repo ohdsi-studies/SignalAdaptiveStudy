@@ -129,6 +129,8 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
        hessianVectorProducts = convergence$hessianVectorProducts %||% NA_real_,
        certificationProducts = convergence$certificationProducts %||% NA_real_,
        newtonSolver = newtonSolver(convergence),
+       # how the stop was certified (newer Cyclops): "dual", "gsc", ..., or "none" (stopped at the KKT criterion)
+       certificate = as.character(convergence$certificate %||% NA_character_),
        converged = !is.null(coefficients) && fit$return_flag %in% c("SUCCESS", "POOR_BLR_STEP"))
 }
 
@@ -191,9 +193,11 @@ searchStrategy <- function(search, settings = list()) {
 # Cyclops's auto-search over sigma^2 (fold fits as Cyclops's own CV under fitter = "super"), final fit at the same
 # sigma^2 on all rows.
 # One thread per fit (Cyclops's default, explicit): execute() runs fits in parallel in worker processes instead.
-# fitAlgorithm: "auto" is Cyclops's default on develop, coordinate descent that moves to Newton or prox-Newton steps, stopped by
-# its certified duality gap; "ccd" is coordinate descent stopped by the KKT criterion, as in the pilot. Fold and final fits use
-# the same algorithm.
+# fitAlgorithm: "auto" is Cyclops's default on develop, coordinate descent that moves to Newton or prox-Newton steps where they
+# pay; "ccd" is coordinate descent, as in the pilot. Both stop where the other does: fold fits at the KKT criterion 3e-3 (as
+# Cyclops's own cross-validation folds of either), final fits at Cyclops's default criterion of the algorithm (for "auto", the
+# KKT stop with a duality-gap certificate when that is cheap), so the two differ only in the algorithm. Fold and final fits
+# use the same algorithm.
 autoStrategy <- function(fitAlgorithm = "auto") {
   if (!fitAlgorithm %in% c("auto", "ccd")) stop("unknown fit algorithm: ", fitAlgorithm)
   # Cyclops's final-fit settings with more iterations than its default 5000, which a weighted LASSO on 283k rows exceeded; a
@@ -203,10 +207,9 @@ autoStrategy <- function(fitAlgorithm = "auto") {
                                           maxIterations = 5000, threads = 1)
     finalControl <- Cyclops::createControl(fitter = "super", algorithm = "ccd", maxIterations = 100000, threads = 1)
   } else {
-    foldControl <- Cyclops::createControl(fitter = "super", algorithm = "auto", convergenceType = "gap", tolerance = 1e-5,
+    foldControl <- Cyclops::createControl(fitter = "super", algorithm = "auto", convergenceType = "kkt", tolerance = 3e-3,
                                           maxIterations = 5000, threads = 1)
-    finalControl <- Cyclops::createControl(fitter = "super", algorithm = "auto", convergenceType = "gap", tolerance = 1e-6,
-                                           maxIterations = 100000, threads = 1)
+    finalControl <- Cyclops::createControl(fitter = "super", algorithm = "auto", maxIterations = 100000, threads = 1)
   }
   list(
     searchShape = function(X, y, problems, setups, shape, penalty, context) {
@@ -392,6 +395,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
                        finalHessianVectorProducts = if (is.null(finalFit)) NA_real_ else finalFit$hessianVectorProducts %||% NA_real_,
                        finalCertificationProducts = if (is.null(finalFit)) NA_real_ else finalFit$certificationProducts %||% NA_real_,
                        finalNewtonSolver = if (is.null(finalFit)) NA_character_ else finalFit$newtonSolver %||% NA_character_,
+                       finalCertificate = if (is.null(finalFit)) NA_character_ else finalFit$certificate %||% NA_character_,
                        foldFitIterationsTotal = sum(records$foldFitIterationsTotal %||% 0),
                        foldFitIterationsMax = max(records$foldFitIterationsMax %||% NA_real_),
                        foldNewtonIterations = sum(records$foldNewtonIterations %||% 0),

@@ -253,6 +253,7 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
     foldFitAlgorithms = value(fp$foldFitAlgorithms), foldFitIneligible = value(fp$foldFitIneligible),
     finalHessianVectorProducts = value(fp$finalHessianVectorProducts %||% NA),
     finalCertificationProducts = value(fp$finalCertificationProducts %||% NA), finalNewtonSolver = value(fp$finalNewtonSolver %||% NA),
+    finalCertificate = value(fp$finalCertificate %||% NA),
     foldHessianVectorProducts = value(fp$foldHessianVectorProducts %||% NA),
     foldCertificationProducts = value(fp$foldCertificationProducts %||% NA), foldNewtonSolvers = value(fp$foldNewtonSolvers %||% NA),
     fitWarnings = paste(unique(fitWarnings), collapse = " | "),

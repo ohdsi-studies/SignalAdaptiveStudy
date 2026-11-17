@@ -18,8 +18,9 @@ setPosteriorMomentRidge(
 
 \item{name}{Model name shown by PLP.}
 
-\item{fitAlgorithm}{\code{"auto"}: Cyclops's coordinate descent that moves to Newton or prox-Newton steps, stopped by its
-certified gap. \code{"ccd"}: coordinate descent stopped by the KKT criterion. Used for fold and final fits alike.}
+\item{fitAlgorithm}{\code{"auto"}: Cyclops's coordinate descent that moves to Newton or prox-Newton steps where they pay.
+\code{"ccd"}: coordinate descent. Both stop at the same criteria (KKT 3e-3 in folds, Cyclops's default for the final fit),
+used for fold and final fits alike.}
 }
 \value{
 PLP model settings.

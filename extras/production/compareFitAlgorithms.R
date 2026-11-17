@@ -1,5 +1,5 @@
 # Compares Cyclops's two ways of fitting logistic regression on one benchmark task: coordinate descent with the KKT criterion against
-# the newer automatic algorithm (Newton and prox-Newton steps, stopped by a certified gap), both through the study's folds and search.
+# the newer automatic algorithm (Newton and prox-Newton steps where they pay), at the same stopping criteria, through the study's folds and search.
 # Writes a zip of aggregates to send back, including how far apart the coefficients are, and Newton-CG's work per fit (Hessian-vector
 # products, preconditioner). One ordering; by default all four budgets and both feature sets.
 #

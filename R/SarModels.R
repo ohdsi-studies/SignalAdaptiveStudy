@@ -14,8 +14,9 @@
 #'   Default: the 12 shapes of [sarShapes()].
 #' @param interceptOnly Allow the intercept-only model to win the cross-validation, as the original does.
 #' @param name Model name shown by PLP.
-#' @param fitAlgorithm `"auto"`: Cyclops's coordinate descent that moves to Newton or prox-Newton steps, stopped by its
-#'   certified gap. `"ccd"`: coordinate descent stopped by the KKT criterion. Used for fold and final fits alike.
+#' @param fitAlgorithm `"auto"`: Cyclops's coordinate descent that moves to Newton or prox-Newton steps where they pay.
+#'   `"ccd"`: coordinate descent. Both stop at the same criteria (KKT 3e-3 in folds, Cyclops's default for the final fit),
+#'   used for fold and final fits alike.
 #'
 #' @return An object of class `modelSettings`.
 #' @export

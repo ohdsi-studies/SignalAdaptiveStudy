@@ -135,7 +135,7 @@ test_that("every method of the final study runs end to end, saves, and gives the
   expect_true(all(results$nTestFullFollowUp <= results$nTest))
   for (column in c("modelStatus", "foldFitsFailed", "foldFitStatus", "fitWarnings", "finalIterations", "finalAlgorithm", "finalNewtonIterations",
                    "finalGapEstimate", "foldFitIterationsTotal", "foldFitIterationsMax", "foldNewtonIterations", "foldFitAlgorithms",
-                   "finalHessianVectorProducts", "finalCertificationProducts", "finalNewtonSolver", "foldHessianVectorProducts",
+                   "finalHessianVectorProducts", "finalCertificationProducts", "finalNewtonSolver", "finalCertificate", "foldHessianVectorProducts",
                    "foldCertificationProducts", "foldNewtonSolvers")) expect_true(column %in% names(results), info = column)
   # Newton's work is counted wherever Newton steps were taken: the solver of each fit, and Newton-CG's products (none when dense)
   newton <- results[!is.na(results$foldNewtonIterations) & results$foldNewtonIterations > 0, ]
