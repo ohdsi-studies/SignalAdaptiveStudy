@@ -97,8 +97,17 @@ kktResidual <- function(X, y, problem, coefficients, variances, keep, penalty) {
 fitProblem <- function(problem, penalty, variances, keep, start, control) {
   type <- switch(penalty, ridge = "normal", lasso = "laplace", elasticnet = "elasticnet")
   free <- is.infinite(variances) # unpenalised (weight 0)
-  prior <- Cyclops::createPrior(c("none", ifelse(free, "none", type)), variance = c(0, ifelse(free, 0, variances)),
-                                laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA)
+  penalised <- variances[keep & !free]
+  prior <- if (!any(free) && length(penalised) && all(penalised == penalised[1])) {
+    # one variance for every column (ridge, LASSO, elastic net; SAR's shape 0, 0, 0): one prior, the intercept (ID 0)
+    # excluded, as practitioners call Cyclops. The same objective as one prior per column, set up faster. Columns not
+    # kept are fixed at 0 below, whatever their prior.
+    Cyclops::createPrior(type, variance = penalised[1], exclude = 0,
+                         laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA)
+  } else {
+    Cyclops::createPrior(c("none", ifelse(free, "none", type)), variance = c(0, ifelse(free, 0, variances)),
+                         laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA)
+  }
   fixed <- NULL
   if (any(!keep)) {
     fixed <- c(FALSE, !keep)
