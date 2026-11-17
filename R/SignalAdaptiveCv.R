@@ -115,10 +115,22 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
   list(coefficients = coefficients, status = fit$return_flag, iterations = fit$iterations %||% NA_integer_,
        algorithm = fit$algorithm %||% "ccd", newtonIterations = convergence$newtonIterations %||% 0L, # Cyclops names an algorithm only for newer fits
        gapEstimate = convergence$gapEstimate %||% NA_real_, ineligible = convergence$ineligible %||% "",
+       # Newton's work (newer Cyclops): Hessian-vector products of Newton-CG, those spent certifying the stop, and the solver
+       # of the Newton steps: "dense", or "cg/<preconditioner>" ("none", "nystrom", "woodbury")
+       hessianVectorProducts = convergence$hessianVectorProducts %||% NA_real_,
+       certificationProducts = convergence$certificationProducts %||% NA_real_,
+       newtonSolver = newtonSolver(convergence),
        converged = !is.null(coefficients) && fit$return_flag %in% c("SUCCESS", "POOR_BLR_STEP"))
 }
 
 softplus <- function(z) ifelse(z > 0, z + log1p(exp(-z)), log1p(exp(z)))
+
+# NA for a fit without Newton steps or from a Cyclops that does not say
+newtonSolver <- function(convergence) {
+  solver <- convergence$solver %||% ""
+  if ((convergence$newtonIterations %||% 0) == 0 || !nzchar(solver)) return(NA_character_)
+  if (solver == "cg") paste0("cg/", convergence$preconditioner %||% "unknown") else solver
+}
 
 heldOutLogLikelihood <- function(X, y, problem, coefficients) {
   heldOut <- !problem$rows
@@ -192,7 +204,8 @@ autoStrategy <- function(fitAlgorithm = "auto") {
       n <- length(y)
       cache <- lapply(problems, function(p) list(variances = numeric(), coefficients = list()))
       failed <- character() # status of each fold fit that did not converge
-      foldStats <- list(iterations = numeric(), newton = numeric(), algorithms = character(), ineligible = character())
+      foldStats <- list(iterations = numeric(), newton = numeric(), algorithms = character(), ineligible = character(),
+                        hv = numeric(), certification = numeric(), solvers = character())
       evaluate <- function(sigma2) {
         vapply(seq_along(problems), function(f) {
           p <- problems[[f]]; s <- setups[[f]]; ca <- cache[[f]]
@@ -203,6 +216,9 @@ autoStrategy <- function(fitAlgorithm = "auto") {
           foldStats$newton <<- c(foldStats$newton, fit$newtonIterations)
           foldStats$algorithms <<- c(foldStats$algorithms, as.character(fit$algorithm))
           if (nzchar(fit$ineligible)) foldStats$ineligible <<- c(foldStats$ineligible, fit$ineligible)
+          foldStats$hv <<- c(foldStats$hv, fit$hessianVectorProducts)
+          foldStats$certification <<- c(foldStats$certification, fit$certificationProducts)
+          if (!is.na(fit$newtonSolver)) foldStats$solvers <<- c(foldStats$solvers, fit$newtonSolver)
           if (!fit$converged) { # as Cyclops: not scored and not used as a warm start
             failed <<- c(failed, as.character(fit$status %||% "NO_FIT"))
             return(NaN)
@@ -235,7 +251,10 @@ autoStrategy <- function(fitAlgorithm = "auto") {
                             foldFitIterationsMax = if (length(foldStats$iterations)) max(foldStats$iterations, na.rm = TRUE) else NA_real_,
                             foldNewtonIterations = sum(foldStats$newton, na.rm = TRUE),
                             foldFitAlgorithms = statusSummary(foldStats$algorithms),
-                            foldFitIneligible = statusSummary(foldStats$ineligible)),
+                            foldFitIneligible = statusSummary(foldStats$ineligible),
+                            foldHessianVectorProducts = sum(foldStats$hv), # NA with a Cyclops that does not report them
+                            foldCertificationProducts = sum(foldStats$certification),
+                            foldNewtonSolvers = statusSummary(foldStats$solvers)),
         trace = data.frame(c1 = shape[1], c2 = shape[2], c3 = shape[3], step = seq_along(search$tried),
                            variance = search$tried, meanFoldLogLikelihood = vapply(search$scores, mean, numeric(1))),
         state = cache
@@ -361,11 +380,17 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
                        finalAlgorithm = if (is.null(finalFit)) NA_character_ else finalFit$algorithm,
                        finalNewtonIterations = if (is.null(finalFit)) NA_real_ else finalFit$newtonIterations,
                        finalGapEstimate = if (is.null(finalFit)) NA_real_ else finalFit$gapEstimate,
+                       finalHessianVectorProducts = if (is.null(finalFit)) NA_real_ else finalFit$hessianVectorProducts %||% NA_real_,
+                       finalCertificationProducts = if (is.null(finalFit)) NA_real_ else finalFit$certificationProducts %||% NA_real_,
+                       finalNewtonSolver = if (is.null(finalFit)) NA_character_ else finalFit$newtonSolver %||% NA_character_,
                        foldFitIterationsTotal = sum(records$foldFitIterationsTotal %||% 0),
                        foldFitIterationsMax = max(records$foldFitIterationsMax %||% NA_real_),
                        foldNewtonIterations = sum(records$foldNewtonIterations %||% 0),
                        foldFitAlgorithms = statusSummary(unlist(strsplit(records$foldFitAlgorithms %||% "", "; "))),
-                       foldFitIneligible = statusSummary(unlist(strsplit(records$foldFitIneligible %||% "", "; ")))),
+                       foldFitIneligible = statusSummary(unlist(strsplit(records$foldFitIneligible %||% "", "; "))),
+                       foldHessianVectorProducts = sum(records$foldHessianVectorProducts %||% NA_real_),
+                       foldCertificationProducts = sum(records$foldCertificationProducts %||% NA_real_),
+                       foldNewtonSolvers = statusSummary(unlist(strsplit(records$foldNewtonSolvers %||% "", "; ")))),
     timing = list(cyclopsFitSeconds = .cyclopsTiming$fitSeconds, cyclopsDataSeconds = .cyclopsTiming$dataSeconds,
                   cyclopsFits = .cyclopsTiming$fits),
     records = records, trace = if (length(Filter(Negate(is.null), traces))) do.call(rbind, traces) else NULL,

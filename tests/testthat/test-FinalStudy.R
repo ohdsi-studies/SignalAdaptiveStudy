@@ -134,7 +134,13 @@ test_that("every method of the final study runs end to end, saves, and gives the
   for (column in c("aucSe", "calibrationSlope", "calibrationInTheLarge", "expectedOverObserved", "nTestFullFollowUp", "aucFullFollowUp")) expect_false(anyNA(results[[column]]), info = column)
   expect_true(all(results$nTestFullFollowUp <= results$nTest))
   for (column in c("modelStatus", "foldFitsFailed", "foldFitStatus", "fitWarnings", "finalIterations", "finalAlgorithm", "finalNewtonIterations",
-                   "finalGapEstimate", "foldFitIterationsTotal", "foldFitIterationsMax", "foldNewtonIterations", "foldFitAlgorithms")) expect_true(column %in% names(results), info = column)
+                   "finalGapEstimate", "foldFitIterationsTotal", "foldFitIterationsMax", "foldNewtonIterations", "foldFitAlgorithms",
+                   "finalHessianVectorProducts", "finalCertificationProducts", "finalNewtonSolver", "foldHessianVectorProducts",
+                   "foldCertificationProducts", "foldNewtonSolvers")) expect_true(column %in% names(results), info = column)
+  # Newton's work is counted wherever Newton steps were taken: the solver of each fit, and Newton-CG's products (none when dense)
+  newton <- results[!is.na(results$foldNewtonIterations) & results$foldNewtonIterations > 0, ]
+  expect_true(all(nzchar(newton$foldNewtonSolvers) & grepl("^(dense|cg/)", newton$foldNewtonSolvers)))
+  expect_true(all(newton$foldHessianVectorProducts >= 0))
   # time inside Cyclops is part of the fit, which is part of the run; PLP's LASSO does not report it
   study <- results[results$method != "PLP_LASSO", ]
   expect_true(all(study$cyclopsFits > 0 & study$cyclopsFitSeconds > 0 & study$cyclopsDataSeconds >= 0))

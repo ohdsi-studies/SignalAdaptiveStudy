@@ -42,7 +42,7 @@ test_that("execute() runs end to end on simulated data", {
   comparators <- results[results$method %in% c("Ridge", "LASSO") & !results$interceptOnly, ]
   expect_true(all(comparators$c1 == 0 & comparators$c2 == 0 & comparators$c3 == 0))
   expect_true(all(results$search == "auto" & results$split == "study"))
-  expect_true(all(grepl("Cyclops 4.0.0", results$versions)))
+  expect_true(all(grepl("Cyclops 4\\.0\\.[0-9]", results$versions)))
   expect_false(any(file.exists(list.files(file.path(outputFolder, "models"), "error.txt", recursive = TRUE, full.names = TRUE))))
 
   # restart: nothing is refitted
