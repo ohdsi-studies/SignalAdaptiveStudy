@@ -4,6 +4,8 @@
 #
 #   Rscript extras/production/runBenchmarks.R               every database in cdmSchemas, one after the other
 #   Rscript extras/production/runBenchmarks.R MDCD MDCR     only these
+#   Rscript extras/production/runBenchmarks.R CCAE --tasks=HFT2DM,MACEMNCS --orderings=1   some benchmarks (both feature
+#                                                           sets), some orderings
 # (in the project folder; settings as for CodeToRun.R). A database that fails does not stop the others.
 
 # Needed by the Databricks JDBC driver, before Java starts (see CodeToRun.R)
@@ -23,6 +25,14 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(
 source("extras/localSettings.R")   # scratchSchema, minCellCount, cdmSchemas, workers
 options(sqlRenderTempEmulationSchema = scratchSchema)
 args <- commandArgs(trailingOnly = TRUE)
+option <- function(name, default) {
+  given <- sub(paste0("^--", name, "="), "", grep(paste0("^--", name, "="), args, value = TRUE))
+  if (length(given)) strsplit(given, ",")[[1]] else default
+}
+onlyBenchmarks <- option("tasks", NULL)   # benchmark names, e.g. HFT2DM
+orderings <- as.integer(option("orderings", 1:3))
+stopifnot(is.null(onlyBenchmarks) || all(onlyBenchmarks %in% benchmarkTasks()$benchmark), all(orderings %in% 1:3))
+args <- args[!startsWith(args, "--")]
 databases <- if (length(args)) args else names(cdmSchemas)
 stopifnot(all(databases %in% names(cdmSchemas)))
 message("Cyclops ", utils::packageVersion("Cyclops"), " commit ", utils::packageDescription("Cyclops")$RemoteSha)
@@ -42,7 +52,8 @@ runDatabase <- function(database) {
   tasks <- addSampleSizes(benchmarkTasks(), feasible, budgets = finalBudgets())
   tasks <- expandFeatureSets(tasks)
   if (exists("onlyTasks")) tasks <- tasks[tasks$taskId %in% onlyTasks, ]   # optional, localSettings.R
-  execute(dataSource, tasks, outputFolder, mode = "models", orderings = 1:3, methods = finalStudyMethods(),
+  if (!is.null(onlyBenchmarks)) tasks <- tasks[tasks$benchmark %in% onlyBenchmarks, ]
+  execute(dataSource, tasks, outputFolder, mode = "models", orderings = orderings, methods = finalStudyMethods(),
           workers = if (exists("workers")) workers else 1)
   exportResults(outputFolder, minCellCount = minCellCount)
 }
