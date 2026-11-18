@@ -11,6 +11,9 @@ test_that("designSummary counts duplicates, near-duplicates and column types", {
   expect_equal(d$design$rowNonZeroTopMean, 3)         # rows 1-3 have 3 each
   expect_equal(d$columnTypes$columns[d$columnTypes$analysis == "B"], 3)
   expect_equal(sum(d$columnTypes$nonZeroShare), 1)
+  d5 <- designSummary(X, c(1, 0, 1, 0, 0, 1, 0, 0, 0, 1), rep(1:2, 5), 11:15, covariateData, minCellCount = 5)
+  expect_equal(d5$design$columnRowsP10, -5)             # 1-4 persons per column: censored
+  expect_true(all(d5$columnTypes$rowsMedian == -5))
 })
 
 test_that("fitTraceReport traces every fit of a model on the study's training set", {

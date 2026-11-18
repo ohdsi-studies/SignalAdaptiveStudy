@@ -1,7 +1,8 @@
 # Aggregates of one training set and of every Cyclops fit of chosen models on it, for building simulated designs that
 # behave like the real data (extras/production/fitTrace.R). Nothing per patient: counts of columns, quantiles over rows
 # and columns, and one row per fit (its size, prior variance, iterations, seconds). A single person's value (the most
-# covariates in a row) is replaced by the mean of the top minCellCount rows.
+# covariates in a row) is replaced by the mean of the top minCellCount rows, and counts of persons below minCellCount are
+# shown as -minCellCount.
 
 # The design: rows, events, folds, columns, non-zeros per row and per column, duplicate columns, column types.
 designSummary <- function(X, y, folds, covariateIds, covariateData, minCellCount = 5, nearDuplicateColumns = 3000) {
@@ -71,6 +72,12 @@ designSummary <- function(X, y, folds, covariateIds, covariateData, minCellCount
     columnsAbove1pct = sum(prevalence[k] > 0.01), rowsWithAny = sum(Matrix::rowSums(X[, k, drop = FALSE] != 0) > 0))))
   types <- types[order(-types$nonZeroShare), ]
   rownames(types) <- NULL
+  # counts of persons below minCellCount shown as -minCellCount, as exportResults() does
+  censor <- function(v) ifelse(v > 0 & v < minCellCount, -minCellCount, v)
+  for (k in c("columnRowsP10", "columnRowsP50", "columnRowsP90", "columnRowsP99", "columnRowsMax", "nearDuplicateColumnsCheckedMinRows")) {
+    design[[k]] <- censor(design[[k]])
+  }
+  for (k in c("rowsMedian", "rowsP90", "rowsMax", "rowsWithAny")) types[[k]] <- censor(types[[k]])
   list(design = design, columnTypes = types)
 }
 
