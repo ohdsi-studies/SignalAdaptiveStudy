@@ -8,6 +8,7 @@
 #
 #   Rscript extras/production/fitTrace.R CCAE
 #   Rscript extras/production/fitTrace.R CCAE --budget=1000 --featureSet=defaults --methods=SAR_ccd,SAR_auto,Ridge_ccd,Ridge_auto
+#   Rscript extras/production/fitTrace.R CCAE --methods=none --minFraction=0.001   # design only, also after PLP's frequency filter
 # (in the project folder; settings as for runBenchmarks.R).
 
 options(java.parameters = "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED")
@@ -36,6 +37,9 @@ budget <- as.numeric(option("budget", "1000"))
 featureSet <- option("featureSet", "defaults")
 methods <- fitAlgorithmComparisonMethods()
 chosen <- option("methods", c("SAR_ccd", "SAR_auto", "Ridge_ccd", "Ridge_auto", "LASSO_ccd", "LASSO_auto", "ElasticNet_ccd", "ElasticNet_auto"))
+if (identical(chosen, "none")) chosen <- character() # design only
+minFraction <- option("minFraction", NULL)
+if (!is.null(minFraction)) minFraction <- as.numeric(minFraction)
 stopifnot(length(budget) == 1, budget %in% finalBudgets(), featureSet %in% c("defaults", "phenotypes"), all(chosen %in% names(methods)))
 message("Cyclops ", utils::packageVersion("Cyclops"), " commit ", utils::packageDescription("Cyclops")$RemoteSha %||% "",
         "; k", budget, ", ", featureSet, "; ", paste(chosen, collapse = ", "))
@@ -59,5 +63,5 @@ counts <- execute(dataSource, base, outputFolder, mode = "counts")
 tasks <- expandFeatureSets(addSampleSizes(base, feasibleCounts(counts), budgets = finalBudgets()), featureSet) # as the comparison: same sample
 reportFolder <- file.path(getwd(), "SignalAdaptiveStudy_fit_trace", database)
 zipFile <- SignalAdaptiveStudy:::fitTraceReport(dataSource, tasks[1, ], budget, methods[chosen], outputFolder, reportFolder,
-                                                minCellCount = minCellCount)
+                                                minCellCount = minCellCount, minFraction = minFraction)
 message("Send: ", zipFile)
