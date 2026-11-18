@@ -31,14 +31,16 @@ timeCyclops <- function(kind, expr) {
   expr
 }
 
-# Cyclops data for the rows of X (binary columns become indicator columns).
+# Cyclops data for the rows of X (binary columns become indicator columns). The covariates go in the column-major
+# order of the compressed matrix, i.e. sorted by covariateId and rowId as Cyclops keeps them, so Cyclops does not sort
+# them again, and without a value column when all values are 1 (the same data, with less memory: about 48 against 90
+# bytes per non-zero at the peak, measured by the Cyclops session on 2026-11-18).
 makeCyclopsData <- function(X, y) {
-  triplets <- Matrix::summary(methods::as(X, "TsparseMatrix"))
-  keep <- order(triplets$i, triplets$j)
-  triplets <- list(i = triplets$i[keep], j = triplets$j[keep], x = triplets$x[keep]) # far cheaper than sorting a data frame
+  X <- methods::as(methods::as(X, "CsparseMatrix"), "generalMatrix")
+  covariates <- data.frame(rowId = X@i + 1L, covariateId = rep.int(seq_len(ncol(X)), diff(X@p)))
+  if (!all(X@x == 1)) covariates$covariateValue <- X@x
   timeCyclops("dataSeconds", Cyclops::convertToCyclopsData(
-    outcomes = data.frame(rowId = seq_len(nrow(X)), y = y),
-    covariates = data.frame(rowId = triplets$i, covariateId = triplets$j, covariateValue = triplets$x),
+    outcomes = data.frame(rowId = seq_len(nrow(X)), y = y), covariates = covariates,
     modelType = "lr", addIntercept = TRUE, quiet = TRUE
   ))
 }

@@ -15,7 +15,10 @@ test_that("counts run end to end on a CDM (Eunomia)", {
   counts <- suppressWarnings(execute(dataSource, tasks, outputFolder, mode = "counts"))
   errors <- list.files(file.path(outputFolder, "counts", "EUNOMIA"), "_error\\.txt$")
   expect_identical(length(errors) + NROW(counts), nrow(tasks)) # every task is either counted or has its error recorded
-  if (NROW(counts) > 0) expect_true(all(counts$n == counts$poolN + counts$testN))
+  # tasks with no target persons or no outcomes are kept with no events and no split (NA)
+  split <- counts[!is.na(counts$poolN), , drop = FALSE]
+  if (NROW(split) > 0) expect_true(all(split$n == split$poolN + split$testN))
+  expect_true(all(counts$poolEvents[is.na(counts$poolN)] == 0))
   expect_false(any(file.exists(file.path(outputFolder, "data")))) # counts extract no covariates and cache nothing
   zipFile <- exportResults(outputFolder)
   expect_true("counts.csv" %in% utils::unzip(zipFile, list = TRUE)$Name || NROW(counts) == 0)
