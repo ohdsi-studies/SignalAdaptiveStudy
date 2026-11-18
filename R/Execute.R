@@ -447,6 +447,14 @@ admitsUnit <- function(estimate, running, available, cap, reserve, now, rampSeco
   estimate + growth + reserve <= available
 }
 
+# Which waiting unit to start, given their estimates and those that fit (admitsUnit()): the largest that fits, so that
+# across the tasks queued so far the large units go first and the small ones fill the gaps (taken in queue order, small
+# units held the memory while a large one waited: on CCAE DOV the last two k1000 units ran one after the other at the
+# end); when none fits (and none runs) the first.
+unitToStart <- function(estimates, fits) {
+  if (length(fits)) fits[which.max(estimates[fits])] else 1L
+}
+
 # Physical memory in GB (16 if unknown).
 totalMemoryGB <- function() {
   if (file.exists("/proc/meminfo")) {
@@ -457,19 +465,20 @@ totalMemoryGB <- function() {
 }
 
 # Rough peak memory of one unit (a budget and ordering of a task, all its methods in turn) in a worker, in GB: the R
-# session, the DuckDB limit, about trainBytes per non-zero of the training set (PLP's copy, the sparse matrix and its
-# conversion, the Cyclops data of the folds and all rows, the held-out matrices) and testBytes per non-zero of the test
-# set (its design, read once, and the transient copy while reading it), with the training and test persons of the
-# study population (taskShape()). The constants are from the workers' peak working sets on CCAE (2026-11-18):
-# MACEMNCS k1000 13.3 GB and k500 9.4 GB give about 140 and 40 bytes, which predict ISAF k100 (3.7 GB) at 3.8 GB;
-# here about 7% more. memory_<database>.csv records each unit's estimate against its worker's peak, to check them.
-# Option sarUnitMemory overrides them.
-UNIT_MEMORY <- list(baseGB = 0.6, trainBytes = 150, testBytes = 45)
+# session, the DuckDB limit, personBytes per person of the study population (the population and labels of all rows),
+# trainBytes per non-zero of the training set (PLP's copy, the sparse matrix, the Cyclops data of the folds and all
+# rows, the held-out matrices; at its largest during PLP_LASSO's fit) and testBytes per non-zero of the test set (its
+# design, read once), with the training and test persons of the study population (taskShape()). The constants are
+# from the workers' peak working sets on CCAE DOV (2026-11-18, with the chunked test design and the Cyclops data from
+# the column-major matrix): a least-squares fit gives about 120, 76 and 17 bytes; these are rounded up so that every
+# unit's estimate is 0-19% above its peak (defaults k1000 7.9 GB: 8.6 GB). memory_<database>.csv records each unit's
+# estimate against its worker's peak, to check them. Option sarUnitMemory overrides them.
+UNIT_MEMORY <- list(baseGB = 0.6, personBytes = 150, trainBytes = 85, testBytes = 20)
 unitMemoryGB <- function(budget, shape, duckdbGB) {
   constants <- utils::modifyList(UNIT_MEMORY, getOption("sarUnitMemory", list()))
   trainingRows <- min(0.75 * shape$persons, budget / shape$eventRate)
-  constants$baseGB + duckdbGB + shape$entriesPerPerson *
-    (trainingRows * constants$trainBytes + 0.25 * shape$persons * constants$testBytes) / 1e9
+  constants$baseGB + duckdbGB + (shape$persons * constants$personBytes + shape$entriesPerPerson *
+    (trainingRows * constants$trainBytes + 0.25 * shape$persons * constants$testBytes)) / 1e9
 }
 
 # A task's size for unitMemoryGB(), from its saved plpData: the persons of its study population (the target cohort
@@ -605,7 +614,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
         admitsUnit(u$memoryGB %||% 0, running, available, budget, memoryReserve, proc.time()[["elapsed"]])
       }, logical(1)))
       if (length(fits) == 0 && length(pending) > 0) return(invisible())
-      i <- if (length(fits)) fits[1] else 1
+      i <- unitToStart(vapply(waiting, function(u) u$memoryGB %||% 0, numeric(1)), fits)
       u <- waiting[[i]]
       # for calibrating unitMemoryGB(): the estimate against the memory the system still has when the unit starts
       ParallelLogger::logInfo(sprintf("%s k%s o%d starts: estimate %.1f GB, %.1f GB of estimates in use before, %.1f GB available, estimates up to %.1f GB",

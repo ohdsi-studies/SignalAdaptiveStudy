@@ -5,7 +5,7 @@ test_that("unit memory estimates grow with the training set and the test set", {
   expect_equal(estimates[4] - estimates[1], 311 * 900 / shape$eventRate * UNIT_MEMORY$trainBytes / 1e9, tolerance = 1e-6)
   # the training set cannot exceed the pool (75% of the persons)
   expect_equal(unitMemoryGB(1e9, shape, 0), unitMemoryGB(2e9, shape, 0))
-  old <- options(sarUnitMemory = list(trainBytes = 0, testBytes = 0))
+  old <- options(sarUnitMemory = list(personBytes = 0, trainBytes = 0, testBytes = 0))
   expect_equal(unitMemoryGB(1000, shape, 1), UNIT_MEMORY$baseGB + 1)
   options(old)
   expect_gt(availableMemoryGB(), 0)
@@ -69,4 +69,10 @@ test_that("a unit starts when the memory free now holds it and what the running 
   expect_true(admitsUnit(5, running, available = Inf, cap = 17, reserve = 6, now = 1300))
   expect_true(admitsUnit(5, running[0, ], available = 11, cap = 17, reserve = 6, now = 0))
   expect_gt(totalMemoryGB(), 0)
+})
+
+test_that("the largest waiting unit that fits starts first, the first when none fits", {
+  expect_equal(unitToStart(c(2, 9, 5, 7), fits = c(1, 3, 4)), 4)
+  expect_equal(unitToStart(c(2, 9, 5, 7), fits = integer()), 1)
+  expect_equal(unitToStart(c(5, 5), fits = 1:2), 1)
 })
