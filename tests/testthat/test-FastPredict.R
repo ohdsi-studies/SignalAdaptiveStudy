@@ -16,6 +16,8 @@ test_that("predictions from the test design equal predictPlp()'s to the last bit
   # the simulated data hold a non-binary covariate (age), so the normalisation is exercised too
   expect_false(is.null(design$value))
   expect_true(any(data$Test$covariateData$covariates %>% dplyr::filter(.data$covariateValue != 1) %>% dplyr::count() %>% dplyr::pull() > 0))
+  # read in chunks of whole persons: the same design as in one piece
+  expect_identical(testDesign(data$Test, chunkEntries = 997), testDesign(data$Test, chunkEntries = Inf))
   cache <- new.env()
   expect_identical(cachedTestDesign(cache, data$Test), design)
   for (settings in list(setSar(shapes = c(0, 1, -1), name = "SAR_fixed"), setSal(shapes = c(0, 0, 0), name = "LASSO"))) {

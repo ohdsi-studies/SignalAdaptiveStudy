@@ -7,21 +7,42 @@
 # predictions are identical to the last bit (tests/testthat/test-FastPredict.R).
 
 # The test covariates of the persons in test$labels, by person in covariate ID order: covariate indices into ids, the
-# number of entries per person, and the values (NULL when all are 1, as for the study's binary covariates).
-testDesign <- function(test) {
+# number of entries per person, and the values (NULL when all are 1, as for the study's binary covariates). Read in
+# chunks of whole persons (about chunkEntries entries each, in rowId order) so that only one chunk is in R at a time
+# besides the result: collecting all entries at once held rowId, covariateId and value as doubles (24 bytes an entry,
+# with copies while sorting and matching: on CCAE the largest memory step of a small budget's unit).
+testDesign <- function(test, chunkEntries = 5e6) {
   covariateData <- test$covariateData
   covariateData$sarTestRows <- data.frame(rowId = test$labels$rowId)
-  on.exit(covariateData$sarTestRows <- NULL, add = TRUE)
-  entries <- covariateData$covariates %>%
+  on.exit({
+    covariateData$sarTestRows <- NULL
+    covariateData$sarTestEntries <- NULL
+  }, add = TRUE)
+  covariateData$sarTestEntries <- covariateData$covariates %>%
     dplyr::inner_join(covariateData$sarTestRows, by = "rowId") %>%
-    dplyr::select("rowId", "covariateId", "covariateValue") %>%
-    dplyr::arrange(.data$rowId, .data$covariateId) %>%
-    dplyr::collect()
-  ids <- sort(unique(entries$covariateId))
-  runs <- rle(entries$rowId)
-  list(rowIds = test$labels$rowId, persons = runs$values, lengths = runs$lengths, ids = ids,
-       covariate = match(entries$covariateId, ids),
-       value = if (all(entries$covariateValue == 1)) NULL else as.numeric(entries$covariateValue))
+    dplyr::select("rowId", "covariateId", "covariateValue")
+  entries <- covariateData$sarTestEntries
+  ids <- sort(entries %>% dplyr::distinct(.data$covariateId) %>% dplyr::pull())
+  binary <- (entries %>% dplyr::filter(.data$covariateValue != 1) %>% dplyr::count() %>% dplyr::pull()) == 0
+  perPerson <- entries %>% dplyr::count(.data$rowId) %>% dplyr::arrange(.data$rowId) %>% dplyr::collect()
+  lengths <- as.integer(perPerson$n)
+  chunk <- (cumsum(as.numeric(lengths)) - 1) %/% chunkEntries
+  covariate <- list()
+  value <- list()
+  for (g in unique(chunk)) {
+    rows <- perPerson$rowId[chunk == g]
+    lo <- rows[1]
+    hi <- rows[length(rows)]
+    part <- entries %>% dplyr::filter(.data$rowId >= lo, .data$rowId <= hi)
+    part <- if (binary) dplyr::select(part, "rowId", "covariateId") else part
+    part <- part %>% dplyr::arrange(.data$rowId, .data$covariateId) %>% dplyr::collect()
+    covariate[[length(covariate) + 1]] <- match(part$covariateId, ids)
+    if (!binary) value[[length(value) + 1]] <- as.numeric(part$covariateValue)
+    rm(part)
+  }
+  list(rowIds = test$labels$rowId, persons = perPerson$rowId, lengths = lengths, ids = ids,
+       covariate = if (length(covariate)) unlist(covariate) else integer(),
+       value = if (binary) NULL else unlist(value))
 }
 
 # The design of the test set in data, from the worker's cache when the test persons are the same.
