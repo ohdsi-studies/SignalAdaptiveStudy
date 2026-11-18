@@ -2,7 +2,7 @@ test_that("unit memory estimates grow with the training set and the test set", {
   shape <- list(persons = 545505, entriesPerPerson = 311, eventRate = 1000 / 85467)
   estimates <- vapply(c(100, 250, 500, 1000), unitMemoryGB, numeric(1), shape = shape, duckdbGB = 1)
   expect_true(all(diff(estimates) > 0))
-  expect_equal(estimates[4] - estimates[1], 311 * 900 / shape$eventRate * 120 / 1e9, tolerance = 1e-6)
+  expect_equal(estimates[4] - estimates[1], 311 * 900 / shape$eventRate * UNIT_MEMORY$trainBytes / 1e9, tolerance = 1e-6)
   # the training set cannot exceed the pool (75% of the persons)
   expect_equal(unitMemoryGB(1e9, shape, 0), unitMemoryGB(2e9, shape, 0))
   old <- options(sarUnitMemory = list(trainBytes = 0, testBytes = 0))
@@ -37,6 +37,12 @@ test_that("with a memory budget smaller than any unit, units run one at a time a
   expect_true(any(grepl("memory budget 0.0 GB", log)))
   expect_true(any(grepl("task_a: [0-9]+ non-zeros per person; estimated memory per unit", log)))
   expect_true(any(grepl("least memory available during the run: [0-9.]+ GB at", log)))
+  # each unit's estimate against its worker's peak memory
+  memory <- utils::read.csv(file.path(folder, "memory_SIM.csv"))
+  expect_equal(nrow(memory), 4)
+  expect_true(all(memory$peakAfterGB >= memory$peakBeforeGB & memory$peakAfterGB > 0.05))
+  expect_true(all(memory$trainingRows > 0 & memory$entriesPerPerson > 0))
+  expect_true(any(grepl("worker peak [0-9.]+ GB \\(estimate [0-9.]+ GB\\) done", log)))
   # one unit at a time: each unit's steps (split, prepare, its runs) end before the next unit's begin
   steps <- utils::read.csv(file.path(folder, "steps_SIM.csv"))
   steps$unit <- ifelse(grepl("^(split|prepare) k", steps$step), sub("^(split|prepare) ", "", steps$step),

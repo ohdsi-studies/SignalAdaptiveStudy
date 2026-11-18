@@ -26,8 +26,9 @@ exportResults <- function(outputFolder, minCellCount = 5,
   countFiles <- list.files(file.path(outputFolder, "counts"), pattern = "\\.csv$", recursive = TRUE, full.names = TRUE)
   counts <- if (length(countFiles)) do.call(rbind, lapply(countFiles, utils::read.csv, stringsAsFactors = FALSE)) else data.frame()
   utils::write.csv(censor(counts, c("n", "poolN", "poolEvents", "testN", "testEvents")), file.path(folder, "counts.csv"), row.names = FALSE)
-  # The duration of each step (cohorts, extraction, cache, population, split, preparation, runs): task names and seconds only
-  stepFiles <- list.files(outputFolder, pattern = "^(steps_.*|coefficient_comparison)\\.csv$", full.names = TRUE)
+  # The duration of each step (cohorts, extraction, cache, population, split, preparation, runs): task names and seconds
+  # only; the memory of each unit's worker (task names, sizes and GB)
+  stepFiles <- list.files(outputFolder, pattern = "^(steps_.*|memory_.*|coefficient_comparison)\\.csv$", full.names = TRUE)
   if (length(stepFiles)) file.copy(stepFiles, folder)
   writeLines(c(paste("Exported", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")), packageVersions(),
                paste("minCellCount", minCellCount, "(smaller counts shown as", -minCellCount, ")")),

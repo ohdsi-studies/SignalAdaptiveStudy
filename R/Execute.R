@@ -432,9 +432,11 @@ availableMemoryGB <- function() {
 # Rough peak memory of one unit (a budget and ordering of a task, all its methods in turn) in a worker, in GB: the R
 # session, the DuckDB limit, about trainBytes per non-zero of the training set (PLP's copy, the sparse matrix and its
 # conversion, the Cyclops data of the folds and all rows, the held-out matrices) and testBytes per non-zero of the test
-# set (its design, read once, and the transient copy while reading it). The constants are deliberately generous, from
-# the sizes of the objects on CCAE (HFT2DM: about 311 non-zeros per person); option sarUnitMemory overrides them.
-UNIT_MEMORY <- list(baseGB = 0.6, trainBytes = 120, testBytes = 40)
+# set (its design, read once, and the transient copy while reading it). The constants are from the workers' peak
+# working sets on CCAE (MACEMNCS, 2026-11-18: k1000 13.3 GB and k500 9.4 GB against estimates of 18.2 and 12.4 GB with
+# 120 and 40 bytes, so the data part at 0.70-0.73 of it), with about 15% to spare; memory_<database>.csv records each
+# unit's estimate against its worker's peak, to check them. Option sarUnitMemory overrides them.
+UNIT_MEMORY <- list(baseGB = 0.6, trainBytes = 100, testBytes = 33)
 unitMemoryGB <- function(budget, shape, duckdbGB) {
   constants <- utils::modifyList(UNIT_MEMORY, getOption("sarUnitMemory", list()))
   trainingRows <- min(0.75 * shape$persons, budget / shape$eventRate)
@@ -472,9 +474,34 @@ workerUnit <- function(payload, setup) {
   .timing$rows <- list()
   on.exit(.timing$rows <- NULL)
   work <- if (identical(unit$work, "repair")) repairUnit else runUnit # repairUnit(): R/Repair.R
+  before <- processMemoryGB()
   failures <- work(unit, function() timed(unit$task$taskId, "load plpData",
                                           PatientLevelPrediction::loadPlpData(unit$plpDataFolder)))
-  list(steps = do.call(rbind, .timing$rows), failures = failures)
+  after <- processMemoryGB()
+  list(steps = do.call(rbind, .timing$rows), failures = failures,
+       memory = list(pid = Sys.getpid(), peakBeforeGB = before[["peak"]], peakAfterGB = after[["peak"]], endGB = after[["size"]]))
+}
+
+# This process's memory now and its peak so far (the peak working set on Windows, VmHWM on Linux), in GB; NA if
+# unknown. The peak never goes down, so a unit's own peak is known only when it raised the worker's (largest first).
+processMemoryGB <- function() {
+  m <- tryCatch(memuse::Sys.procmem(), error = function(e) NULL)
+  gb <- function(x) tryCatch(as.numeric(memuse::mu.size(x, as.is = FALSE)) / 1024^3, error = function(e) NA_real_)
+  if (is.null(m)) c(size = NA_real_, peak = NA_real_) else c(size = gb(m$size), peak = gb(m$peak))
+}
+
+# One row per unit in memory_<database>.csv: the estimate (unitMemoryGB()) and its inputs against the worker's peak
+# memory before and after the unit, to calibrate the estimate. Aggregates only.
+appendMemory <- function(unit, memory, file) {
+  shape <- unit$shape
+  row <- data.frame(taskId = unit$task$taskId, budget = unit$budget, ordering = unit$ordering,
+                    finished = format(Sys.time(), "%Y-%m-%d %H:%M:%S"), estimateGB = unit$memoryGB %||% NA_real_,
+                    trainingRows = if (is.null(shape)) NA else round(min(0.75 * shape$persons, unit$budget / shape$eventRate)),
+                    testRows = if (is.null(shape)) NA else round(0.25 * shape$persons),
+                    entriesPerPerson = if (is.null(shape)) NA else shape$entriesPerPerson,
+                    worker = memory$pid, peakBeforeGB = memory$peakBeforeGB, peakAfterGB = memory$peakAfterGB,
+                    endGB = memory$endGB, raisedPeak = memory$peakAfterGB > memory$peakBeforeGB + 0.05)
+  utils::write.table(row, file, sep = ",", row.names = FALSE, col.names = !file.exists(file), append = file.exists(file))
 }
 
 # execute() with workers > 1: each unit (a budget and ordering of a task) goes to the next free worker process (mirai
@@ -509,6 +536,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   report(sprintf("%d workers, Andromeda memory limit %.2f GB each, memory budget %.1f GB", workers, setup$memoryLimit,
                  memoryBudget))
   stepsFile <- .timing$file
+  memoryFile <- file.path(outputFolder, sprintf("memory_%s.csv", database))
   submit <- function(unit, tries = 1) {
     # the unit goes serialized: a worker loads the package (and its library paths) before it reads the unit
     job <- mirai::mirai({
@@ -525,16 +553,25 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   finished <- 0
   queued <- 0
   inUse <- function() sum(vapply(pending, function(p) p$unit$memoryGB %||% 0, numeric(1)))
+  # While tasks are still to be extracted here, room is left for this process to grow again to its peak so far (the
+  # extraction of a task: 8.4 GB for MACEMNCS on CCAE), as it does while the workers run the units of the task before.
+  extracting <- TRUE
+  reserve <- function() {
+    if (!extracting) return(0)
+    m <- processMemoryGB()
+    if (anyNA(m)) 0 else max(0, m[["peak"]] - m[["size"]])
+  }
   dispatch <- function() {
     repeat {
       if (length(waiting) == 0) return(invisible())
-      fits <- which(vapply(waiting, function(u) inUse() + (u$memoryGB %||% 0) <= memoryBudget, logical(1)))
+      budget <- memoryBudget - reserve()
+      fits <- which(vapply(waiting, function(u) inUse() + (u$memoryGB %||% 0) <= budget, logical(1)))
       if (length(fits) == 0 && length(pending) > 0) return(invisible())
       i <- if (length(fits)) fits[1] else 1
       u <- waiting[[i]]
       # for calibrating unitMemoryGB(): the estimate against the memory the system still has when the unit starts
-      ParallelLogger::logInfo(sprintf("%s k%s o%d starts: estimate %.1f GB, %.1f GB of estimates in use before, %.1f GB available",
-                                      u$task$taskId, u$budget, u$ordering, u$memoryGB %||% 0, inUse(), availableMemoryGB()))
+      ParallelLogger::logInfo(sprintf("%s k%s o%d starts: estimate %.1f GB, %.1f GB of estimates in use before, %.1f GB available, budget now %.1f GB",
+                                      u$task$taskId, u$budget, u$ordering, u$memoryGB %||% 0, inUse(), availableMemoryGB(), budget))
       pending[[length(pending) + 1]] <<- submit(u)
       waiting[[i]] <<- NULL
     }
@@ -555,6 +592,10 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
     } else {
       appendSteps(value$steps, stepsFile)
       for (failure in value$failures) report(failure, warn = TRUE)
+      if (!is.null(value$memory)) {
+        tryCatch(appendMemory(p$unit, value$memory, memoryFile), error = function(e) NULL)
+        label <- sprintf("%s, worker peak %.1f GB (estimate %.1f GB)", label, value$memory$peakAfterGB, p$unit$memoryGB %||% NA)
+      }
     }
     finished <<- finished + 1
     report(sprintf("%s done (%d of %d queued units)", label, finished, queued))
@@ -602,6 +643,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
     for (unit in units) {
       unit$plpDataFolder <- folder
       unit$memoryGB <- if (is.null(shape)) 0 else unitMemoryGB(unit$budget, shape, setup$memoryLimit)
+      unit$shape <- shape
       waiting[[length(waiting) + 1]] <- unit
     }
     if (!is.null(shape)) {
@@ -612,6 +654,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
     queued <- queued + length(units)
     collect(wait = FALSE)
   }
+  extracting <- FALSE
   collect(wait = TRUE)
 }
 
