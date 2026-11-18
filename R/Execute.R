@@ -667,6 +667,7 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
   ParallelLogger::logInfo(sprintf("execute(%s, mode = %s): %d task(s)", database, mode, nrow(tasks)))
   if (mode == "counts") {
     # restartable like the models: a task with counts is skipped; a failed task leaves error.txt and is tried again
+    # (a task whose cohort table has no target persons or no outcomes is kept, with no events)
     folder <- file.path(outputFolder, "counts", database)
     dir.create(folder, recursive = TRUE, showWarnings = FALSE)
     rows <- lapply(seq_len(nrow(tasks)), function(i) {
@@ -682,6 +683,13 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
       }
       errorFile <- file.path(folder, paste0(task$taskId, "_error.txt"))
       counts <- tryCatch(timed(task$taskId, "counts", taskCounts(dataSource, task, outputFolder)), error = function(e) {
+        # PLP's getPlpData() found no target persons or no outcomes in the cohort table: a property of the database and
+        # the cohorts (both in the fingerprint), so kept as a task without events instead of extracted again every run
+        if (conditionMessage(e) %in% c("Target population is empty", "No Outcomes")) {
+          message(database, " ", task$taskId, ": ", conditionMessage(e), " (counted as no events)")
+          return(list(n = if (conditionMessage(e) == "No Outcomes") NA else 0, poolN = NA, poolEvents = 0, testN = NA,
+                      testEvents = 0))
+        }
         writeLines(conditionMessage(e), errorFile)
         message(database, " ", task$taskId, " counts failed: ", conditionMessage(e))
         NULL

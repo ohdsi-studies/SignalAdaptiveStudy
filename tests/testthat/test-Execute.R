@@ -30,6 +30,18 @@ test_that("execute() runs end to end on simulated data", {
   expect_identical(both$taskId, "sim_task")
   expect_true(file.exists(file.path(outputFolder, "counts", "SIM", "no_outcome_error.txt")))
   expect_identical(file.mtime(file.path(outputFolder, "counts", "SIM", "sim_task.csv")), stamp)
+  # no outcomes in the cohort table (PLP's getPlpData()): kept as a task without events, not counted again
+  noEvents <- dataSource
+  calls <- 0
+  noEvents$counts <- function(task) { calls <<- calls + 1; stop("No Outcomes") }
+  deaths <- data.frame(taskId = "no_deaths", outcomeId = 98, timeAtRiskDays = 365)
+  first <- execute(noEvents, deaths, outputFolder, mode = "counts")
+  again <- execute(noEvents, deaths, outputFolder, mode = "counts")
+  expect_identical(calls, 1)
+  expect_false(first$feasible)
+  expect_identical(c(first$poolEvents, first$testEvents, again$poolEvents), c(0, 0, 0))
+  expect_false(file.exists(file.path(outputFolder, "counts", "SIM", "no_deaths_error.txt")))
+  unlink(file.path(outputFolder, "counts", "SIM", "no_deaths.csv"))
 
   results <- execute(dataSource, tasks, outputFolder, mode = "models", budgets = 100, orderings = 1)
   expect_setequal(results$method, c("SAR", "SAL", "Ridge", "LASSO"))

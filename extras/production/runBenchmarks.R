@@ -51,8 +51,15 @@ runDatabase <- function(database) {
   message(sprintf("%s: %d of %d benchmark tasks have >= 1000 pool and >= 333 test events", database, nrow(feasible), nrow(benchmarkTasks())))
   tasks <- addSampleSizes(benchmarkTasks(), feasible, budgets = finalBudgets())
   tasks <- expandFeatureSets(tasks)
-  if (exists("onlyTasks")) tasks <- tasks[tasks$taskId %in% onlyTasks, ]   # optional, localSettings.R
-  if (!is.null(onlyBenchmarks)) tasks <- tasks[tasks$benchmark %in% onlyBenchmarks, ]
+  if (!is.null(onlyBenchmarks)) {
+    tasks <- tasks[tasks$benchmark %in% onlyBenchmarks, ]   # --tasks= replaces onlyTasks
+  } else if (exists("onlyTasks")) {
+    tasks <- tasks[tasks$taskId %in% onlyTasks, ]   # optional, localSettings.R
+    message("onlyTasks (localSettings.R) applied")
+  }
+  missing <- setdiff(onlyBenchmarks, tasks$benchmark)
+  if (length(missing)) message("Not feasible in ", database, ", skipped: ", paste(missing, collapse = ", "))
+  message(sprintf("%s: %d task(s) to run: %s", database, nrow(tasks), paste(tasks$taskId, collapse = ", ")))
   execute(dataSource, tasks, outputFolder, mode = "models", orderings = orderings, methods = finalStudyMethods(),
           workers = if (exists("workers")) workers else 1)
   exportResults(outputFolder, minCellCount = minCellCount)
