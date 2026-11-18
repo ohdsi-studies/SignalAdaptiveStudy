@@ -10,7 +10,7 @@ License: Apache License 2.0
 Encoding: UTF-8
 Imports:
     CohortGenerator,
-    Cyclops (>= 4.0.0),
+    Cyclops (>= 4.0.2),
     DatabaseConnector,
     dplyr,
     FeatureExtraction,
@@ -26,7 +26,7 @@ Imports:
     utils,
     zip
 Remotes:
-    OHDSI/Cyclops@develop
+    OHDSI/Cyclops@auto-fast
 Suggests:
     Andromeda,
     bit64,

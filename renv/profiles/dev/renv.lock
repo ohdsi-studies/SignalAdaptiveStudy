@@ -175,7 +175,7 @@
     },
     "Cyclops": {
       "Package": "Cyclops",
-      "Version": "4.0.1",
+      "Version": "4.0.2",
       "Source": "GitHub",
       "Type": "Package",
       "Title": "Cyclic Coordinate Descent for Logistic, Poisson and Survival Analysis",
@@ -226,8 +226,8 @@
       "RemoteHost": "api.github.com",
       "RemoteUsername": "OHDSI",
       "RemoteRepo": "Cyclops",
-      "RemoteRef": "develop",
-      "RemoteSha": "eb9066123fd87363baff5d8430ad96861020cc0a"
+      "RemoteRef": "auto-fast",
+      "RemoteSha": "ccc7aefa7f4509af07b49ae062ccef9b354cd1a1"
     },
     "DBI": {
       "Package": "DBI",
