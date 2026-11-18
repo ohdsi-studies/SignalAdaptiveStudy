@@ -149,6 +149,7 @@ traceSummary <- function(trace, name, wallSeconds) {
 fitTraceReport <- function(dataSource, task, budget, methods, outputFolder, reportFolder, ordering = 1, minCellCount = 5,
                            minFraction = NULL) {
   dir.create(reportFolder, recursive = TRUE, showWarnings = FALSE)
+  unlink(list.files(reportFolder, "\\.(csv|txt|zip)$", full.names = TRUE)) # files of an earlier run would go into the zip
   message("Preparing the training set: ", task$taskId, ", k", budget, ", ordering ", ordering,
           sprintf(", covariates in at least %g of the rows", minFraction %||% studyPreprocessSettings()$minFraction))
   set <- studyTrainingSet(dataSource, task, budget, ordering, outputFolder, minFraction)
