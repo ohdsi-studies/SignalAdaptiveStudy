@@ -4,11 +4,11 @@
 # Writes a zip of aggregates to send back: design.csv (rows, events, non-zeros per row and column, duplicate and near-duplicate
 # columns), column_types.csv (per FeatureExtraction analysis), trace_<model>.csv (one row per Cyclops fit: rows, columns,
 # prior variance, seconds, iterations, Newton steps) and trace_summary.csv. Nothing per patient. By default SAR, ridge, LASSO
-# and elastic net, both algorithms, at k1000 on the default covariates (about 45 minutes; SAR is most of it).
+# and elastic net with the study's algorithm (auto; ccd's fold fits are the same), at k1000 on the default covariates.
 #
 #   Rscript extras/production/fitTrace.R CCAE
 #   Rscript extras/production/fitTrace.R CCAE --budget=1000 --featureSet=defaults --methods=SAR_ccd,SAR_auto,Ridge_ccd,Ridge_auto
-#   Rscript extras/production/fitTrace.R CCAE --minFraction=0.001   # all of it after PLP's frequency filter (its own folder and zip)
+#   Rscript extras/production/fitTrace.R CCAE --minFraction=0   # all of it with another frequency filter than the study's (own folder and zip)
 #   Rscript extras/production/fitTrace.R CCAE --methods=none        # design only
 # (in the project folder; settings as for runBenchmarks.R).
 
@@ -37,9 +37,10 @@ option <- function(name, default) {
 budget <- as.numeric(option("budget", "1000"))
 featureSet <- option("featureSet", "defaults")
 methods <- fitAlgorithmComparisonMethods()
-chosen <- option("methods", c("SAR_ccd", "SAR_auto", "Ridge_ccd", "Ridge_auto", "LASSO_ccd", "LASSO_auto", "ElasticNet_ccd", "ElasticNet_auto"))
+chosen <- option("methods", c("SAR_auto", "Ridge_auto", "LASSO_auto", "ElasticNet_auto"))
 if (identical(chosen, "none")) chosen <- character() # design only
-minFraction <- as.numeric(option("minFraction", "0"))
+minFraction <- option("minFraction", NULL) # NULL: the study's preprocessing
+if (!is.null(minFraction)) minFraction <- as.numeric(minFraction)
 stopifnot(length(budget) == 1, budget %in% finalBudgets(), featureSet %in% c("defaults", "phenotypes"), all(chosen %in% names(methods)))
 message("Cyclops ", utils::packageVersion("Cyclops"), " commit ", utils::packageDescription("Cyclops")$RemoteSha %||% "",
         "; k", budget, ", ", featureSet, "; ", paste(chosen, collapse = ", "))
@@ -61,7 +62,7 @@ base <- benchmarkTasks()
 base <- base[base$benchmark == "HFT2DM", ]
 counts <- execute(dataSource, base, outputFolder, mode = "counts")
 tasks <- expandFeatureSets(addSampleSizes(base, feasibleCounts(counts), budgets = finalBudgets()), featureSet) # as the comparison: same sample
-reportFolder <- file.path(getwd(), paste0("SignalAdaptiveStudy_fit_trace", if (minFraction > 0) paste0("_minFraction", minFraction)), database)
+reportFolder <- file.path(getwd(), paste0("SignalAdaptiveStudy_fit_trace", if (!is.null(minFraction)) paste0("_minFraction", minFraction)), database)
 zipFile <- SignalAdaptiveStudy:::fitTraceReport(dataSource, tasks[1, ], budget, methods[chosen], outputFolder, reportFolder,
                                                 minCellCount = minCellCount, minFraction = minFraction)
 message("Send: ", zipFile)

@@ -85,11 +85,12 @@ studyMethods <- function() {
        Ridge = setSar(shapes = c(0, 0, 0), name = "Ridge"), LASSO = setSal(shapes = c(0, 0, 0), name = "LASSO"))
 }
 
-# No frequency filter and no redundancy removal (all non-constant columns kept). normalize = TRUE divides by each
-# covariate's maximum, which is 1 for binary covariates; FALSE would trigger
+# PLP's default frequency filter (covariates in fewer than 0.1% of the training rows removed; investigator, 2026-11-18)
+# and no redundancy removal (one-hot blocks kept whole; constant columns are left out of each fit by the weights).
+# normalize = TRUE divides by each covariate's maximum, which is 1 for binary covariates; FALSE would trigger
 # https://github.com/OHDSI/PatientLevelPrediction/issues/688.
 studyPreprocessSettings <- function() {
-  PatientLevelPrediction::createPreprocessSettings(minFraction = 0, normalize = TRUE, removeRedundancy = FALSE)
+  PatientLevelPrediction::createPreprocessSettings(minFraction = 0.001, normalize = TRUE, removeRedundancy = FALSE)
 }
 
 # Counts as doubles: as integers, n1 * n0 overflows (NA) beyond 2^31, e.g. 8,000 events in a test set of 500,000.

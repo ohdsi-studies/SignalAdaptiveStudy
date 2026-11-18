@@ -199,6 +199,26 @@ nullModelVariance <- function(X, y, problem, setup, control, alpha = 1) {
 # integer product overflows above 2^31 cells, e.g. 9,184 x 282,852).
 defaultStartVariance <- function(X, columns) length(X@x) / (as.numeric(columns) * nrow(X))
 
+# The "priorScale" start (autoStrategy()): c n / sum_j(||x_j||^2 / w_j) over the penalised columns kept (weight > 0).
+priorScaleStart <- function(columnSquares, weights, n, penalty) {
+  use <- weights$keep & !is.na(weights$weights) & weights$weights > 0
+  if (!any(use)) return(1)
+  (if (penalty == "ridge") 1 else 3) * n / sum(columnSquares[use] / weights$weights[use])
+}
+
+# warmShapes (autoStrategy()): per fold, the coefficients of the nearest shape done (L1 distance in c; the first one
+# done among ties) at its selected variance, or NULL.
+shapeSeeds <- function(shape, done, folds) {
+  if (!length(done)) return(vector("list", folds))
+  distance <- vapply(done, function(d) sum(abs(d$shape - shape)), numeric(1))
+  nearest <- done[[which.min(distance)]]
+  lapply(seq_len(folds), function(f) {
+    ca <- nearest$state[[f]]
+    if (!length(ca$variances)) return(NULL)
+    ca$coefficients[[which.min(abs(log(ca$variances) - log(nearest$variance)))]]
+  })
+}
+
 shapeKey <- function(shape) c(sum(shape != 0), sum(abs(shape)))
 
 # ---------------------------------------------------------------- search strategies
@@ -207,7 +227,8 @@ shapeKey <- function(shape) c(sum(shape != 0), sum(abs(shape)))
 # list(fit, variances, lambda, variance); foldCoefficients(X, y, problem, f, penalty, setup, record, state).
 searchStrategy <- function(search, settings = list()) {
   switch(search,
-    auto = autoStrategy(settings$fitAlgorithm %||% "auto"),
+    auto = autoStrategy(settings$fitAlgorithm %||% "auto", start = settings$start %||% "cyclops",
+                        upStep = settings$upStep %||% 10, warmShapes = isTRUE(settings$warmShapes)),
     stop("unknown search: ", search)
   )
 }
@@ -220,8 +241,18 @@ searchStrategy <- function(search, settings = list()) {
 # Cyclops's own cross-validation folds of either), final fits at Cyclops's default criterion of the algorithm (for "auto", the
 # KKT stop with a duality-gap certificate when that is cheap), so the two differ only in the algorithm. Fold and final fits
 # use the same algorithm.
-autoStrategy <- function(fitAlgorithm = "auto") {
+# The search (defaults: Cyclops's own; the study's in studySearchSettings()):
+# start: "cyclops", Cyclops's default variance (non-zeros / (columns x rows)), the same for every shape; or
+#   "priorScale", c n / sum_j(||x_j||^2 / w_j) over the penalised columns kept, with the shape's weights on all rows (c = 1
+#   for ridge, 3 for LASSO and elastic net): the variance at which the prior's spread of the linear predictor, averaged
+#   over the rows, is c. Unlike Cyclops's default it hardly moves when rare columns are added or removed.
+# upStep: the factor of each step up while bracketing (Cyclops: 10; steps down stay 10).
+# warmShapes: each shape's first fit in a fold starts from that fold's fit at the nearest shape done (L1 distance in c),
+#   at that shape's selected variance, instead of from zero. A start, not a different model.
+autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, warmShapes = FALSE) {
   if (!fitAlgorithm %in% c("auto", "ccd")) stop("unknown fit algorithm: ", fitAlgorithm)
+  if (!start %in% c("cyclops", "priorScale")) stop("unknown start: ", start)
+  if (!(is.numeric(upStep) && length(upStep) == 1 && upStep > 1)) stop("upStep must be a number above 1")
   # Cyclops's final-fit settings with more iterations than its default 5000, which a weighted LASSO on 283k rows exceeded; a
   # fit that converges sooner stops at the same point either way.
   if (fitAlgorithm == "ccd") {
@@ -237,13 +268,14 @@ autoStrategy <- function(fitAlgorithm = "auto") {
     searchShape = function(X, y, problems, setups, shape, penalty, context) {
       n <- length(y)
       cache <- lapply(problems, function(p) list(variances = numeric(), coefficients = list()))
+      seeds <- if (warmShapes) shapeSeeds(shape, context$done, length(problems)) else vector("list", length(problems))
       failed <- character() # status of each fold fit that did not converge
       foldStats <- list(iterations = numeric(), newton = numeric(), algorithms = character(), ineligible = character(),
                         hv = numeric(), certification = numeric(), solvers = character())
       evaluate <- function(sigma2) {
         vapply(seq_along(problems), function(f) {
           p <- problems[[f]]; s <- setups[[f]]; ca <- cache[[f]]
-          warm <- if (length(ca$variances)) ca$coefficients[[which.min(abs(log(ca$variances) - log(sigma2)))]] else NULL
+          warm <- if (length(ca$variances)) ca$coefficients[[which.min(abs(log(ca$variances) - log(sigma2)))]] else seeds[[f]]
           fit <- fitProblem(p, penalty, priorVariances(penalty, s$weights, s$keep, sigma2, "variance", p$n), s$keep,
                             warm, foldControl)
           foldStats$iterations <<- c(foldStats$iterations, fit$iterations)
@@ -262,12 +294,15 @@ autoStrategy <- function(fitAlgorithm = "auto") {
           heldOutLogLikelihood(X, y, p, fit$coefficients)
         }, numeric(1))
       }
+      setup <- if (penalty != "ridge" || start == "priorScale") {
+        problemWeights(X, y, context$full, shape, context$unpenalized, context$weightRule)
+      }
       nullVariance <- if (penalty != "ridge") {
-        setup <- problemWeights(X, y, context$full, shape, context$unpenalized, context$weightRule)
         nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1)
       } else NA_real_
-      search <- autoSearch(evaluate, start = context$startVariance, firstCut = 0, refine = TRUE,
-                           nullVariance = nullVariance)
+      startVariance <- if (start == "priorScale") priorScaleStart(context$columnSquares, setup$full, n, penalty) else context$startVariance
+      search <- autoSearch(evaluate, start = startVariance, firstCut = 0, refine = TRUE, nullVariance = nullVariance,
+                           upStep = upStep)
       if (length(failed)) {
         ParallelLogger::logWarn(sprintf("shape c = %s: %d fold fit(s) did not converge and were left out of their mean (%s)",
                                         paste(shape, collapse = ", "), length(failed), statusSummary(failed)))
@@ -343,7 +378,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   weightRule <- checkWeightRule(weightRule)
   if (!is.null(weightRule) && (nrow(shapes) != 1 || any(shapes != 0))) stop("a weight rule takes the one shape c(0, 0, 0)")
   context <- list(startVariance = defaultStartVariance(X, length(full$ids)), full = full, unpenalized = unpenalized,
-                  weightRule = weightRule)
+                  weightRule = weightRule, columnSquares = Matrix::colSums(X^2), done = list())
 
   # progress in the log (PLP's plpLog.txt of the run): one line per shape
   ParallelLogger::logInfo(sprintf("%s cross-validation: %d rows, %d events, %d columns, %d folds, %d shape(s)",
@@ -356,6 +391,9 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
     records[[s]] <- result$record; traces[s] <- list(result$trace); states[s] <- list(result$state) # keep NULL slots
     best <- result$record[which.min(result$record$cvLoss), ] # one row (auto) or one per lambda (grid)
+    if (!is.null(result$state)) {
+      context$done[[length(context$done) + 1]] <- list(shape = shape, state = result$state, variance = best$variance)
+    }
     chosen <- if (is.na(best$lambda)) sprintf("variance %.4g", best$variance) else sprintf("lambda %.4g", best$lambda)
     ParallelLogger::logInfo(sprintf("shape %d/%d (c = %s): %s, CV loss %.6f; %.1f min so far", s, nrow(shapes),
                                     paste(shape, collapse = ", "), chosen, best$cvLoss,

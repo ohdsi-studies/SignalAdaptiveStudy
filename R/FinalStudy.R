@@ -201,5 +201,5 @@ feasibleCounts <- function(counts) counts[counts$poolEvents >= 1000 & counts$tes
 #' @return An object of class `modelSettings`.
 #' @export
 setElasticNet <- function(name = "ElasticNet", fitAlgorithm = "auto") {
-  signalAdaptiveSettings("elasticnet", c(0, 0, 0), interceptOnly = TRUE, name = name, searchSettings = list(fitAlgorithm = fitAlgorithm))
+  signalAdaptiveSettings("elasticnet", c(0, 0, 0), interceptOnly = TRUE, name = name, searchSettings = studySearchSettings(fitAlgorithm))
 }

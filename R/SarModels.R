@@ -21,7 +21,7 @@
 #' @return An object of class `modelSettings`.
 #' @export
 setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR", fitAlgorithm = "auto") {
-  signalAdaptiveSettings("ridge", shapes, interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm))
+  signalAdaptiveSettings("ridge", shapes, interceptOnly, name, searchSettings = studySearchSettings(fitAlgorithm))
 }
 
 #' Signal-adaptive LASSO (SAL) model settings
@@ -33,7 +33,7 @@ setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR", fit
 #' @return An object of class `modelSettings`.
 #' @export
 setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL", fitAlgorithm = "auto") {
-  signalAdaptiveSettings("lasso", shapes, interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm))
+  signalAdaptiveSettings("lasso", shapes, interceptOnly, name, searchSettings = studySearchSettings(fitAlgorithm))
 }
 
 #' Posterior-moment ridge
@@ -48,8 +48,15 @@ setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL", fit
 #' @return PLP model settings.
 #' @export
 setPosteriorMomentRidge <- function(kappa = 0.5, interceptOnly = TRUE, name = "PM_ridge", fitAlgorithm = "auto") {
-  signalAdaptiveSettings("ridge", c(0, 0, 0), interceptOnly, name, searchSettings = list(fitAlgorithm = fitAlgorithm),
+  signalAdaptiveSettings("ridge", c(0, 0, 0), interceptOnly, name, searchSettings = studySearchSettings(fitAlgorithm),
                          weightRule = list(type = "posteriorMoment", kappa = kappa))
+}
+
+# The study's variance search (autoStrategy()): Cyclops's auto-search started at the "priorScale" variance, stepping up
+# by sqrt(10) while bracketing, each SAR shape's first fold fits started from the nearest shape done (investigator,
+# 2026-11-18, after the CCAE fit traces).
+studySearchSettings <- function(fitAlgorithm = "auto") {
+  list(fitAlgorithm = fitAlgorithm, start = "priorScale", upStep = sqrt(10), warmShapes = TRUE)
 }
 
 # search, cSelection, searchSettings and unpenalizedCovariateIds are for development comparisons; the study uses the

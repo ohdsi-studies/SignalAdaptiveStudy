@@ -29,21 +29,22 @@ quadraticLogFit <- function(x, m, s) {
 }
 
 # x, m, s: tried values with fold mean and sd, in the order tried; best = first maximum in that order.
-uniModalStep <- function(x, m, s, stdStep = 10, stopByY = 0.01, stopByX = log(1.5), firstCut = 0) {
+# upStep: the step up when bracketing (Cyclops: stdStep, as down).
+uniModalStep <- function(x, m, s, stdStep = 10, stopByY = 0.01, stopByX = log(1.5), firstCut = 0, upStep = stdStep) {
   best <- x[firstBest(m)]
   bestM <- m[firstBest(m)]
   ord <- order(x)
   x <- x[ord]; m <- m[ord]; s <- s[ord]
   result <- list(more = TRUE, next_ = 0, expected = 0)
   if (length(x) == 1) {
-    result$next_ <- if (x < firstCut) x * stdStep else x / stdStep
+    result$next_ <- if (x < firstCut) x * upStep else x / stdStep
   } else if (length(x) == 2) {
-    result$next_ <- if (above(m[1], m[2])) x[1] / stdStep else x[2] * stdStep
+    result$next_ <- if (above(m[1], m[2])) x[1] / stdStep else x[2] * upStep
   } else if (x[1] == best) {
     result$next_ <- best / stdStep
     if (!(best > .Machine$double.xmin)) { result$more <- FALSE; result$expected <- bestM }
   } else if (x[length(x)] == best) {
-    result$next_ <- best * stdStep
+    result$next_ <- best * upStep
     if (!is.finite(best)) { result$more <- FALSE; result$expected <- bestM }
   } else {
     q <- quadraticLogFit(x, m, s)
@@ -72,7 +73,8 @@ foldEstimates <- function(scores) {
 # nullVariance (LASSO; NA otherwise): start at max(start, nullVariance); when a step falls below it, try nullVariance
 # if it has not been tried; else, if it is the best so far and every value tried is below 100 x nullVariance, try 10x
 # the largest value tried; else stop at the best value.
-autoSearch <- function(evaluate, start, firstCut = 0, refine = TRUE, maxSteps = 50, nullVariance = NA) {
+# upStep: the factor of each step up while bracketing (Cyclops: 10, as down).
+autoSearch <- function(evaluate, start, firstCut = 0, refine = TRUE, maxSteps = 50, nullVariance = NA, upStep = 10) {
   bounded <- isTRUE(nullVariance > 0 && is.finite(nullVariance))
   if (bounded && start < nullVariance) start <- nullVariance
   tried <- numeric(); scores <- list(); current <- start; value <- NA_real_; step <- 0
@@ -92,7 +94,7 @@ autoSearch <- function(evaluate, start, firstCut = 0, refine = TRUE, maxSteps = 
       current <- tried[scored][firstBest(est$m[scored])]; value <- max(est$m[scored]); failed <- TRUE
       break
     }
-    nxt <- uniModalStep(tried[scored], est$m[scored], est$s[scored], firstCut = firstCut)
+    nxt <- uniModalStep(tried[scored], est$m[scored], est$s[scored], firstCut = firstCut, upStep = upStep)
     if (bounded && isTRUE(nxt$next_ < nullVariance)) {
       best <- tried[scored][firstBest(est$m[scored])]
       same <- function(a, b) abs(log(a) - log(b)) < 1e-9
