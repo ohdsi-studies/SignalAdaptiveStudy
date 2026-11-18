@@ -181,8 +181,10 @@ prepareRunData <- function(plpData, population, split, preprocessSettings = stud
 
 # One run: what runPlp() does after the preprocessing, the fit and the test predictions (fitPlp(), predictPlp()), but
 # not its evaluation and saved result, which the study does not use.
+# testDesign: the test set's covariates read once (R/FastPredict.R), used for the study's own models; others (PLP's
+# LASSO) predict through predictPlp().
 runOne <- function(data, population, task, split, modelSettings, method, runFolder, dataSource, budget, ordering,
-                   fingerprint = NULL) {
+                   fingerprint = NULL, testDesign = NULL) {
   start <- Sys.time()
   scratch <- tempfile("sar_run_")
   on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
@@ -204,7 +206,11 @@ runOne <- function(data, population, task, split, modelSettings, method, runFold
   for (w in unique(fitWarnings)) ParallelLogger::logWarn(paste("fit warning:", w))
   model$prediction <- NULL # the CV predictions, which runPlp() also takes out of the model
   predictStart <- Sys.time()
-  test <- PatientLevelPrediction::predictPlp(plpModel = model, plpData = data$Test, population = data$Test$labels)
+  test <- if (!is.null(testDesign) && isStudyModel(modelSettings)) {
+    predictFromDesign(model, testDesign, data$Test$labels)
+  } else {
+    PatientLevelPrediction::predictPlp(plpModel = model, plpData = data$Test, population = data$Test$labels)
+  }
   predictSeconds <- as.numeric(difftime(Sys.time(), predictStart, units = "secs"))
   if (nrow(test) == 0) stop("no test predictions")
   trainingRows <- split$rowId[split$index > 0]
@@ -354,6 +360,14 @@ runUnit <- function(unit, loadPlpData) {
   data <- if (inherits(splitIds, "error")) splitIds else tryCatch(
     timed(task$taskId, sprintf("prepare k%s o%d", budget, ordering), prepareRunData(current$plpData, population, splitIds)),
     error = function(e) e)
+  # the test set's covariates, once per task in this worker, when a study model is to run
+  design <- NULL
+  if (!inherits(data, "error") && any(vapply(unit$methods, isStudyModel, logical(1)))) {
+    design <- tryCatch(timed(task$taskId, "test design", cachedTestDesign(current, data$Test)), error = function(e) {
+      ParallelLogger::logWarn(sprintf("%s: test design failed (%s); predicting through predictPlp()", task$taskId, conditionMessage(e)))
+      NULL
+    })
+  }
   failures <- character()
   for (r in seq_len(nrow(unit$runs))) {
     folder <- unit$runs$folder[r]; method <- unit$runs$method[r]
@@ -361,7 +375,8 @@ runUnit <- function(unit, loadPlpData) {
     unlink(file.path(folder, "error.txt"))
     outcome <- if (inherits(data, "error")) data else tryCatch(
       timed(task$taskId, basename(folder), runOne(data, population, task, splitIds, unit$methods[[method]], method,
-                                                  folder, unit$source, budget, ordering, unit$fingerprints[[folder]])),
+                                                  folder, unit$source, budget, ordering, unit$fingerprints[[folder]],
+                                                  testDesign = design)),
       error = function(e) e)
     if (inherits(outcome, "error")) {
       writeLines(conditionMessage(outcome), file.path(folder, "error.txt"))

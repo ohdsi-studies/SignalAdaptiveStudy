@@ -124,7 +124,10 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
   )
   plpModel <- list(model = model)
   attr(plpModel, "modelType") <- "binary"
-  prediction <- predictSignalAdaptive(plpModel, trainData, trainData$labels)
+  # Training predictions (PLP's runPlp() evaluates them; the study's runs drop them) from the matrix in hand rather than
+  # predictSignalAdaptive()'s join over the covariates in DuckDB.
+  prediction <- trainData$labels
+  prediction$value <- stats::plogis(fit$intercept + as.numeric(sparse$dataMatrix %*% fit$beta)[match(prediction$rowId, labels$originalRowId)])
   prediction$evaluationType <- "Train"
   cvPrediction <- merge(trainData$labels, data.frame(rowId = labels$originalRowId, value = fit$cvPrediction), by = "rowId")
   cvPrediction$evaluationType <- "CV"
