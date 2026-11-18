@@ -559,8 +559,22 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
     finished <<- finished + 1
     report(sprintf("%s done (%d of %d queued units)", label, finished, queued))
   }
+  # the least memory available during the run, sampled every 30 s, against the estimates in use then (to calibrate
+  # unitMemoryGB(); reported at the end)
+  lowest <- list(available = Inf, inUse = NA_real_, at = NA_character_); sampled <- -Inf
+  sample <- function() {
+    if (proc.time()[["elapsed"]] - sampled < 30) return(invisible())
+    sampled <<- proc.time()[["elapsed"]]
+    available <- availableMemoryGB()
+    if (available < lowest$available) lowest <<- list(available = available, inUse = inUse(), at = format(Sys.time(), "%H:%M:%S"))
+  }
+  on.exit(if (is.finite(lowest$available)) {
+    report(sprintf("least memory available during the run: %.1f GB at %s, with %.1f GB of unit estimates in use (budget %.1f GB)",
+                   lowest$available, lowest$at, lowest$inUse, memoryBudget))
+  }, add = TRUE)
   collect <- function(wait) {
     repeat {
+      sample()
       ready <- vapply(pending, function(p) !mirai::unresolved(p$job), logical(1))
       done <- pending[ready]
       pending <<- pending[!ready]

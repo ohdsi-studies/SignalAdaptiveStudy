@@ -36,6 +36,7 @@ test_that("with a memory budget smaller than any unit, units run one at a time a
   log <- readLines(file.path(folder, "log_SIM.txt"))
   expect_true(any(grepl("memory budget 0.0 GB", log)))
   expect_true(any(grepl("task_a: [0-9]+ non-zeros per person; estimated memory per unit", log)))
+  expect_true(any(grepl("least memory available during the run: [0-9.]+ GB at", log)))
   # one unit at a time: each unit's steps (split, prepare, its runs) end before the next unit's begin
   steps <- utils::read.csv(file.path(folder, "steps_SIM.csv"))
   steps$unit <- ifelse(grepl("^(split|prepare) k", steps$step), sub("^(split|prepare) ", "", steps$step),
