@@ -356,7 +356,7 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
 #   unpenalized: logical, one per column of X: columns left out of the penalty (and of the weights' centring).
 signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elasticnet"), shapes = sarShapes(), interceptOnly = TRUE,
                              search = "auto", cSelection = c("observed", "ordinate"), searchSettings = list(),
-                             unpenalized = rep(FALSE, ncol(X)), weightRule = NULL) {
+                             unpenalized = rep(FALSE, ncol(X)), weightRule = NULL, prepared = NULL) {
   penalty <- match.arg(penalty); cSelection <- match.arg(cSelection)
   strategy <- searchStrategy(search, searchSettings)
   start <- Sys.time()
@@ -367,17 +367,20 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   if (min(sum(y), length(y) - sum(y)) < 2) stop("fewer than 2 rows in the minority class")
   if (length(unpenalized) != ncol(X) || anyNA(unpenalized)) stop("unpenalized needs one TRUE/FALSE per column of X")
   folds <- as.integer(folds)
-  problems <- lapply(sort(unique(folds)), function(f) createFitProblem(X, y, folds != f))
-  full <- createFitProblem(X, y, rep(TRUE, length(y)))
+  # the fit problems (Cyclops data of each fold and of all rows, with their weight statistics) depend only on X, y, folds
+  # and the unpenalised columns; prepared: those of an earlier call on the same, reused (Cyclops starts every fit afresh)
+  penalized <- !unpenalized
+  if (!is.null(prepared) && identical(prepared$unpenalized, unpenalized)) {
+    problems <- prepared$problems; full <- prepared$full
+  } else {
+    addStatistics <- function(p) { p$statistics <- sarStatistics(X[p$rows, penalized, drop = FALSE], y[p$rows]); p }
+    problems <- lapply(sort(unique(folds)), function(f) addStatistics(createFitProblem(X, y, folds != f)))
+    full <- addStatistics(createFitProblem(X, y, rep(TRUE, length(y))))
+  }
   interceptLoss <- sum(vapply(problems, function(p) {
     a <- smoothedIntercept(y[p$rows]); ho <- !p$rows
     sum((1 - y[ho]) * softplus(a) + y[ho] * softplus(-a))
   }, numeric(1))) / length(y)
-  # the weight statistics of every shape, once per fit problem
-  penalized <- !unpenalized
-  addStatistics <- function(p) { p$statistics <- sarStatistics(X[p$rows, penalized, drop = FALSE], y[p$rows]); p }
-  problems <- lapply(problems, addStatistics)
-  full <- addStatistics(full)
   weightRule <- checkWeightRule(weightRule)
   if (!is.null(weightRule) && (nrow(shapes) != 1 || any(shapes != 0))) stop("a weight rule takes the one shape c(0, 0, 0)")
   context <- list(startVariance = defaultStartVariance(X, length(full$ids)), full = full, unpenalized = unpenalized,
@@ -473,7 +476,8 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
                   cyclopsFits = .cyclopsTiming$fits),
     records = records, trace = if (length(Filter(Negate(is.null), traces))) do.call(rbind, traces) else NULL,
     cvPrediction = cvPrediction, folds = folds,
-    seconds = as.numeric(difftime(Sys.time(), start, units = "secs"))
+    seconds = as.numeric(difftime(Sys.time(), start, units = "secs")),
+    prepared = list(problems = problems, full = full, unpenalized = unpenalized) # for another call on the same data
   )
 }
 

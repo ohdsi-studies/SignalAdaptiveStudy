@@ -1,0 +1,30 @@
+test_that("methods fitted in turn on one training set share its matrix and fit problems, with the same results", {
+  skip_on_cran()
+  profile <- get(utils::data("simulationProfile", package = "PatientLevelPrediction", envir = environment()))
+  simulated <- PatientLevelPrediction::simulatePlpData(profile, n = 2000, seed = 11)
+  prevalence <- simulated$covariateData$covariates %>% dplyr::count(.data$covariateId) %>% dplyr::collect()
+  binary <- prevalence$covariateId[prevalence$n > 0.05 * 2000 & prevalence$n < 0.4 * 2000 & prevalence$covariateId != 1002]
+  signal <- utils::head(binary, 9)
+  coefficients <- c("(Intercept)" = -3, stats::setNames(rep(c(1.5, -1.2, 1.0), length.out = length(signal)), signal))
+  plpData <- PatientLevelPrediction::simulatePlpBenchmarkData(simulated, coefficients, n = 8000, riskWindowStart = 1, riskWindowEnd = 365,
+                                                              outcomeId = 3, targetOutcomeRate = 0.06, seed = 12, returnTruth = FALSE)
+  settings <- PatientLevelPrediction::createStudyPopulationSettings(riskWindowStart = 1, riskWindowEnd = 365, requireTimeAtRisk = FALSE)
+  population <- PatientLevelPrediction::createStudyPopulation(plpData, 3, settings)
+  task <- data.frame(taskId = "sim", outcomeId = 3, timeAtRiskDays = 365)
+  data <- prepareRunData(plpData, population, studySplit(population, task, 100, 1))
+  fit <- function(s) PatientLevelPrediction::fitPlp(data$Train, s, analysisId = "a", analysisPath = tempfile())
+  clearTrainingSetCache()
+  alone <- fit(setSar(shapes = c(0, 1, -1), name = "SAR_fixed"))
+  clearTrainingSetCache()
+  first <- fit(setSal(shapes = c(0, 0, 0), name = "LASSO"))
+  expect_gt(first$trainDetails$finalModelParameters$cyclopsDataSeconds, 0)
+  shared <- fit(setSar(shapes = c(0, 1, -1), name = "SAR_fixed"))
+  expect_equal(shared$trainDetails$finalModelParameters$cyclopsDataSeconds, 0) # no Cyclops data built again
+  expect_identical(shared$model$coefficientsExact, alone$model$coefficientsExact)
+  expect_identical(shared$trainDetails$finalModelParameters$cvLoss, alone$trainDetails$finalModelParameters$cvLoss)
+  # another training set (another budget) is not served from the cache
+  other <- prepareRunData(plpData, population, studySplit(population, task, 150, 1))
+  expect_length(trainingSetCache(other$Train), 0)
+  clearTrainingSetCache()
+  expect_null(.trainingSetCache$key)
+})

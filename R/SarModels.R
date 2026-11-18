@@ -99,7 +99,10 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
   start <- Sys.time()
   param <- modelSettings$param
   settings <- modelSettings$settings
-  sparse <- PatientLevelPrediction::toSparseM(trainData, trainData$labels)
+  # The sparse matrix and the fit problems of a training set, shared by the methods that fit on it in turn (execute()
+  # runs a unit's methods on the same trainData): same covariates object, rows and folds.
+  cached <- trainingSetCache(trainData)
+  sparse <- cached$sparse %||% PatientLevelPrediction::toSparseM(trainData, trainData$labels)
   labels <- sparse$labels
   folds <- trainData$folds$index[match(labels$originalRowId, trainData$folds$rowId)]
   if (anyNA(folds) || any(folds < 1)) stop("every training row needs a fold")
@@ -110,7 +113,9 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
                           search = param$search %||% "auto", cSelection = param$cSelection %||% "observed",
                           searchSettings = param$searchSettings %||% list(),
                           unpenalized = covariateIds %in% (param$unpenalizedCovariateIds %||% c()),
-                          weightRule = param$weightRule)
+                          weightRule = param$weightRule, prepared = cached$prepared)
+  rememberTrainingSet(trainData, sparse, fit$prepared)
+  fit$prepared <- NULL
 
   ids <- c("(Intercept)", as.character(covariateIds))
   betas <- c(fit$intercept, fit$beta)
@@ -228,4 +233,28 @@ predictSignalAdaptive <- function(plpModel, data, cohort) {
   prediction$value <- stats::plogis(intercept + linear)
   attr(prediction, "metaData") <- list(modelType = "binary")
   prediction
+}
+
+# The last training set's sparse matrix and fit problems (fitSignalAdaptive()): one at a time, held until another
+# training set comes, or clearTrainingSetCache() (execute() at the end of each unit, to free the memory).
+.trainingSetCache <- new.env()
+trainingSetKey <- function(trainData) {
+  list(covariateData = trainData$covariateData, rows = trainData$labels$rowId, folds = trainData$folds)
+}
+trainingSetCache <- function(trainData) {
+  if (!is.null(.trainingSetCache$key) && identical(.trainingSetCache$key, trainingSetKey(trainData))) {
+    list(sparse = .trainingSetCache$sparse, prepared = .trainingSetCache$prepared)
+  } else {
+    clearTrainingSetCache()
+    list()
+  }
+}
+rememberTrainingSet <- function(trainData, sparse, prepared) {
+  .trainingSetCache$key <- trainingSetKey(trainData)
+  .trainingSetCache$sparse <- sparse
+  .trainingSetCache$prepared <- prepared
+}
+clearTrainingSetCache <- function() {
+  rm(list = ls(.trainingSetCache, all.names = TRUE), envir = .trainingSetCache)
+  invisible(NULL)
 }
