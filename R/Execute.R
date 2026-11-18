@@ -436,11 +436,12 @@ availableMemoryGB <- function() {
 # Rough peak memory of one unit (a budget and ordering of a task, all its methods in turn) in a worker, in GB: the R
 # session, the DuckDB limit, about trainBytes per non-zero of the training set (PLP's copy, the sparse matrix and its
 # conversion, the Cyclops data of the folds and all rows, the held-out matrices) and testBytes per non-zero of the test
-# set (its design, read once, and the transient copy while reading it). The constants are from the workers' peak
-# working sets on CCAE (MACEMNCS, 2026-11-18: k1000 13.3 GB and k500 9.4 GB against estimates of 18.2 and 12.4 GB with
-# 120 and 40 bytes, so the data part at 0.70-0.73 of it), with about 15% to spare; memory_<database>.csv records each
-# unit's estimate against its worker's peak, to check them. Option sarUnitMemory overrides them.
-UNIT_MEMORY <- list(baseGB = 0.6, trainBytes = 100, testBytes = 33)
+# set (its design, read once, and the transient copy while reading it), with the training and test persons of the
+# study population (taskShape()). The constants are from the workers' peak working sets on CCAE (2026-11-18):
+# MACEMNCS k1000 13.3 GB and k500 9.4 GB give about 140 and 40 bytes, which predict ISAF k100 (3.7 GB) at 3.8 GB;
+# here about 7% more. memory_<database>.csv records each unit's estimate against its worker's peak, to check them.
+# Option sarUnitMemory overrides them.
+UNIT_MEMORY <- list(baseGB = 0.6, trainBytes = 150, testBytes = 45)
 unitMemoryGB <- function(budget, shape, duckdbGB) {
   constants <- utils::modifyList(UNIT_MEMORY, getOption("sarUnitMemory", list()))
   trainingRows <- min(0.75 * shape$persons, budget / shape$eventRate)
@@ -448,19 +449,17 @@ unitMemoryGB <- function(budget, shape, duckdbGB) {
     (trainingRows * constants$trainBytes + 0.25 * shape$persons * constants$testBytes) / 1e9
 }
 
-# A task's size for unitMemoryGB(), from its saved plpData: persons, non-zero covariates per person, and the rate of
-# events (the task's training-pool events per person when known, else from the plpData's outcomes).
-taskShape <- function(task, folder) {
+# A task's size for unitMemoryGB(), from its saved plpData: the persons of its study population (the target cohort
+# can be twice as large: MACEMNCS on CCAE 2.5M against 1.28M), non-zero covariates per cohort entry, and events per
+# person in the population (so budget / eventRate is the training set).
+taskShape <- function(task, folder, populationSettings) {
   plpData <- PatientLevelPrediction::loadPlpData(folder)
   on.exit(Andromeda::close(plpData$covariateData), add = TRUE)
-  persons <- nrow(plpData$cohorts)
+  population <- suppressMessages(PatientLevelPrediction::createStudyPopulation(plpData, task$outcomeId, populationSettings))
   entries <- plpData$covariateData$covariates %>% dplyr::count() %>% dplyr::pull()
-  eventRate <- task$eventsPerPerson %||% NA_real_
-  if (!isTRUE(eventRate > 0)) {
-    outcomes <- plpData$outcomes
-    eventRate <- max(1, length(unique(outcomes$rowId[outcomes$outcomeId == task$outcomeId]))) / max(1, persons)
-  }
-  list(persons = persons, entriesPerPerson = as.numeric(entries) / max(1, persons), eventRate = eventRate)
+  persons <- nrow(population)
+  list(persons = persons, entriesPerPerson = as.numeric(entries) / max(1, nrow(plpData$cohorts)),
+       eventRate = max(1, sum(population$outcomeCount > 0)) / max(1, persons))
 }
 
 # A unit in a worker process (runInWorkers()): one thread and a memory limit for each Andromeda, the worker's own log,
@@ -646,7 +645,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
       for (unit in units) report(failUnit(unit, conditionMessage(folder)), warn = TRUE)
       next
     }
-    shape <- tryCatch(taskShape(task, folder), error = function(e) NULL)
+    shape <- tryCatch(taskShape(task, folder, dataSource$populationSettings(task)), error = function(e) NULL)
     for (unit in units) {
       unit$plpDataFolder <- folder
       unit$memoryGB <- if (is.null(shape)) 0 else unitMemoryGB(unit$budget, shape, setup$memoryLimit)
