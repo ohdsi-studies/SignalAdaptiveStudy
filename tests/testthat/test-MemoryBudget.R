@@ -34,7 +34,7 @@ test_that("with a memory budget smaller than any unit, units run one at a time a
                                       methods = studyMethods()[c("LASSO", "Ridge")], workers = 2))
   expect_equal(nrow(results), 8)
   log <- readLines(file.path(folder, "log_SIM.txt"))
-  expect_true(any(grepl("memory budget 0.0 GB", log)))
+  expect_true(any(grepl("memory rule live: estimates up to 0.0 GB", log)))
   expect_true(any(grepl("task_a: [0-9]+ non-zeros per person; estimated memory per unit", log)))
   expect_true(any(grepl("least memory available during the run: [0-9.]+ GB at", log)))
   # each unit's estimate against its worker's peak memory
@@ -55,4 +55,18 @@ test_that("with a memory budget smaller than any unit, units run one at a time a
   spans <- spans[order(spans$start), ]
   expect_equal(nrow(spans), 4)
   expect_true(all(spans$start[-1] >= spans$end[-nrow(spans)] - 1)) # started-times are rounded to the second
+})
+
+test_that("a unit starts when the memory free now holds it and what the running units may still add", {
+  running <- data.frame(estimate = c(8, 4), started = c(0, 1000))
+  # at t = 1100 the unit started at 1000 is recent (whole 4 GB to come), the other may still peak (0.6 x 8)
+  expect_true(admitsUnit(5, running, available = 5 + 4 + 4.8 + 6, cap = 100, reserve = 6, now = 1100))
+  expect_false(admitsUnit(5, running, available = 5 + 4 + 4.8 + 6 - 0.1, cap = 100, reserve = 6, now = 1100))
+  # later both are past their start: only the largest may still peak
+  expect_true(admitsUnit(5, running, available = 5 + 4.8 + 6, cap = 100, reserve = 6, now = 1300))
+  # the cap on the estimates holds whatever is free
+  expect_false(admitsUnit(5, running, available = 1000, cap = 16.9, reserve = 6, now = 1300))
+  expect_true(admitsUnit(5, running, available = Inf, cap = 17, reserve = 6, now = 1300))
+  expect_true(admitsUnit(5, running[0, ], available = 11, cap = 17, reserve = 6, now = 0))
+  expect_gt(totalMemoryGB(), 0)
 })

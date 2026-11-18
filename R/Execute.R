@@ -433,6 +433,29 @@ availableMemoryGB <- function() {
   tryCatch(as.numeric(memuse::Sys.meminfo()$freeram) / 1024^3, error = function(e) 16)
 }
 
+# Whether a unit of estimated peak memory estimate (GB) may start, given the units running (their estimates and start
+# times, in proc.time() seconds): the estimates of all stay within cap, and the memory free now (available), less
+# reserve, holds the unit's peak and what the running units may still add: those started in the last rampSeconds at
+# their whole estimate (they have not yet loaded their data and test design), and the largest other at peakShare of its
+# estimate (one unit at a peak at a time: peaks are brief, while building the test design or the Cyclops data; between
+# them a worker is at 40-60% of its peak, CCAE ISAF 2026-11-18). available = Inf: the cap alone.
+admitsUnit <- function(estimate, running, available, cap, reserve, now, rampSeconds = 180, peakShare = 0.6) {
+  if (sum(running$estimate) + estimate > cap) return(FALSE)
+  if (!is.finite(available)) return(TRUE)
+  recent <- running$started > now - rampSeconds
+  growth <- sum(running$estimate[recent]) + peakShare * max(c(0, running$estimate[!recent]))
+  estimate + growth + reserve <= available
+}
+
+# Physical memory in GB (16 if unknown).
+totalMemoryGB <- function() {
+  if (file.exists("/proc/meminfo")) {
+    line <- grep("^MemTotal:", readLines("/proc/meminfo"), value = TRUE)
+    if (length(line)) return(as.numeric(gsub("[^0-9]", "", line)) / 1024^2)
+  }
+  tryCatch(as.numeric(memuse::mu.size(memuse::Sys.meminfo()$totalram, as.is = FALSE)) / 1024^3, error = function(e) 16)
+}
+
 # Rough peak memory of one unit (a budget and ordering of a task, all its methods in turn) in a worker, in GB: the R
 # session, the DuckDB limit, about trainBytes per non-zero of the training set (PLP's copy, the sparse matrix and its
 # conversion, the Cyclops data of the folds and all rows, the held-out matrices) and testBytes per non-zero of the test
@@ -533,12 +556,16 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   mirai::daemons(workers, .compute = profile)
   setup <- list(libPaths = .libPaths(), dev = devPackagePath(), outputFolder = outputFolder, database = database,
                 memoryLimit = workerMemoryLimit(workers), rngKind = RNGkind())
-  # Units start only while the estimated memory of the units handed out fits in the memory available now (or the
-  # option sarMemoryBudgetGB): large units no longer all start together (unitMemoryGB()). A unit too large for the
-  # budget on its own still starts, alone.
-  memoryBudget <- getOption("sarMemoryBudgetGB", 0.85 * availableMemoryGB())
-  report(sprintf("%d workers, Andromeda memory limit %.2f GB each, memory budget %.1f GB", workers, setup$memoryLimit,
-                 memoryBudget))
+  # Units start by the memory free now (admitsUnit()), with the estimates of the units handed out held to a cap as a
+  # backstop: 1.5 x 85% of the memory available at the start (the estimates are peaks, which a unit holds only briefly),
+  # or the option sarMemoryBudgetGB. Option sarMemoryRule = "estimates": the cap alone, at 85% of the memory available at
+  # the start (the rule before 2026-11-18). A unit too large on its own still starts, alone.
+  rule <- match.arg(getOption("sarMemoryRule", "live"), c("live", "estimates"))
+  memoryBudget <- getOption("sarMemoryBudgetGB", (if (rule == "live") 1.5 else 1) * 0.85 * availableMemoryGB())
+  memoryReserve <- getOption("sarMemoryReserveGB", 0.1 * totalMemoryGB())
+  report(sprintf("%d workers, Andromeda memory limit %.2f GB each, memory rule %s: estimates up to %.1f GB%s", workers,
+                 setup$memoryLimit, rule, memoryBudget,
+                 if (rule == "live") sprintf(", %.1f GB kept free", memoryReserve) else ""))
   stepsFile <- .timing$file
   memoryFile <- file.path(outputFolder, sprintf("memory_%s.csv", database))
   stepMemoryFile <- file.path(outputFolder, sprintf("memory_steps_%s.csv", database))
@@ -551,7 +578,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
       }
       get("workerUnit", envir = asNamespace("SignalAdaptiveStudy"))(payload, setup)
     }, payload = serialize(unit, NULL), setup = setup, .compute = profile)
-    list(unit = unit, tries = tries, job = job)
+    list(unit = unit, tries = tries, job = job, started = proc.time()[["elapsed"]])
   }
   pending <- list()
   waiting <- list() # units not handed out yet, in order
@@ -569,13 +596,19 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   dispatch <- function() {
     repeat {
       if (length(waiting) == 0) return(invisible())
-      budget <- memoryBudget - reserve()
-      fits <- which(vapply(waiting, function(u) inUse() + (u$memoryGB %||% 0) <= budget, logical(1)))
+      extraction <- reserve()
+      budget <- memoryBudget - extraction
+      running <- data.frame(estimate = vapply(pending, function(p) p$unit$memoryGB %||% 0, numeric(1)),
+                            started = vapply(pending, function(p) p$started, numeric(1)))
+      available <- if (rule == "live") availableMemoryGB() - extraction else Inf
+      fits <- which(vapply(waiting, function(u) {
+        admitsUnit(u$memoryGB %||% 0, running, available, budget, memoryReserve, proc.time()[["elapsed"]])
+      }, logical(1)))
       if (length(fits) == 0 && length(pending) > 0) return(invisible())
       i <- if (length(fits)) fits[1] else 1
       u <- waiting[[i]]
       # for calibrating unitMemoryGB(): the estimate against the memory the system still has when the unit starts
-      ParallelLogger::logInfo(sprintf("%s k%s o%d starts: estimate %.1f GB, %.1f GB of estimates in use before, %.1f GB available, budget now %.1f GB",
+      ParallelLogger::logInfo(sprintf("%s k%s o%d starts: estimate %.1f GB, %.1f GB of estimates in use before, %.1f GB available, estimates up to %.1f GB",
                                       u$task$taskId, u$budget, u$ordering, u$memoryGB %||% 0, inUse(), availableMemoryGB(), budget))
       pending[[length(pending) + 1]] <<- submit(u)
       waiting[[i]] <<- NULL
