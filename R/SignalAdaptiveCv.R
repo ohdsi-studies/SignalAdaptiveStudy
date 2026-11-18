@@ -20,7 +20,10 @@ ELASTIC_NET_ALPHA <- 0.5
 # Time spent inside Cyclops during one cross-validated fit: its data conversion and its model fits, and how many fits.
 # Reset at the start of signalAdaptiveCv() and reported with its result.
 .cyclopsTiming <- new.env()
-resetCyclopsTiming <- function() { .cyclopsTiming$dataSeconds <- 0; .cyclopsTiming$fitSeconds <- 0; .cyclopsTiming$fits <- 0L }
+resetCyclopsTiming <- function() {
+  .cyclopsTiming$dataSeconds <- 0; .cyclopsTiming$fitSeconds <- 0; .cyclopsTiming$fits <- 0L
+  .cyclopsTiming$stage <- NULL; .cyclopsTiming$shape <- NULL
+}
 resetCyclopsTiming()
 timeCyclops <- function(kind, expr) {
   start <- proc.time()[["elapsed"]]
@@ -115,12 +118,15 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
     start[fixed] <- 0
   }
   .cyclopsTiming$fits <- .cyclopsTiming$fits + 1L
+  started <- proc.time()[["elapsed"]]
   fit <- timeCyclops("fitSeconds", Cyclops::fitCyclopsModel(problem$data, prior = prior, control = control,
                                                             startingCoefficients = start, fixedCoefficients = fixed,
                                                             warnings = FALSE))
+  seconds <- proc.time()[["elapsed"]] - started
   coefficients <- if (is.null(fit$estimation)) NULL else as.numeric(stats::coef(fit, ignoreConvergence = TRUE))
   # converged as Cyclops's own CV counts it: SUCCESS, or POOR_BLR_STEP under the kkt criterion
   convergence <- fit$convergence
+  traceFit(problem, penalised, fit, convergence, coefficients, seconds, control)
   list(coefficients = coefficients, status = fit$return_flag, iterations = fit$iterations %||% NA_integer_,
        algorithm = fit$algorithm %||% "ccd", newtonIterations = convergence$newtonIterations %||% 0L, # Cyclops names an algorithm only for newer fits
        gapEstimate = convergence$gapEstimate %||% NA_real_, ineligible = convergence$ineligible %||% "",
@@ -135,6 +141,22 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
 }
 
 softplus <- function(z) ifelse(z > 0, z + log1p(exp(-z)), log1p(exp(z)))
+
+# Optional trace of every Cyclops fit, for studying the fits' work (extras/production/fitTrace.R): with
+# options(SignalAdaptiveStudy.fitTrace = <csv file>), one row per fit is appended, aggregates only (no coefficients).
+traceFit <- function(problem, penalised, fit, convergence, coefficients, seconds, control) {
+  file <- getOption("SignalAdaptiveStudy.fitTrace")
+  if (is.null(file)) return(invisible())
+  row <- data.frame(stage = .cyclopsTiming$stage %||% NA_character_, shape = .cyclopsTiming$shape %||% NA_character_,
+                    rows = problem$n, columns = length(problem$ids), algorithm = control$algorithm %||% NA_character_,
+                    varianceMedian = if (length(penalised)) stats::median(penalised) else NA_real_,
+                    varianceSpread = if (length(penalised)) max(penalised) / min(penalised) else NA_real_,
+                    seconds = seconds, status = as.character(fit$return_flag %||% NA), iterations = fit$iterations %||% NA_integer_,
+                    newton = convergence$newtonIterations %||% NA_integer_, solver = newtonSolver(convergence),
+                    certificate = as.character(convergence$certificate %||% NA_character_),
+                    nonZero = if (is.null(coefficients)) NA_integer_ else sum(coefficients[-1] != 0))
+  utils::write.table(row, file, sep = ",", append = file.exists(file), col.names = !file.exists(file), row.names = FALSE)
+}
 
 # NA for a fit without Newton steps or from a Cyclops that does not say
 newtonSolver <- function(convergence) {
@@ -329,6 +351,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   records <- list(); traces <- list(); states <- list()
   for (s in seq_len(nrow(shapes))) {
     shape <- unname(shapes[s, ])
+    .cyclopsTiming$stage <- "fold"; .cyclopsTiming$shape <- paste(shape, collapse = " ")
     setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized, weightRule))
     result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
     records[[s]] <- result$record; traces[s] <- list(result$trace); states[s] <- list(result$state) # keep NULL slots
@@ -360,6 +383,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     record <- records[selected, ]
     shape <- unname(unlist(record[c("c1", "c2", "c3")]))
     w <- problemWeights(X, y, full, shape, unpenalized, weightRule)
+    .cyclopsTiming$stage <- "final"; .cyclopsTiming$shape <- paste(shape, collapse = " ")
     final <- strategy$finalFit(X, y, full, penalty, w, record)
     lambda <- final$lambda; variance <- final$variance
     kkt <- kktResidual(X, y, full, final$fit$coefficients, final$variances, w$keep, penalty)
