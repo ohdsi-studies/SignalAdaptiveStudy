@@ -199,11 +199,12 @@ nullModelVariance <- function(X, y, problem, setup, control, alpha = 1) {
 # integer product overflows above 2^31 cells, e.g. 9,184 x 282,852).
 defaultStartVariance <- function(X, columns) length(X@x) / (as.numeric(columns) * nrow(X))
 
-# The "priorScale" start (autoStrategy()): c n / sum_j(||x_j||^2 / w_j) over the penalised columns kept (weight > 0).
+# The "priorScale" start (autoStrategy()): c n / sum_j(||x_j||^2 / w_j) over the penalised columns kept (weight > 0);
+# c = 3 for LASSO, 1 otherwise.
 priorScaleStart <- function(columnSquares, weights, n, penalty) {
   use <- weights$keep & !is.na(weights$weights) & weights$weights > 0
   if (!any(use)) return(1)
-  (if (penalty == "ridge") 1 else 3) * n / sum(columnSquares[use] / weights$weights[use])
+  (if (penalty == "lasso") 3 else 1) * n / sum(columnSquares[use] / weights$weights[use])
 }
 
 # warmShapes (autoStrategy()): per fold, the coefficients of the nearest shape done (L1 distance in c; the first one
@@ -244,8 +245,10 @@ searchStrategy <- function(search, settings = list()) {
 # The search (defaults: Cyclops's own; the study's in studySearchSettings()):
 # start: "cyclops", Cyclops's default variance (non-zeros / (columns x rows)), the same for every shape; or
 #   "priorScale", c n / sum_j(||x_j||^2 / w_j) over the penalised columns kept, with the shape's weights on all rows (c = 1
-#   for ridge, 3 for LASSO and elastic net): the variance at which the prior's spread of the linear predictor, averaged
-#   over the rows, is c. Unlike Cyclops's default it hardly moves when rare columns are added or removed.
+#   for ridge and elastic net, 3 for LASSO): the variance at which the prior's spread of the linear predictor, averaged
+#   over the rows, is c. For ridge, c is the variance of the true log-odds, 2 qnorm(AUC)^2 for a rare outcome: c = 1 is
+#   an AUC of about 0.76. Elastic net's optimum lies between ridge's and LASSO's, so it starts at ridge's, just below.
+#   Unlike Cyclops's default it hardly moves when rare columns are added or removed.
 # upStep: the factor of each step up while bracketing (Cyclops: 10; steps down stay 10).
 # warmShapes: each shape's first fit in a fold starts from that fold's fit at the nearest shape done (L1 distance in c),
 #   at that shape's selected variance, instead of from zero. A start, not a different model.

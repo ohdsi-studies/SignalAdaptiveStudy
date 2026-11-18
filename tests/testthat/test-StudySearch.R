@@ -11,6 +11,7 @@ test_that("priorScaleStart is c n / sum ||x_j||^2 / w_j over the penalised colum
   weights <- list(weights = c(1, 2, 0, NA), keep = c(TRUE, TRUE, TRUE, FALSE)) # column 3 unpenalised, 4 not kept
   expect_equal(priorScaleStart(squares, weights, 100, "ridge"), 100 / (10 + 10))
   expect_equal(priorScaleStart(squares, weights, 100, "lasso"), 3 * 100 / 20)
+  expect_equal(priorScaleStart(squares, weights, 100, "elasticnet"), 100 / 20)
   # binary columns, equal weights: 1 / (mean non-zeros per row)
   X <- Matrix::rsparsematrix(200, 50, 0.1, rand.x = function(n) rep(1, n))
   expect_equal(priorScaleStart(Matrix::colSums(X^2), list(weights = rep(1, 50), keep = rep(TRUE, 50)), 200, "ridge"),

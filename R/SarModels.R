@@ -52,7 +52,8 @@ setPosteriorMomentRidge <- function(kappa = 0.5, interceptOnly = TRUE, name = "P
                          weightRule = list(type = "posteriorMoment", kappa = kappa))
 }
 
-# The study's variance search (autoStrategy()): Cyclops's auto-search started at the "priorScale" variance, stepping up
+# The study's variance search (autoStrategy()): Cyclops's auto-search started at the "priorScale" variance (c = 1 ridge
+# and elastic net, 3 LASSO; elastic net 1 since 2026-11-18 after the CCAE trace), stepping up
 # by sqrt(10) while bracketing, each SAR shape's first fold fits started from the nearest shape done (investigator,
 # 2026-11-18, after the CCAE fit traces).
 studySearchSettings <- function(fitAlgorithm = "auto") {
