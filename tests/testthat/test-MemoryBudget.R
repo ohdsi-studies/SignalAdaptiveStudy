@@ -42,6 +42,8 @@ test_that("with a memory budget smaller than any unit, units run one at a time a
   expect_equal(nrow(memory), 4)
   expect_true(all(memory$peakAfterGB >= memory$peakBeforeGB & memory$peakAfterGB > 0.05))
   expect_true(all(memory$trainingRows > 0 & memory$entriesPerPerson > 0))
+  stepMemory <- utils::read.csv(file.path(folder, "memory_steps_SIM.csv"))
+  expect_true(all(c("prepare k100 o1", "k100_o1_LASSO") %in% stepMemory$step) && all(stepMemory$peakGB > 0))
   expect_true(any(grepl("worker peak [0-9.]+ GB \\(estimate [0-9.]+ GB\\) done", log)))
   # one unit at a time: each unit's steps (split, prepare, its runs) end before the next unit's begin
   steps <- utils::read.csv(file.path(folder, "steps_SIM.csv"))

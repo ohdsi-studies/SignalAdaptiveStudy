@@ -32,6 +32,10 @@ timed <- function(taskId, step, expr) {
                       seconds = round(seconds, 2), ok = ok)
     if (!is.null(.timing$rows)) {
       .timing$rows[[length(.timing$rows) + 1]] <- row
+      # in a worker: its memory after the step and its peak so far (which step a unit's memory goes to)
+      m <- processMemoryGB()
+      .timing$memory[[length(.timing$memory) + 1]] <- data.frame(taskId = taskId, step = step, worker = Sys.getpid(),
+                                                                 sizeGB = round(m[["size"]], 2), peakGB = round(m[["peak"]], 2))
     } else if (!is.null(.timing$file)) appendSteps(row, .timing$file)
   })
   value <- expr
@@ -472,13 +476,14 @@ workerUnit <- function(payload, setup) {
     appenders = list(ParallelLogger::createFileAppender(layout = ParallelLogger::layoutTimestamp, fileName = file.path(
       setup$outputFolder, "workers", sprintf("log_%s_%d.txt", setup$database, Sys.getpid()))))))
   .timing$rows <- list()
-  on.exit(.timing$rows <- NULL)
+  .timing$memory <- list()
+  on.exit({ .timing$rows <- NULL; .timing$memory <- NULL })
   work <- if (identical(unit$work, "repair")) repairUnit else runUnit # repairUnit(): R/Repair.R
   before <- processMemoryGB()
   failures <- work(unit, function() timed(unit$task$taskId, "load plpData",
                                           PatientLevelPrediction::loadPlpData(unit$plpDataFolder)))
   after <- processMemoryGB()
-  list(steps = do.call(rbind, .timing$rows), failures = failures,
+  list(steps = do.call(rbind, .timing$rows), stepMemory = do.call(rbind, .timing$memory), failures = failures,
        memory = list(pid = Sys.getpid(), peakBeforeGB = before[["peak"]], peakAfterGB = after[["peak"]], endGB = after[["size"]]))
 }
 
@@ -537,6 +542,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
                  memoryBudget))
   stepsFile <- .timing$file
   memoryFile <- file.path(outputFolder, sprintf("memory_%s.csv", database))
+  stepMemoryFile <- file.path(outputFolder, sprintf("memory_steps_%s.csv", database))
   submit <- function(unit, tries = 1) {
     # the unit goes serialized: a worker loads the package (and its library paths) before it reads the unit
     job <- mirai::mirai({
@@ -592,6 +598,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
     } else {
       appendSteps(value$steps, stepsFile)
       for (failure in value$failures) report(failure, warn = TRUE)
+      if (!is.null(value$stepMemory)) tryCatch(appendSteps(value$stepMemory, stepMemoryFile), error = function(e) NULL)
       if (!is.null(value$memory)) {
         tryCatch(appendMemory(p$unit, value$memory, memoryFile), error = function(e) NULL)
         label <- sprintf("%s, worker peak %.1f GB (estimate %.1f GB)", label, value$memory$peakAfterGB, p$unit$memoryGB %||% NA)
