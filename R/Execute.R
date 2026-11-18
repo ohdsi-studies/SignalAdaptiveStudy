@@ -171,10 +171,10 @@ trainingSeconds <- function(text) {
 
 # The data of one budget and ordering, shared by its runs (one per method): PLP's split (the study split as an existing
 # split) and PLP's preprocessing of the training set, as runPlp() does them before the fit.
-prepareRunData <- function(plpData, population, split) {
+prepareRunData <- function(plpData, population, split, preprocessSettings = studyPreprocessSettings()) {
   splitSettings <- PatientLevelPrediction::createExistingSplitSettings(data.frame(rowId = split$rowId, index = split$index))
   data <- PatientLevelPrediction::splitData(plpData = plpData, population = population, splitSettings = splitSettings)
-  data$Train$covariateData <- PatientLevelPrediction::preprocessData(data$Train$covariateData, studyPreprocessSettings())
+  data$Train$covariateData <- PatientLevelPrediction::preprocessData(data$Train$covariateData, preprocessSettings)
   data
 }
 

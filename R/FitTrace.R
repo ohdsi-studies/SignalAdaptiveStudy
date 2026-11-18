@@ -82,11 +82,14 @@ designSummary <- function(X, y, folds, covariateIds, covariateData, minCellCount
 }
 
 # The training set of one task, budget and ordering, as the study's runs see it (execute()'s split and preprocessing).
-studyTrainingSet <- function(dataSource, task, budget, ordering, outputFolder) {
+# minFraction > 0: with PLP's frequency filter (covariates in fewer than minFraction x rows removed, as FeatureExtraction's
+# tidyCovariateData()); the study's preprocessing otherwise.
+studyTrainingSet <- function(dataSource, task, budget, ordering, outputFolder, minFraction = 0) {
   plpData <- dataSource$loadPlpData(task, outputFolder)
   population <- PatientLevelPrediction::createStudyPopulation(plpData, task$outcomeId, dataSource$populationSettings(task))
   split <- dataSource$split(population, task, budget, ordering)
-  train <- prepareRunData(plpData, population, split)$Train
+  train <- prepareRunData(plpData, population, split, PatientLevelPrediction::createPreprocessSettings(
+    minFraction = minFraction, normalize = TRUE, removeRedundancy = FALSE))$Train
   sparse <- PatientLevelPrediction::toSparseM(train, train$labels)
   labels <- sparse$labels
   list(train = train, X = sparse$dataMatrix, y = as.numeric(labels$outcomeCount > 0),
@@ -140,31 +143,21 @@ traceSummary <- function(trace, name, wallSeconds) {
     finalStatus = if (nrow(final)) final$status[1] else NA_character_)
 }
 
-# The whole report for one task: design aggregates, traced fits, a zip to send back.
-# minFraction: also the design after PLP's frequency filter (covariates in fewer than minFraction x rows removed, as
-# FeatureExtraction's tidyCovariateData()), in design_minFraction.csv and column_types_minFraction.csv.
+# The whole report for one task: design aggregates, traced fits, a zip to send back. minFraction > 0: all of it on the
+# training set after PLP's frequency filter (see studyTrainingSet()); the zip's name says so.
 fitTraceReport <- function(dataSource, task, budget, methods, outputFolder, reportFolder, ordering = 1, minCellCount = 5,
-                           minFraction = NULL) {
+                           minFraction = 0) {
   dir.create(reportFolder, recursive = TRUE, showWarnings = FALSE)
-  message("Preparing the training set: ", task$taskId, ", k", budget, ", ordering ", ordering)
-  set <- studyTrainingSet(dataSource, task, budget, ordering, outputFolder)
+  message("Preparing the training set: ", task$taskId, ", k", budget, ", ordering ", ordering,
+          if (minFraction > 0) sprintf(", covariates in at least %g of the rows", minFraction))
+  set <- studyTrainingSet(dataSource, task, budget, ordering, outputFolder, minFraction)
   message("Design aggregates")
   d <- designSummary(set$X, set$y, set$folds, set$covariateIds, set$train$covariateData, minCellCount = minCellCount)
-  d$design <- cbind(database = dataSource$databaseName, taskId = task$taskId, budget = budget, ordering = ordering, d$design)
+  d$design <- cbind(database = dataSource$databaseName, taskId = task$taskId, budget = budget, ordering = ordering,
+                    minFraction = minFraction, d$design)
   utils::write.csv(d$design, file.path(reportFolder, "design.csv"), row.names = FALSE)
   utils::write.csv(d$columnTypes, file.path(reportFolder, "column_types.csv"), row.names = FALSE)
   print(t(d$design)); print(d$columnTypes, row.names = FALSE)
-  if (!is.null(minFraction)) {
-    keep <- diff(methods::as(set$X, "CsparseMatrix")@p) >= minFraction * nrow(set$X)
-    message(sprintf("Design after the frequency filter (minFraction %g): %d of %d columns kept", minFraction, sum(keep), length(keep)))
-    f <- designSummary(set$X[, keep, drop = FALSE], set$y, set$folds, set$covariateIds[keep], set$train$covariateData,
-                       minCellCount = minCellCount)
-    f$design <- cbind(database = dataSource$databaseName, taskId = task$taskId, budget = budget, ordering = ordering,
-                      minFraction = minFraction, f$design)
-    utils::write.csv(f$design, file.path(reportFolder, "design_minFraction.csv"), row.names = FALSE)
-    utils::write.csv(f$columnTypes, file.path(reportFolder, "column_types_minFraction.csv"), row.names = FALSE)
-    print(t(f$design)); print(f$columnTypes, row.names = FALSE)
-  }
   summary <- if (length(methods)) traceModels(set$train, methods, reportFolder)
   if (!is.null(summary)) {
     utils::write.csv(summary, file.path(reportFolder, "trace_summary.csv"), row.names = FALSE)
@@ -172,7 +165,8 @@ fitTraceReport <- function(dataSource, task, budget, methods, outputFolder, repo
   }
   writeLines(c(paste("Exported", format(Sys.time(), usetz = TRUE)), packageVersions(), paste("minCellCount", minCellCount)),
              file.path(reportFolder, "export.txt"))
-  zipFile <- normalizePath(file.path(reportFolder, sprintf("SignalAdaptiveStudy_fit_trace_%s_%s.zip", dataSource$databaseName,
+  zipFile <- normalizePath(file.path(reportFolder, sprintf("SignalAdaptiveStudy_fit_trace_%s%s_%s.zip", dataSource$databaseName,
+                                                          if (minFraction > 0) sprintf("_minFraction%g", minFraction) else "",
                                                           format(Sys.Date(), "%Y%m%d"))), mustWork = FALSE)
   unlink(zipFile)
   zip::zipr(zipFile, list.files(reportFolder, "\\.(csv|txt)$", full.names = TRUE))

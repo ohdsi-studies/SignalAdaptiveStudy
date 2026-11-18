@@ -8,7 +8,8 @@
 #
 #   Rscript extras/production/fitTrace.R CCAE
 #   Rscript extras/production/fitTrace.R CCAE --budget=1000 --featureSet=defaults --methods=SAR_ccd,SAR_auto,Ridge_ccd,Ridge_auto
-#   Rscript extras/production/fitTrace.R CCAE --methods=none --minFraction=0.001   # design only, also after PLP's frequency filter
+#   Rscript extras/production/fitTrace.R CCAE --minFraction=0.001   # all of it after PLP's frequency filter (its own folder and zip)
+#   Rscript extras/production/fitTrace.R CCAE --methods=none        # design only
 # (in the project folder; settings as for runBenchmarks.R).
 
 options(java.parameters = "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED")
@@ -38,8 +39,7 @@ featureSet <- option("featureSet", "defaults")
 methods <- fitAlgorithmComparisonMethods()
 chosen <- option("methods", c("SAR_ccd", "SAR_auto", "Ridge_ccd", "Ridge_auto", "LASSO_ccd", "LASSO_auto", "ElasticNet_ccd", "ElasticNet_auto"))
 if (identical(chosen, "none")) chosen <- character() # design only
-minFraction <- option("minFraction", NULL)
-if (!is.null(minFraction)) minFraction <- as.numeric(minFraction)
+minFraction <- as.numeric(option("minFraction", "0"))
 stopifnot(length(budget) == 1, budget %in% finalBudgets(), featureSet %in% c("defaults", "phenotypes"), all(chosen %in% names(methods)))
 message("Cyclops ", utils::packageVersion("Cyclops"), " commit ", utils::packageDescription("Cyclops")$RemoteSha %||% "",
         "; k", budget, ", ", featureSet, "; ", paste(chosen, collapse = ", "))
@@ -61,7 +61,7 @@ base <- benchmarkTasks()
 base <- base[base$benchmark == "HFT2DM", ]
 counts <- execute(dataSource, base, outputFolder, mode = "counts")
 tasks <- expandFeatureSets(addSampleSizes(base, feasibleCounts(counts), budgets = finalBudgets()), featureSet) # as the comparison: same sample
-reportFolder <- file.path(getwd(), "SignalAdaptiveStudy_fit_trace", database)
+reportFolder <- file.path(getwd(), paste0("SignalAdaptiveStudy_fit_trace", if (minFraction > 0) paste0("_minFraction", minFraction)), database)
 zipFile <- SignalAdaptiveStudy:::fitTraceReport(dataSource, tasks[1, ], budget, methods[chosen], outputFolder, reportFolder,
                                                 minCellCount = minCellCount, minFraction = minFraction)
 message("Send: ", zipFile)
