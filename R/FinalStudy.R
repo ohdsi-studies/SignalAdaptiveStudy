@@ -115,6 +115,9 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 #' penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome). The
 #' CV-chosen standard model ([addCvChosen()]) is derived from the ridge, LASSO and elastic net runs.
 #'
+#' The ablations reuse SAR's shape searches on the same training set (`sharedShapes`), and ridge and LASSO the first
+#' shape of SAR and SAL (identical to fitting them alone), so they cost only their final fits.
+#'
 #' @param fitAlgorithm As in [setSar()]; PLP's LASSO uses PLP's own settings.
 #' @return A named list of model settings.
 #' @export
@@ -125,10 +128,11 @@ finalStudyMethods <- function(fitAlgorithm = "auto") {
        Ridge = setSar(shapes = c(0, 0, 0), name = "Ridge", fitAlgorithm = fitAlgorithm),
        PLP_LASSO = PatientLevelPrediction::setLassoLogisticRegression(seed = STUDY_SEEDS$folds, threads = 1),
        ElasticNet = setElasticNet(fitAlgorithm = fitAlgorithm),
-       SAR_fixed = setSar(shapes = c(0, 1, -1), name = "SAR_fixed", fitAlgorithm = fitAlgorithm),
-       SAR_no_c3 = setSar(shapes = shapes[shapes[, "c3"] == 0, , drop = FALSE], name = "SAR_no_c3", fitAlgorithm = fitAlgorithm),
+       SAR_fixed = setSar(shapes = c(0, 1, -1), name = "SAR_fixed", fitAlgorithm = fitAlgorithm, sharedShapes = shapes),
+       SAR_no_c3 = setSar(shapes = shapes[shapes[, "c3"] == 0, , drop = FALSE], name = "SAR_no_c3", fitAlgorithm = fitAlgorithm,
+                          sharedShapes = shapes),
        SAR_c3_only = setSar(shapes = shapes[shapes[, "c1"] == 0 & shapes[, "c2"] == 0, , drop = FALSE], name = "SAR_c3_only",
-                            fitAlgorithm = fitAlgorithm),
+                            fitAlgorithm = fitAlgorithm, sharedShapes = shapes),
        PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
        SAL = setSal(fitAlgorithm = fitAlgorithm))
 }

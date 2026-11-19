@@ -39,6 +39,16 @@ test_that("finished runs made with other settings stop execute(); counts are rec
   expect_error(execute(createPlpDataSource(plpData, "SIM", settings(730)), tasks, outputFolder, mode = "models",
                        budgets = 100, orderings = 1, methods = lasso), "k100_o1_LASSO: population")
   expect_identical(file.mtime(file.path(run, "result.csv")), stamp)
+  # or, asked to, moves them out of the results and runs them again
+  rerun <- execute(dataSource, tasks, outputFolder, mode = "models", budgets = 100, orderings = 1, methods = changed,
+                   onChangedRuns = "rerun")
+  expect_equal(nrow(rerun), 1)
+  moved <- list.files(file.path(outputFolder, "replaced"), pattern = "^result\\.csv$", recursive = TRUE, full.names = TRUE)
+  expect_length(moved, 1)
+  expect_match(moved, "replaced/[0-9_]+/models/SIM/sim_task/k100_o1_LASSO/result.csv$")
+  expect_match(readLines(file.path(outputFolder, "log_SIM.txt")), "1 finished run\\(s\\) made with other settings moved", all = FALSE)
+  execute(dataSource, tasks, outputFolder, mode = "models", budgets = 100, orderings = 1, methods = changed) # now current
+  stamp <- file.mtime(file.path(run, "result.csv"))
   # a run from before fingerprints is accepted as it is
   unlink(file.path(run, "fingerprint.json"))
   execute(dataSource, tasks, outputFolder, mode = "models", budgets = 100, orderings = 1, methods = changed)

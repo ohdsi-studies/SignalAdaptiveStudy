@@ -180,6 +180,16 @@ benchmarkPopulationSettings <- function(timeAtRiskDays, riskWindowStart = 1, fir
     endAnchor = "cohort start")
 }
 
+# PLP's restriction at extraction for a task's population settings: its first-entry rule and washout, which PLP's SQL
+# applies as createStudyPopulation() does (first entry per person, then the prior observation), so that only the
+# entries that can enter the population are extracted (CCAE ISAF: 1.44M cohort entries for 711k persons in the
+# population). createStudyPopulation() still applies every rule, and finds these two already met; the rows keep their
+# order (by person and start date), so the split, orderings and folds are the same (tests/testthat/test-CdmEunomia.R).
+extractionRestriction <- function(populationSettings) {
+  PatientLevelPrediction::createRestrictPlpDataSettings(firstExposureOnly = isTRUE(populationSettings$firstExposureOnly),
+                                                        washoutPeriod = populationSettings$washoutPeriod %||% 0)
+}
+
 # A task's population settings: the original rules, or the benchmark's for the catalogue tasks.
 taskPopulationSettings <- function(task) {
   rule <- if (is.null(task$populationRule)) "original" else task$populationRule
@@ -270,7 +280,7 @@ createCdmDataSource <- function(connectionDetails, cdmDatabaseSchema, cohortData
       cohortDatabaseSchema = cohortDatabaseSchema, cohortTable = if (sample) sampleTable else cohortTable,
       outcomeDatabaseSchema = cohortDatabaseSchema, outcomeTable = cohortTable,
       targetId = task$targetId, outcomeIds = task$outcomeId)
-    PatientLevelPrediction::getPlpData(details, covariateSettings, PatientLevelPrediction::createRestrictPlpDataSettings())
+    PatientLevelPrediction::getPlpData(details, covariateSettings, extractionRestriction(taskPopulationSettings(task)))
   }
   sampleLabel <- function(task) {
     if (isSampled(task)) sprintf("person hash %.0f, fraction %.12g", SAMPLE_HASH$seed, task$sampleFraction) else "none"

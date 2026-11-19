@@ -8,11 +8,13 @@ execute(
   dataSource,
   tasks,
   outputFolder,
-  mode = c("counts", "models"),
+  mode = c("counts", "models", "data"),
   budgets = c(100, 250, 500),
   orderings = 1:3,
   methods = studyMethods(),
-  workers = 1
+  workers = 1,
+  shareSearches = TRUE,
+  onChangedRuns = c("stop", "rerun")
 )
 }
 \arguments{
@@ -24,7 +26,7 @@ largest units first).}
 
 \item{outputFolder}{Folder for the data cache, counts and results.}
 
-\item{mode}{\code{"counts"} or \code{"models"}.}
+\item{mode}{\code{"counts"}, \code{"models"} or \code{"data"}.}
 
 \item{budgets}{Event budgets k.}
 
@@ -33,6 +35,13 @@ largest units first).}
 \item{methods}{Named list of model settings (default \code{\link[=studyMethods]{studyMethods()}}).}
 
 \item{workers}{Number of worker processes for the models (1: in this process).}
+
+\item{shareSearches}{Methods fitted on the same training set share their shape searches (see \code{\link[=setSar]{setSar()}}'s
+\code{sharedShapes}; ridge and LASSO take SAR's and SAL's first shape, identical to fitting them alone). \code{FALSE}: every
+method searches its shapes itself, e.g. to compare the fitting time of methods.}
+
+\item{onChangedRuns}{Finished runs made with other settings than now (their fingerprints): \code{"stop"} before anything
+runs, or \code{"rerun"}: move them to \verb{outputFolder/replaced/<time>/} (out of the results) and run them again.}
 }
 \value{
 For counts, a data frame of counts; for models, the result rows of this and earlier runs.
@@ -40,9 +49,14 @@ For counts, a data frame of counts; for models, the result rows of this and earl
 \description{
 \code{mode = "counts"}: population, training-pool and test counts per task and the feasibility rule (>= 500 training
 events and >= 80 test events); no models. \code{mode = "models"}: every task x budget x ordering x method, skipping
-runs that have already finished.
+runs that have already finished. \code{mode = "data"}: only the extraction of each task's data into the cache that the
+models use (for a data source that caches, as \code{\link[=createCdmDataSource]{createCdmDataSource()}}), e.g. for the next database while the models
+of another run.
 }
 \details{
+One call at a time works on a database's output folder: a call waits while another (in another R process) holds it,
+since both would generate the same cohorts and extract the same tasks.
+
 With \code{workers > 1}, the models run in that many R processes (\href{https://mirai.r-lib.org}{mirai} daemons), one budget
 and ordering of a task each, the largest first; the results are the same as with one. Each worker uses one thread
 (duckdb in Andromeda, BLAS, OpenMP) and a memory limit for each Andromeda (half the RAM shared by all workers, or the

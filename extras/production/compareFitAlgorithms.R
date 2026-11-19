@@ -61,6 +61,6 @@ base <- base[base$benchmark == "HFT2DM", ]
 counts <- execute(dataSource, base, outputFolder, mode = "counts")
 tasks <- expandFeatureSets(addSampleSizes(base, feasibleCounts(counts), budgets = budgets), featureSets)
 execute(dataSource, tasks, outputFolder, mode = "models", orderings = 1, methods = fitAlgorithmComparisonMethods(),
-        workers = if (exists("workers")) workers else 1)
+        workers = if (exists("workers")) workers else 1, shareSearches = FALSE) # each method's own fitting time
 compareFitAlgorithms(outputFolder, database)
 message("Send: ", exportResults(outputFolder, minCellCount = minCellCount))

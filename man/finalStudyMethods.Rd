@@ -19,3 +19,7 @@ posterior-moment ridge (\code{\link[=setPosteriorMomentRidge]{setPosteriorMoment
 penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome). The
 CV-chosen standard model (\code{\link[=addCvChosen]{addCvChosen()}}) is derived from the ridge, LASSO and elastic net runs.
 }
+\details{
+The ablations reuse SAR's shape searches on the same training set (\code{sharedShapes}), and ridge and LASSO the first
+shape of SAR and SAL (identical to fitting them alone), so they cost only their final fits.
+}

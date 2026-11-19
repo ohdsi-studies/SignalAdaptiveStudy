@@ -17,11 +17,15 @@
 #' @param fitAlgorithm `"auto"`: Cyclops's coordinate descent that moves to Newton or prox-Newton steps where they pay.
 #'   `"ccd"`: coordinate descent. Both stop at the same criteria (KKT 3e-3 in folds, Cyclops's default for the final fit),
 #'   used for fold and final fits alike.
+#' @param sharedShapes `NULL`, or a matrix of shapes that contains `shapes` (for an ablation: [sarShapes()]): the shape
+#'   searches are then SAR's own, walked in this order with each shape's fold fits started from the shapes before it, and
+#'   taken from SAR's fit on the same training set when it ran first (execute() runs SAR before its ablations); c is
+#'   chosen among `shapes`.
 #'
 #' @return An object of class `modelSettings`.
 #' @export
-setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR", fitAlgorithm = "auto") {
-  signalAdaptiveSettings("ridge", shapes, interceptOnly, name, searchSettings = studySearchSettings(fitAlgorithm))
+setSar <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAR", fitAlgorithm = "auto", sharedShapes = NULL) {
+  signalAdaptiveSettings("ridge", shapes, interceptOnly, name, searchSettings = studySearchSettings(fitAlgorithm, sharedShapes))
 }
 
 #' Signal-adaptive LASSO (SAL) model settings
@@ -55,9 +59,11 @@ setPosteriorMomentRidge <- function(kappa = 0.5, interceptOnly = TRUE, name = "P
 # The study's variance search (autoStrategy()): Cyclops's auto-search started at the "priorScale" variance (c = 1 ridge
 # and elastic net, 3 LASSO; elastic net 1 since 2026-11-18 after the CCAE trace), stepping up
 # by sqrt(10) while bracketing, each SAR shape's first fold fits started from the nearest shape done (investigator,
-# 2026-11-18, after the CCAE fit traces).
-studySearchSettings <- function(fitAlgorithm = "auto") {
-  list(fitAlgorithm = fitAlgorithm, start = "priorScale", upStep = sqrt(10), warmShapes = TRUE)
+# 2026-11-18, after the CCAE fit traces). sharedShapes: see setSar() (SAR's ablations, investigator 2026-11-19).
+studySearchSettings <- function(fitAlgorithm = "auto", sharedShapes = NULL) {
+  settings <- list(fitAlgorithm = fitAlgorithm, start = "priorScale", upStep = sqrt(10), warmShapes = TRUE)
+  if (!is.null(sharedShapes)) settings$sharedShapes <- normalizeShapes(sharedShapes) # only then: other fingerprints as before
+  settings
 }
 
 # search, cSelection, searchSettings and unpenalizedCovariateIds are for development comparisons; the study uses the

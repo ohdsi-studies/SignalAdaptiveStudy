@@ -104,7 +104,7 @@ traceModels <- function(train, methods, folder) {
   for (name in names(methods)) {
     file <- file.path(folder, sprintf("trace_%s.csv", name))
     unlink(file)
-    old <- options(SignalAdaptiveStudy.fitTrace = file)
+    old <- options(SignalAdaptiveStudy.fitTrace = file, sarShareSearches = FALSE) # each model's own fits traced
     started <- Sys.time()
     model <- tryCatch(fitSignalAdaptive(train, methods[[name]]), error = function(e) e)
     options(old)

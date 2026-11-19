@@ -51,3 +51,60 @@ test_that("the study's search selects as Cyclops's start and steps do, within th
   expect_lt(abs(log(new$selected$variance) - log(old$selected$variance)), log(1.5))
   expect_equal(new$selected$cvLoss, old$selected$cvLoss, tolerance = 1e-3)
 })
+
+test_that("shape searches are shared on a training set: ridge and LASSO as alone, the ablations as SAR's", {
+  set.seed(7)
+  n <- 2000; p <- 50
+  X <- Matrix::rsparsematrix(n, p, 0.15, rand.x = function(k) rep(1, k))
+  y <- stats::rbinom(n, 1, stats::plogis(-2 + as.numeric(X[, 1:6] %*% rep(0.8, 6))))
+  folds <- rep(1:3, length.out = n)
+  all <- sarShapes()[c(1, 2, 3, 7, 9), ] # (0,0,0) first, as in sarShapes()
+  fit <- function(penalty, shapes, settings = studySearchSettings("ccd"), prepared = NULL) {
+    signalAdaptiveCv(X, y, folds, penalty, shapes = shapes, searchSettings = settings, prepared = prepared)
+  }
+  same <- function(a, b) {
+    expect_identical(a$beta, b$beta); expect_identical(a$intercept, b$intercept)
+    expect_identical(a$selected$shape, b$selected$shape); expect_identical(a$selected$variance, b$selected$variance)
+  }
+  sar <- fit("ridge", all)
+  expect_equal(sar$reusedShapes, 0L)
+  # ridge after SAR: SAR's first shape, started from no other: the same as ridge alone
+  ridgeAlone <- fit("ridge", c(0, 0, 0))
+  ridgeAfter <- fit("ridge", c(0, 0, 0), prepared = sar$prepared)
+  expect_equal(ridgeAfter$reusedShapes, 1L)
+  same(ridgeAfter, ridgeAlone)
+  # an ablation after SAR takes all of SAR's searches; without SAR first it walks SAR's shapes itself: the same model
+  sub <- all[all[, "c3"] == 0, , drop = FALSE]
+  shared <- studySearchSettings("ccd", sharedShapes = all)
+  after <- fit("ridge", sub, shared, prepared = sar$prepared)
+  expect_equal(after$reusedShapes, nrow(all))
+  same(after, fit("ridge", sub, shared))
+  expect_equal(after$records, sar$records[sar$records$c3 == 0, ], ignore_attr = TRUE)
+  # a search started from no other shape is not taken by a method that would start that shape from others
+  fixedAlone <- fit("ridge", c(0, 1, -1))
+  sarAfterFixed <- fit("ridge", all, prepared = fixedAlone$prepared)
+  same(sarAfterFixed, sar)
+  # the penalty is part of what is shared: LASSO does not take ridge's search
+  lassoAfter <- fit("lasso", c(0, 0, 0), prepared = sar$prepared)
+  expect_equal(lassoAfter$reusedShapes, 0L)
+  same(lassoAfter, fit("lasso", c(0, 0, 0)))
+  expect_error(fit("ridge", rbind(c(2, 0, 0)), shared), "must contain every shape")
+  # other methods' settings, so their fingerprints, unchanged
+  expect_null(setSar()$param$searchSettings$sharedShapes)
+  expect_equal(finalStudyMethods()$SAR_no_c3$param$searchSettings$sharedShapes, sarShapes(), ignore_attr = TRUE)
+})
+
+test_that("with sarShareSearches FALSE every method searches its shapes itself, to the same model", {
+  set.seed(7)
+  n <- 1500; p <- 40
+  X <- Matrix::rsparsematrix(n, p, 0.15, rand.x = function(k) rep(1, k))
+  y <- stats::rbinom(n, 1, stats::plogis(-2 + as.numeric(X[, 1:5] %*% rep(0.8, 5))))
+  folds <- rep(1:3, length.out = n)
+  settings <- studySearchSettings("ccd")
+  sar <- signalAdaptiveCv(X, y, folds, "ridge", shapes = sarShapes()[1:3, ], searchSettings = settings)
+  old <- options(sarShareSearches = FALSE)
+  on.exit(options(old))
+  ridge <- signalAdaptiveCv(X, y, folds, "ridge", shapes = c(0, 0, 0), searchSettings = settings, prepared = sar$prepared)
+  expect_equal(ridge$reusedShapes, 0L)
+  expect_identical(ridge$beta, signalAdaptiveCv(X, y, folds, "ridge", shapes = c(0, 0, 0), searchSettings = settings)$beta)
+})

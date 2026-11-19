@@ -372,8 +372,9 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   # the fit problems (Cyclops data of each fold and of all rows, with their weight statistics) depend only on X, y, folds
   # and the unpenalised columns; prepared: those of an earlier call on the same, reused (Cyclops starts every fit afresh)
   penalized <- !unpenalized
+  shapeResults <- list()
   if (!is.null(prepared) && identical(prepared$unpenalized, unpenalized)) {
-    problems <- prepared$problems; full <- prepared$full
+    problems <- prepared$problems; full <- prepared$full; shapeResults <- prepared$shapeResults %||% list()
   } else {
     addStatistics <- function(p) { p$statistics <- sarStatistics(X[p$rows, penalized, drop = FALSE], y[p$rows]); p }
     problems <- lapply(sort(unique(folds)), function(f) addStatistics(createFitProblem(X, y, folds != f)))
@@ -391,20 +392,57 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   # progress in the log (PLP's plpLog.txt of the run): one line per shape
   ParallelLogger::logInfo(sprintf("%s cross-validation: %d rows, %d events, %d columns, %d folds, %d shape(s)",
                                   penalty, length(y), sum(y), ncol(X), length(problems), nrow(shapes)))
-  records <- list(); traces <- list(); states <- list()
-  for (s in seq_len(nrow(shapes))) {
-    shape <- unname(shapes[s, ])
-    .cyclopsTiming$stage <- "fold"; .cyclopsTiming$shape <- paste(shape, collapse = " ")
-    setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized, weightRule))
-    result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
-    records[[s]] <- result$record; traces[s] <- list(result$trace); states[s] <- list(result$state) # keep NULL slots
+  # Shape searches shared between the methods fitted on one training set (in prepared$shapeResults): what a shape's search
+  # gives depends on the data, the penalty, the search, the unpenalised columns and, with warm shapes, on the shapes
+  # searched before it (their solutions start its fold fits). A search that started from no other shape is the same in
+  # every method that starts that shape from none (ridge is SAR's first shape, LASSO SAL's: identical to fitting them
+  # alone). A method with searchSettings$sharedShapes (a shape matrix: SAR's shapes for its ablations) walks those shapes
+  # in that order, as SAR does, taking each search from an earlier method on this training set that walked the same
+  # shapes, or searching it, and chooses among its own shapes: its CV results are then SAR's for those shapes.
+  walk <- shapes
+  if (!is.null(searchSettings$sharedShapes)) {
+    walk <- normalizeShapes(searchSettings$sharedShapes)
+    inWalk <- apply(shapes, 1, function(r) any(apply(walk, 1, function(w) all(w == r))))
+    if (!all(inWalk)) stop("searchSettings$sharedShapes must contain every shape of the method")
+  }
+  resultKey <- list(penalty = penalty, search = search, settings = searchSettings[setdiff(names(searchSettings), "sharedShapes")],
+                    unpenalized = unpenalized)
+  walkKey <- paste(apply(walk, 1, paste, collapse = " "), collapse = "; ")
+  warmShapes <- isTRUE(searchSettings$warmShapes)
+  share <- isTRUE(getOption("sarShareSearches", TRUE)) # FALSE: every method searches its shapes itself (timing comparisons)
+  records <- vector("list", nrow(shapes)); traces <- vector("list", nrow(shapes)); states <- vector("list", nrow(shapes))
+  reused <- 0L
+  for (s in seq_len(nrow(walk))) {
+    shape <- unname(walk[s, ])
+    own <- which(apply(shapes, 1, function(r) all(r == shape)))
+    warm <- warmShapes && length(context$done) > 0
+    # a search started from no other shape serves any method that would start it from none too; one started from the
+    # shapes before it, only a method that walks the same shapes
+    hit <- if (is.null(weightRule) && share) Find(function(e) identical(e$key, resultKey) && all(e$shape == shape) &&
+                                           (if (e$warm) identical(e$walk, walkKey) else !warm), shapeResults)
+    if (!is.null(hit)) {
+      result <- hit$result
+      reused <- reused + 1L
+    } else {
+      .cyclopsTiming$stage <- "fold"; .cyclopsTiming$shape <- paste(shape, collapse = " ")
+      setups <- lapply(problems, function(p) problemWeights(X, y, p, shape, unpenalized, weightRule))
+      result <- strategy$searchShape(X, y, problems, setups, shape, penalty, context)
+      if (is.null(weightRule)) {
+        shapeResults[[length(shapeResults) + 1]] <- list(key = resultKey, shape = shape, warm = warm, walk = walkKey,
+                                                         result = result)
+      }
+    }
+    if (length(own)) {
+      records[[own[1]]] <- result$record; traces[own[1]] <- list(result$trace); states[own[1]] <- list(result$state)
+    }
     best <- result$record[which.min(result$record$cvLoss), ] # one row (auto) or one per lambda (grid)
     if (!is.null(result$state)) {
       context$done[[length(context$done) + 1]] <- list(shape = shape, state = result$state, variance = best$variance)
     }
     chosen <- if (is.na(best$lambda)) sprintf("variance %.4g", best$variance) else sprintf("lambda %.4g", best$lambda)
-    ParallelLogger::logInfo(sprintf("shape %d/%d (c = %s): %s, CV loss %.6f; %.1f min so far", s, nrow(shapes),
+    ParallelLogger::logInfo(sprintf("shape %d/%d (c = %s): %s, CV loss %.6f%s; %.1f min so far", s, nrow(walk),
                                     paste(shape, collapse = ", "), chosen, best$cvLoss,
+                                    if (!is.null(hit)) " (search of an earlier method on this training set)" else "",
                                     as.numeric(difftime(Sys.time(), start, units = "mins"))))
   }
   records <- do.call(rbind, records)
@@ -479,7 +517,9 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     records = records, trace = if (length(Filter(Negate(is.null), traces))) do.call(rbind, traces) else NULL,
     cvPrediction = cvPrediction, folds = folds,
     seconds = as.numeric(difftime(Sys.time(), start, units = "secs")),
-    prepared = list(problems = problems, full = full, unpenalized = unpenalized) # for another call on the same data
+    reusedShapes = reused,
+    prepared = list(problems = problems, full = full, unpenalized = unpenalized, # for another call on the same data
+                    shapeResults = shapeResults)
   )
 }
 

@@ -6,6 +6,12 @@
 #   Rscript extras/production/runBenchmarks.R MDCD MDCR     only these
 #   Rscript extras/production/runBenchmarks.R CCAE --tasks=HFT2DM,MACEMNCS --orderings=1   some benchmarks (both feature
 #                                                           sets), some orderings
+#   Rscript extras/production/runBenchmarks.R MDCD --prepare   cohorts, counts and the extraction only, no models: run it in
+#                                                           a second window for the next database while the models of
+#                                                           another run (one database per window); the models then start
+#                                                           from the extracted data. A run of the same database waits.
+#   --rerun-changed   finished runs made with other settings than now (e.g. the SAR ablations after 2026-11-19) are moved
+#                     to replaced/ and run again, instead of stopping
 # (in the project folder; settings as for CodeToRun.R). A database that fails does not stop the others.
 
 # Needed by the Databricks JDBC driver, before Java starts (see CodeToRun.R)
@@ -31,6 +37,8 @@ option <- function(name, default) {
 }
 onlyBenchmarks <- option("tasks", NULL)   # benchmark names, e.g. HFT2DM
 orderings <- as.integer(option("orderings", 1:3))
+prepareOnly <- "--prepare" %in% args
+onChangedRuns <- if ("--rerun-changed" %in% args) "rerun" else "stop"
 stopifnot(is.null(onlyBenchmarks) || all(onlyBenchmarks %in% benchmarkTasks()$benchmark), all(orderings %in% 1:3))
 args <- args[!startsWith(args, "--")]
 databases <- if (length(args)) args else names(cdmSchemas)
@@ -59,9 +67,14 @@ runDatabase <- function(database) {
   }
   missing <- setdiff(onlyBenchmarks, tasks$benchmark)
   if (length(missing)) message("Not feasible in ", database, ", skipped: ", paste(missing, collapse = ", "))
-  message(sprintf("%s: %d task(s) to run: %s", database, nrow(tasks), paste(tasks$taskId, collapse = ", ")))
+  message(sprintf("%s: %d task(s) to %s: %s", database, nrow(tasks), if (prepareOnly) "extract" else "run",
+                  paste(tasks$taskId, collapse = ", ")))
+  if (prepareOnly) {
+    folders <- execute(dataSource, tasks, outputFolder, mode = "data")
+    return(sprintf("data of %d of %d task(s) ready (no models run)", sum(!is.na(folders)), length(folders)))
+  }
   execute(dataSource, tasks, outputFolder, mode = "models", orderings = orderings, methods = finalStudyMethods(),
-          workers = if (exists("workers")) workers else 1)
+          workers = if (exists("workers")) workers else 1, onChangedRuns = onChangedRuns)
   exportResults(outputFolder, minCellCount = minCellCount)
 }
 results <- vapply(databases, function(database) {

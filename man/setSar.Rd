@@ -8,7 +8,8 @@ setSar(
   shapes = sarShapes(),
   interceptOnly = TRUE,
   name = "SAR",
-  fitAlgorithm = "auto"
+  fitAlgorithm = "auto",
+  sharedShapes = NULL
 )
 }
 \arguments{
@@ -22,6 +23,11 @@ Default: the 12 shapes of \code{\link[=sarShapes]{sarShapes()}}.}
 \item{fitAlgorithm}{\code{"auto"}: Cyclops's coordinate descent that moves to Newton or prox-Newton steps where they pay.
 \code{"ccd"}: coordinate descent. Both stop at the same criteria (KKT 3e-3 in folds, Cyclops's default for the final fit),
 used for fold and final fits alike.}
+
+\item{sharedShapes}{\code{NULL}, or a matrix of shapes that contains \code{shapes} (for an ablation: \code{\link[=sarShapes]{sarShapes()}}): the shape
+searches are then SAR's own, walked in this order with each shape's fold fits started from the shapes before it, and
+taken from SAR's fit on the same training set when it ran first (execute() runs SAR before its ablations); c is
+chosen among \code{shapes}.}
 }
 \value{
 An object of class \code{modelSettings}.

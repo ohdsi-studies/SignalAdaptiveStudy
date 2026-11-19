@@ -306,7 +306,9 @@ changedRuns <- function(task, budgets, orderings, methods, dataSource, outputFol
     fp <- runFingerprint(dataSource, task, methods[[runs$method[r]]], runs$budget[r], runs$ordering[r])
     changes <- fingerprintChanges(fp, file.path(runs$folder[r], FINGERPRINT_FILE))
     if (is.null(changes)) legacy <- legacy + 1
-    else if (length(changes)) changed <- c(changed, sprintf("%s: %s", runs$folder[r], paste(changes, collapse = ", ")))
+    else if (length(changes)) {
+      changed <- c(changed, stats::setNames(sprintf("%s: %s", runs$folder[r], paste(changes, collapse = ", ")), runs$folder[r]))
+    }
   }
   structure(changed, legacy = legacy)
 }
@@ -401,10 +403,46 @@ failUnit <- function(unit, reason) {
   sprintf("%s %s k=%s o=%d failed: %s", unit$source$databaseName, unit$task$taskId, unit$budget, unit$ordering, reason)
 }
 
-# Message on the console and in the log.
+# Holds a database's output folder for this call (a lock folder, removed by the caller on exit): waits, checking every
+# 30 s, while another R process holds it (both would generate the same cohorts and extract the same tasks), and says so
+# every 10 minutes; option sarLockTimeoutSeconds stops instead after that long. A process that was killed leaves its lock:
+# delete the folder.
+holdDatabase <- function(outputFolder, database) {
+  lock <- file.path(outputFolder, sprintf("busy_%s.lock", database))
+  timeout <- getOption("sarLockTimeoutSeconds", Inf)
+  start <- Sys.time(); said <- -Inf
+  repeat {
+    if (dir.create(lock, showWarnings = FALSE)) {
+      writeLines(sprintf("process %d on %s since %s", Sys.getpid(), Sys.info()[["nodename"]], format(Sys.time())),
+                 file.path(lock, "owner.txt"))
+      return(lock)
+    }
+    waited <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+    ownerFile <- file.path(lock, "owner.txt")
+    owner <- if (file.exists(ownerFile)) readLines(ownerFile, warn = FALSE)[1] else "owner unknown"
+    if (waited >= timeout) stop(sprintf("%s is held by another run (%s); if none is running, delete it", lock, owner))
+    if (waited - said >= 600) {
+      report(sprintf("%s: waiting for another run of this database to finish (%s; %s). If none is running, delete it.",
+                     database, owner, lock))
+      said <- waited
+    }
+    Sys.sleep(min(30, max(0.1, timeout - waited)))
+  }
+}
+
+# Message on the console and in the log. ParallelLogger keeps its console logger ("SIMPLE") next to the study's file
+# logger, so the log call alone shows it on the console; message() only when no registered logger writes to the console
+# (otherwise every line came twice, as at the site 2026-11-18).
 report <- function(text, warn = FALSE) {
-  message(text)
+  if (!loggerEchoes()) message(text)
   if (warn) ParallelLogger::logWarn(text) else ParallelLogger::logInfo(text)
+}
+loggerEchoes <- function() {
+  loggers <- ParallelLogger::getLoggers()
+  if (length(loggers) == 0) return(TRUE) # ParallelLogger then writes to the console itself
+  any(vapply(loggers, function(logger) {
+    any(vapply(logger$appenders, function(a) any(grepl("stdout()", deparse(a$appendFunction), fixed = TRUE)), logical(1)))
+  }, logical(1)))
 }
 
 # The source folder of the package when it was loaded with pkgload::load_all() (tests), for the workers to load it
@@ -500,7 +538,7 @@ taskShape <- function(task, folder, populationSettings) {
 workerUnit <- function(payload, setup) {
   unit <- unserialize(payload)
   do.call(RNGkind, as.list(setup$rngKind))
-  options(andromedaThreads = 1, andromedaMemoryLimit = setup$memoryLimit)
+  options(andromedaThreads = 1, andromedaMemoryLimit = setup$memoryLimit, sarShareSearches = setup$shareSearches %||% TRUE)
   dir.create(file.path(setup$outputFolder, "workers"), showWarnings = FALSE)
   ParallelLogger::unregisterLogger("SignalAdaptiveStudyWorker", silent = TRUE)
   ParallelLogger::registerLogger(ParallelLogger::createLogger(name = "SignalAdaptiveStudyWorker", threshold = "TRACE",
@@ -564,7 +602,8 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   }, add = TRUE)
   mirai::daemons(workers, .compute = profile)
   setup <- list(libPaths = .libPaths(), dev = devPackagePath(), outputFolder = outputFolder, database = database,
-                memoryLimit = workerMemoryLimit(workers), rngKind = RNGkind())
+                memoryLimit = workerMemoryLimit(workers), rngKind = RNGkind(),
+                shareSearches = getOption("sarShareSearches", TRUE))
   # Units start by the memory free now (admitsUnit()), with the estimates of the units handed out held to a cap as a
   # backstop: 1.5 x 85% of the memory available at the start (the estimates are peaks, which a unit holds only briefly),
   # or the option sarMemoryBudgetGB. Option sarMemoryRule = "estimates": the cap alone, at 85% of the memory available at
@@ -642,7 +681,15 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
       if (!is.null(value$stepMemory)) tryCatch(appendSteps(value$stepMemory, stepMemoryFile), error = function(e) NULL)
       if (!is.null(value$memory)) {
         tryCatch(appendMemory(p$unit, value$memory, memoryFile), error = function(e) NULL)
-        label <- sprintf("%s, worker peak %.1f GB (estimate %.1f GB)", label, value$memory$peakAfterGB, p$unit$memoryGB %||% NA)
+        # the worker's peak is its process's highest since it started (Windows' peak working set): this unit's own only
+        # when the unit raised it
+        m <- value$memory
+        label <- if (isTRUE(m$peakAfterGB > m$peakBeforeGB)) {
+          sprintf("%s, peak %.1f GB (estimate %.1f GB)", label, m$peakAfterGB, p$unit$memoryGB %||% NA)
+        } else {
+          sprintf("%s, peak at most %.1f GB, the worker's peak from an earlier unit (estimate %.1f GB)", label,
+                  m$peakBeforeGB, p$unit$memoryGB %||% NA)
+        }
       }
     }
     finished <<- finished + 1
@@ -710,7 +757,12 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
 #'
 #' `mode = "counts"`: population, training-pool and test counts per task and the feasibility rule (>= 500 training
 #' events and >= 80 test events); no models. `mode = "models"`: every task x budget x ordering x method, skipping
-#' runs that have already finished.
+#' runs that have already finished. `mode = "data"`: only the extraction of each task's data into the cache that the
+#' models use (for a data source that caches, as [createCdmDataSource()]), e.g. for the next database while the models
+#' of another run.
+#'
+#' One call at a time works on a database's output folder: a call waits while another (in another R process) holds it,
+#' since both would generate the same cohorts and extract the same tasks.
 #'
 #' With `workers > 1`, the models run in that many R processes ([mirai](https://mirai.r-lib.org) daemons), one budget
 #' and ordering of a task each, the largest first; the results are the same as with one. Each worker uses one thread
@@ -723,15 +775,24 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
 #'   list of each task's budgets, as from [addSampleSizes()], instead of `budgets`) and `eventsPerPerson` (to start the
 #'   largest units first).
 #' @param outputFolder Folder for the data cache, counts and results.
-#' @param mode `"counts"` or `"models"`.
+#' @param mode `"counts"`, `"models"` or `"data"`.
 #' @param budgets Event budgets k.
 #' @param orderings Orderings (1, 2, 3).
 #' @param methods Named list of model settings (default [studyMethods()]).
 #' @param workers Number of worker processes for the models (1: in this process).
+#' @param shareSearches Methods fitted on the same training set share their shape searches (see [setSar()]'s
+#'   `sharedShapes`; ridge and LASSO take SAR's and SAL's first shape, identical to fitting them alone). `FALSE`: every
+#'   method searches its shapes itself, e.g. to compare the fitting time of methods.
+#' @param onChangedRuns Finished runs made with other settings than now (their fingerprints): `"stop"` before anything
+#'   runs, or `"rerun"`: move them to `outputFolder/replaced/<time>/` (out of the results) and run them again.
 #' @return For counts, a data frame of counts; for models, the result rows of this and earlier runs.
 #' @export
-execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"), budgets = c(100, 250, 500),
-                    orderings = 1:3, methods = studyMethods(), workers = 1) {
+execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models", "data"), budgets = c(100, 250, 500),
+                    orderings = 1:3, methods = studyMethods(), workers = 1, shareSearches = TRUE,
+                    onChangedRuns = c("stop", "rerun")) {
+  onChangedRuns <- match.arg(onChangedRuns)
+  oldShare <- options(sarShareSearches = shareSearches) # read here and by the workers (runInWorkers())
+  on.exit(options(oldShare), add = TRUE)
   mode <- match.arg(mode)
   if (!inherits(dataSource, "sarDataSource")) stop("dataSource must come from a create...DataSource() function")
   if (is.null(names(methods)) || any(names(methods) == "")) stop("methods must be a named list")
@@ -756,6 +817,23 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
     on.exit(Sys.unsetenv("DUCKDB_R_HOME"), add = TRUE)
   }
   ParallelLogger::logInfo(sprintf("execute(%s, mode = %s): %d task(s)", database, mode, nrow(tasks)))
+  lock <- holdDatabase(outputFolder, database)
+  on.exit(unlink(lock, recursive = TRUE), add = TRUE)
+  if (mode == "data") {
+    if (is.null(dataSource$plpDataFolder)) {
+      report(sprintf("%s: this data source keeps no data cache; nothing to extract", database))
+      return(invisible(character()))
+    }
+    folders <- vapply(seq_len(nrow(tasks)), function(i) {
+      task <- tasks[i, ]
+      tryCatch(dataSource$plpDataFolder(task, outputFolder), error = function(e) {
+        report(sprintf("%s %s: extraction failed: %s", database, task$taskId, conditionMessage(e)), warn = TRUE)
+        NA_character_
+      })
+    }, character(1))
+    report(sprintf("%s: data of %d of %d task(s) ready", database, sum(!is.na(folders)), nrow(tasks)))
+    return(invisible(stats::setNames(folders, tasks$taskId)))
+  }
   if (mode == "counts") {
     # restartable like the models: a task with counts is skipped; a failed task leaves error.txt and is tried again
     # (a task whose cohort table has no target persons or no outcomes is kept, with no events)
@@ -805,9 +883,22 @@ execute <- function(dataSource, tasks, outputFolder, mode = c("counts", "models"
   legacy <- sum(vapply(changed, attr, numeric(1), "legacy"))
   if (legacy > 0) ParallelLogger::logInfo(sprintf("%d finished run(s) from before fingerprints: accepted as they are", legacy))
   changed <- unlist(changed)
+  if (length(changed) && onChangedRuns == "rerun") {
+    replaced <- file.path(outputFolder, "replaced", format(Sys.time(), "%Y%m%d_%H%M%S"))
+    for (folder in names(changed)) {
+      target <- file.path(replaced, substring(normalizePath(folder, winslash = "/"),
+                                              nchar(normalizePath(outputFolder, winslash = "/")) + 2))
+      dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
+      if (!file.rename(folder, target)) stop("could not move ", folder, " to ", target)
+    }
+    report(sprintf("%d finished run(s) made with other settings moved to %s, to run again (e.g. %s)", length(changed),
+                   replaced, changed[[1]]))
+    changed <- character()
+  }
   if (length(changed)) {
     stop(sprintf(paste0("%d finished run(s) were made with other settings than now (folder: settings that changed):\n%s%s\n",
-                        "Move these run folders away (or restore the settings) and run again."),
+                        "Move these run folders away (or restore the settings) and run again, or run with onChangedRuns = \"rerun\" ",
+                        "(runBenchmarks.R: --rerun-changed), which moves them to replaced/ and runs them again."),
                  length(changed), paste(utils::head(changed, 10), collapse = "\n"),
                  if (length(changed) > 10) sprintf("\n... and %d more", length(changed) - 10) else ""), call. = FALSE)
   }

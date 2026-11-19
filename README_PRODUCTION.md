@@ -101,7 +101,21 @@ use a new output folder if results should all come from one commit.
 - **Methods:** SAR, LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), SAR
   without its third term, SAR with only its third term, posterior-moment ridge and SAL (SAR's weights with the LASSO penalty) (secondary).
   The CV-chosen standard model (ridge, LASSO or elastic net, whichever has the smallest CV loss) is derived from those runs in the analysis.
-  On a rerun only the methods without results are fitted.
+  On a rerun only the methods without results are fitted. The SAR ablations take SAR's shape searches, and ridge and LASSO the first shape
+  of SAR and SAL, from the same training set, so they cost little more than their final fits.
+- **Extraction:** only the cohort entries that can enter the study population (each task's first-entry rule and 365 days of prior
+  observation) are extracted; the population and the split are the same as from all entries.
+
+**Overlapping databases.** While the models of one database run, the next database's cohorts, counts and data can be prepared
+in a second window: `Rscript extras/production/runBenchmarks.R MDCD --prepare` (no models; one database per window). The models of
+that database later start from the extracted data. Two runs of the same database never work at once: the second waits (and says
+so every 10 minutes) until the first is done. A run that was killed leaves `busy_<database>.lock` in the database's output folder;
+delete it if no run of that database is going. A prepare window uses up to about 8 GB while extracting; the model run sees that
+memory in use and starts fewer units.
+
+**After 2026-11-19:** the three SAR ablations are now defined by SAR's own shape searches, so their finished runs were made with
+other settings. Add `--rerun-changed`: those runs are moved to `replaced/` in the output folder and run again (each training set's
+first ablation walks SAR's 12 shapes when SAR itself has finished; the others take its searches).
 
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.
@@ -128,7 +142,8 @@ Every cached and finished output records the settings it was made with (`fingerp
 (cohort definitions, covariate settings, sample), its counts and each model run (also the population rule, split and
 method settings). After a change of settings, a data cache is extracted again and counts are recounted
 automatically; finished model runs made with other settings stop `execute()` with an error naming the run folders and
-what changed (move them away, or restore the settings). Outputs from before fingerprints are accepted as they are.
+what changed (move them away, or restore the settings), unless `execute(onChangedRuns = "rerun")` (`runBenchmarks.R
+--rerun-changed`) moves them to `replaced/<time>/` and runs them again. Outputs from before fingerprints are accepted as they are.
 
 ## What leaves the site
 
