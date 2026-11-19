@@ -98,7 +98,7 @@ use a new output folder if results should all come from one commit.
     antibiotic classes combined into one (51 indicators).
 - **Covariate window:** ends before the risk window starts. All benchmark tasks end at day -1, as PLPBenchmarks does.
 - **Budgets and orderings:** 100, 250, 500 and 1000 events; 3 orderings.
-- **Methods:** SAR, LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), SAR
+- **Methods:** SAR (16 shapes: c3 down to -2), LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), SAR
   without its third term, SAR with only its third term, posterior-moment ridge and SAL (SAR's weights with the LASSO penalty) (secondary).
   The CV-chosen standard model (ridge, LASSO or elastic net, whichever has the smallest CV loss) is derived from those runs in the analysis.
   On a rerun only the methods without results are fitted. The SAR ablations take SAR's shape searches, and ridge and LASSO the first shape
@@ -113,9 +113,10 @@ so every 10 minutes) until the first is done. A run that was killed leaves `busy
 delete it if no run of that database is going. A prepare window uses up to about 8 GB while extracting; the model run sees that
 memory in use and starts fewer units.
 
-**After 2026-11-19:** the three SAR ablations are now defined by SAR's own shape searches, so their finished runs were made with
-other settings. Add `--rerun-changed`: those runs are moved to `replaced/` in the output folder and run again (each training set's
-first ablation walks SAR's 12 shapes when SAR itself has finished; the others take its searches).
+**After 2026-11-19:** SAR and SAL now search 16 shapes (c3 down to -2, from -1), and the three SAR ablations take SAR's searches,
+so their finished runs were made with other settings. Add `--rerun-changed`: those runs (SAR, SAL and the ablations; not ridge,
+LASSO, elastic net, PLP's LASSO or posterior-moment ridge) are moved to `replaced/` in the output folder and run again. SAR runs
+first in each training set and the ablations take its searches.
 
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.

@@ -11,7 +11,7 @@
 #' weights recomputed from each training fold's rows; c is chosen by the pooled cross-validated log loss.
 #'
 #' @param shapes Shapes c = (c1, c2, c3) to choose from: a matrix with one row per shape, or one vector.
-#'   Default: the 12 shapes of [sarShapes()].
+#'   Default: the 12 shapes of [sarShapes()], the original grid (the final study uses [finalSarShapes()]).
 #' @param interceptOnly Allow the intercept-only model to win the cross-validation, as the original does.
 #' @param name Model name shown by PLP.
 #' @param fitAlgorithm `"auto"`: Cyclops's coordinate descent that moves to Newton or prox-Newton steps where they pay.

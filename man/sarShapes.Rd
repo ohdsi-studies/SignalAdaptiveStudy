@@ -2,13 +2,17 @@
 % Please edit documentation in R/SignalAdaptiveCv.R
 \name{sarShapes}
 \alias{sarShapes}
-\title{The 12 SAR/SAL shapes}
+\title{SAR/SAL shapes}
 \usage{
-sarShapes()
+sarShapes(c3 = c(0, -0.5, -1))
+}
+\arguments{
+\item{c3}{The values of c3.}
 }
 \value{
 A matrix with columns c1, c2, c3.
 }
 \description{
-c1, c2 in {0, 1} and c3 in {0, -0.5, -1}, as in the original code.
+c1, c2 in {0, 1} and c3 in \code{c3}: by default {0, -0.5, -1}, the 12 shapes of the original code. The final study widens
+c3 to -2 (\code{\link[=finalSarShapes]{finalSarShapes()}}). c3 varies fastest, so the shapes with c1 = c2 = 0 come first.
 }

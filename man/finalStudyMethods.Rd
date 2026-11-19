@@ -13,9 +13,9 @@ finalStudyMethods(fitAlgorithm = "auto")
 A named list of model settings.
 }
 \description{
-Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), three reduced versions of
+Primary: SAR (over the 16 shapes of \code{\link[=finalSarShapes]{finalSarShapes()}}), LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), three reduced versions of
 SAR (the shape fixed at (0, 1, -1), the shapes without the third term, and the shapes with only the third term),
-posterior-moment ridge (\code{\link[=setPosteriorMomentRidge]{setPosteriorMomentRidge()}}, kappa = 0.5) and SAL (\code{\link[=setSal]{setSal()}}, SAR's weights with the LASSO
+posterior-moment ridge (\code{\link[=setPosteriorMomentRidge]{setPosteriorMomentRidge()}}, kappa = 0.5) and SAL (\code{\link[=setSal]{setSal()}}, SAR's shapes with the LASSO
 penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome). The
 CV-chosen standard model (\code{\link[=addCvChosen]{addCvChosen()}}) is derived from the ridge, LASSO and elastic net runs.
 }

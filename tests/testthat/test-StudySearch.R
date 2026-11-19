@@ -91,7 +91,7 @@ test_that("shape searches are shared on a training set: ridge and LASSO as alone
   expect_error(fit("ridge", rbind(c(2, 0, 0)), shared), "must contain every shape")
   # other methods' settings, so their fingerprints, unchanged
   expect_null(setSar()$param$searchSettings$sharedShapes)
-  expect_equal(finalStudyMethods()$SAR_no_c3$param$searchSettings$sharedShapes, sarShapes(), ignore_attr = TRUE)
+  expect_equal(finalStudyMethods()$SAR_no_c3$param$searchSettings$sharedShapes, finalSarShapes(), ignore_attr = TRUE)
 })
 
 test_that("with sarShareSearches FALSE every method searches its shapes itself, to the same model", {

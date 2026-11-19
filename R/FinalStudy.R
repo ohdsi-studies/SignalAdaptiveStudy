@@ -109,9 +109,9 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 
 #' Methods of the final study
 #'
-#' Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), three reduced versions of
+#' Primary: SAR (over the 16 shapes of [finalSarShapes()]), LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), three reduced versions of
 #' SAR (the shape fixed at (0, 1, -1), the shapes without the third term, and the shapes with only the third term),
-#' posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5) and SAL ([setSal()], SAR's weights with the LASSO
+#' posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5) and SAL ([setSal()], SAR's shapes with the LASSO
 #' penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome). The
 #' CV-chosen standard model ([addCvChosen()]) is derived from the ridge, LASSO and elastic net runs.
 #'
@@ -122,8 +122,8 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 #' @return A named list of model settings.
 #' @export
 finalStudyMethods <- function(fitAlgorithm = "auto") {
-  shapes <- sarShapes()
-  list(SAR = setSar(fitAlgorithm = fitAlgorithm),
+  shapes <- finalSarShapes()
+  list(SAR = setSar(shapes = shapes, fitAlgorithm = fitAlgorithm),
        LASSO = setSal(shapes = c(0, 0, 0), name = "LASSO", fitAlgorithm = fitAlgorithm),
        Ridge = setSar(shapes = c(0, 0, 0), name = "Ridge", fitAlgorithm = fitAlgorithm),
        PLP_LASSO = PatientLevelPrediction::setLassoLogisticRegression(seed = STUDY_SEEDS$folds, threads = 1),
@@ -134,7 +134,7 @@ finalStudyMethods <- function(fitAlgorithm = "auto") {
        SAR_c3_only = setSar(shapes = shapes[shapes[, "c1"] == 0 & shapes[, "c2"] == 0, , drop = FALSE], name = "SAR_c3_only",
                             fitAlgorithm = fitAlgorithm, sharedShapes = shapes),
        PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
-       SAL = setSal(fitAlgorithm = fitAlgorithm))
+       SAL = setSal(shapes = shapes, fitAlgorithm = fitAlgorithm))
 }
 
 #' The CV-chosen standard model

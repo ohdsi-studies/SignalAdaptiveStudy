@@ -165,9 +165,10 @@ test_that("every method of the final study runs end to end, saves, and gives the
   expect_equal(results$c3[results$method == "SAR_fixed"], -1)
   expect_equal(results$c3[results$method == "SAR_no_c3"], 0)
   expect_equal(c(results$c1[results$method == "SAR_c3_only"], results$c2[results$method == "SAR_c3_only"]), c(0, 0))
-  expect_equal(methods$SAR_c3_only$param$shapes[, "c3"], c(0, -0.5, -1))
+  expect_equal(methods$SAR_c3_only$param$shapes[, "c3"], c(0, -0.5, -1, -2))
   expect_true(all(methods$SAR_c3_only$param$shapes[, c("c1", "c2")] == 0))
-  expect_equal(nrow(methods$SAL$param$shapes), nrow(sarShapes()))
+  expect_equal(methods$SAL$param$shapes, finalSarShapes(), ignore_attr = TRUE)
+  expect_equal(methods$SAR$param$shapes, finalSarShapes(), ignore_attr = TRUE)
   expect_equal(methods$SAL$settings$penalty, "lasso")
   pm <- results[results$method == "PM_ridge", ]
   expect_identical(pm$weightRule, "posteriorMoment(kappa=0.5)")
@@ -308,4 +309,17 @@ test_that("the CV-chosen standard model is the candidate run with the smallest C
   expect_true(all(is.na(out$chosenMethod[out$method != "CV_chosen"])))
   # a training set without one of the candidates gets no row
   expect_equal(sum(addCvChosen(runs[runs$method != "ElasticNet", ])$method == "CV_chosen"), 0)
+})
+
+test_that("the final study's SAR grid widens c3 to -2 and keeps the original 12 shapes in order", {
+  shapes <- finalSarShapes()
+  expect_equal(nrow(shapes), 16)
+  expect_equal(sort(unique(shapes[, "c3"])), c(-2, -1, -0.5, 0))
+  expect_equal(shapes[1:4, "c3"], c(0, -0.5, -1, -2))
+  expect_true(all(shapes[1:4, c("c1", "c2")] == 0))
+  original <- sarShapes()
+  expect_equal(nrow(original), 12)
+  key <- function(m) apply(m, 1, paste, collapse = " ")
+  expect_true(all(key(original) %in% key(shapes)))
+  expect_equal(key(shapes[shapes[, "c3"] != -2, ]), key(original)) # same order without the new shapes
 })

@@ -523,15 +523,26 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
   )
 }
 
-#' The 12 SAR/SAL shapes
+#' SAR/SAL shapes
 #'
-#' c1, c2 in {0, 1} and c3 in {0, -0.5, -1}, as in the original code.
+#' c1, c2 in {0, 1} and c3 in `c3`: by default {0, -0.5, -1}, the 12 shapes of the original code. The final study widens
+#' c3 to -2 ([finalSarShapes()]). c3 varies fastest, so the shapes with c1 = c2 = 0 come first.
+#' @param c3 The values of c3.
 #' @return A matrix with columns c1, c2, c3.
 #' @export
-sarShapes <- function() {
-  g <- expand.grid(c3 = c(0, -0.5, -1), c2 = c(0, 1), c1 = c(0, 1))
+sarShapes <- function(c3 = c(0, -0.5, -1)) {
+  g <- expand.grid(c3 = c3, c2 = c(0, 1), c1 = c(0, 1))
   as.matrix(g[, c("c1", "c2", "c3")])
 }
+
+#' The 16 shapes of the final study's SAR and SAL
+#'
+#' [sarShapes()] with c3 in {0, -0.5, -1, -2}: in the CCAE test runs SAR chose c3 = -1, the edge of the original grid, in
+#' 42% of runs (all 12 on coverF with the default features, where the LASSO family did better), so the grid is
+#' widened to show whether the edge held SAR back (investigator, 2026-11-19).
+#' @return A matrix with columns c1, c2, c3.
+#' @export
+finalSarShapes <- function() sarShapes(c3 = c(0, -0.5, -1, -2))
 
 normalizeShapes <- function(shapes) {
   if (is.list(shapes) && !is.data.frame(shapes)) shapes <- do.call(rbind, shapes)

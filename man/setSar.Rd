@@ -14,7 +14,7 @@ setSar(
 }
 \arguments{
 \item{shapes}{Shapes c = (c1, c2, c3) to choose from: a matrix with one row per shape, or one vector.
-Default: the 12 shapes of \code{\link[=sarShapes]{sarShapes()}}.}
+Default: the 12 shapes of \code{\link[=sarShapes]{sarShapes()}}, the original grid (the final study uses \code{\link[=finalSarShapes]{finalSarShapes()}}).}
 
 \item{interceptOnly}{Allow the intercept-only model to win the cross-validation, as the original does.}
 
