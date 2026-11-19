@@ -43,6 +43,12 @@ test_that("fitTraceReport traces every fit of a model on the study's training se
   expect_equal(sum(trace$stage == "final"), 1)
   expect_true(all(trace$iterations > 0 & trace$seconds >= 0 & trace$status == "SUCCESS"))
   expect_equal(summary$foldFits[summary$method == "Ridge_ccd"], sum(trace$stage == "fold"))
+  expect_setequal(unique(trace$fold[trace$stage == "fold"]), c("1", "2", "3"))
+  expect_equal(trace$fold[trace$stage == "final"], "all")
+  expect_true(all(trace$start[trace$stage == "fold"] %in% c("cold", "search")))
+  sar <- utils::read.csv(file.path(folder, "trace_SAR_fixed_auto.csv"))
+  expect_true(all(c("gapEstimate", "varianceMin", "varianceMax", "maxIterations") %in% names(sar)))
+  expect_false(file.exists(file.path(folder, "trace_Ridge_ccd_failed.txt"))) # every fit converged
   expect_null(getOption("SignalAdaptiveStudy.fitTrace"))
   # after the frequency filter: fewer columns, each in at least 5% of the rows, and the models fitted on them
   filteredFolder <- tempfile("sar_trace_filtered_")
@@ -59,4 +65,34 @@ test_that("fitTraceReport traces every fit of a model on the study's training se
   on.exit(unlink(only, recursive = TRUE), add = TRUE)
   fitTraceReport(source, task, 100, list(), only, only)
   expect_false(any(grepl("^trace", list.files(only))))
+})
+
+test_that("a traced fit that does not converge is described and retried with variants", {
+  set.seed(5)
+  X <- Matrix::rsparsematrix(400, 30, density = 0.2, rand.x = function(n) rep(1, n))
+  y <- stats::rbinom(400, 1, stats::plogis(-1 + as.numeric(X[, 1:5] %*% rep(1, 5))))
+  problem <- createFitProblem(X, y, rep(TRUE, 400))
+  keep <- rep(TRUE, length(problem$ids))
+  control <- Cyclops::createControl(fitter = "super", algorithm = "auto", convergenceType = "kkt", tolerance = 1e-8,
+                                    maxIterations = 1, threads = 1)
+  file <- tempfile("trace_", fileext = ".csv")
+  on.exit(unlink(c(file, sub("\\.csv$", "_failed.txt", file))), add = TRUE)
+  old <- options(SignalAdaptiveStudy.fitTrace = file, SignalAdaptiveStudy.fitTraceRetry = TRUE)
+  on.exit(options(old), add = TRUE)
+  .cyclopsTiming$stage <- "fold"; .cyclopsTiming$shape <- "0 0 -2"; .cyclopsTiming$fold <- 2; .cyclopsTiming$start <- "shape"
+  fit <- fitProblem(problem, "lasso", rep(0.05, length(problem$ids)), keep, NULL, control)
+  resetCyclopsTiming()
+  expect_false(fit$converged)
+  trace <- utils::read.csv(file, stringsAsFactors = FALSE)
+  expect_equal(trace$status[1], "MAX_ITERATIONS")
+  expect_equal(as.character(trace$fold[1]), "2")
+  expect_equal(trace$stage[-1], paste("fold", c("retry: maxIterations 100000", "retry: cold start", "retry: ccd",
+                                               "retry: ccd, maxIterations 100000")))
+  expect_equal(trace$maxIterations, c(1, 100000, 1, 1, 100000))
+  expect_equal(trace$algorithm[4:5], c("ccd", "ccd"))
+  expect_equal(trace$status[2], "SUCCESS")              # with enough iterations it converges
+  expect_equal(trace$shape, rep("0 0 -2", 5))
+  failed <- readLines(sub("\\.csv$", "_failed.txt", file))
+  expect_match(failed[1], "status=MAX_ITERATIONS", fixed = TRUE)
+  expect_match(failed[1], "fold=2", fixed = TRUE)
 })

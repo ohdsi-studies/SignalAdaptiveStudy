@@ -22,7 +22,7 @@ ELASTIC_NET_ALPHA <- 0.5
 .cyclopsTiming <- new.env()
 resetCyclopsTiming <- function() {
   .cyclopsTiming$dataSeconds <- 0; .cyclopsTiming$fitSeconds <- 0; .cyclopsTiming$fits <- 0L
-  .cyclopsTiming$stage <- NULL; .cyclopsTiming$shape <- NULL
+  .cyclopsTiming$stage <- NULL; .cyclopsTiming$shape <- NULL; .cyclopsTiming$fold <- NULL; .cyclopsTiming$start <- NULL
 }
 resetCyclopsTiming()
 timeCyclops <- function(kind, expr) {
@@ -129,6 +129,10 @@ fitProblem <- function(problem, penalty, variances, keep, start, control) {
   # converged as Cyclops's own CV counts it: SUCCESS, or POOR_BLR_STEP under the kkt criterion
   convergence <- fit$convergence
   traceFit(problem, penalised, fit, convergence, coefficients, seconds, control)
+  if (!fit$return_flag %in% c("SUCCESS", "POOR_BLR_STEP") && isTRUE(getOption("SignalAdaptiveStudy.fitTraceRetry")) &&
+      !is.null(getOption("SignalAdaptiveStudy.fitTrace"))) {
+    retryFailedFit(problem, penalised, prior, control, start, fixed)
+  }
   list(coefficients = coefficients, status = fit$return_flag, iterations = fit$iterations %||% NA_integer_,
        algorithm = fit$algorithm %||% "ccd", newtonIterations = convergence$newtonIterations %||% 0L, # Cyclops names an algorithm only for newer fits
        gapEstimate = convergence$gapEstimate %||% NA_real_, ineligible = convergence$ineligible %||% "",
@@ -146,18 +150,63 @@ softplus <- function(z) ifelse(z > 0, z + log1p(exp(-z)), log1p(exp(z)))
 
 # Optional trace of every Cyclops fit, for studying the fits' work (extras/production/fitTrace.R): with
 # options(SignalAdaptiveStudy.fitTrace = <csv file>), one row per fit is appended, aggregates only (no coefficients).
-traceFit <- function(problem, penalised, fit, convergence, coefficients, seconds, control) {
+# fold: the fold left out (1, 2, ...), "all" for a fit on all training rows; start: "cold" (from zero), "search" (this
+# fold's fit at the nearest variance tried), "shape" (this fold's fit at the nearest shape done), "retry ..." for
+# retryFailedFit(). A fit that did not converge also writes Cyclops's convergence details to <file>_failed.txt.
+traceFit <- function(problem, penalised, fit, convergence, coefficients, seconds, control, stage = NULL, start = NULL) {
   file <- getOption("SignalAdaptiveStudy.fitTrace")
   if (is.null(file)) return(invisible())
-  row <- data.frame(stage = .cyclopsTiming$stage %||% NA_character_, shape = .cyclopsTiming$shape %||% NA_character_,
+  label <- function(x) if (is.null(x)) NA_character_ else as.character(x)
+  row <- data.frame(stage = stage %||% label(.cyclopsTiming$stage), shape = label(.cyclopsTiming$shape),
+                    fold = label(.cyclopsTiming$fold), start = start %||% label(.cyclopsTiming$start),
                     rows = problem$n, columns = length(problem$ids), algorithm = control$algorithm %||% NA_character_,
+                    maxIterations = control$maxIterations %||% NA_real_, tolerance = control$tolerance %||% NA_real_,
+                    convergenceType = control$convergenceType %||% NA_character_,
                     varianceMedian = if (length(penalised)) stats::median(penalised) else NA_real_,
                     varianceSpread = if (length(penalised)) max(penalised) / min(penalised) else NA_real_,
+                    varianceMin = if (length(penalised)) min(penalised) else NA_real_,
+                    varianceMax = if (length(penalised)) max(penalised) else NA_real_,
                     seconds = seconds, status = as.character(fit$return_flag %||% NA), iterations = fit$iterations %||% NA_integer_,
                     newton = convergence$newtonIterations %||% NA_integer_, solver = newtonSolver(convergence),
                     certificate = as.character(convergence$certificate %||% NA_character_),
+                    gapEstimate = convergence$gapEstimate %||% NA_real_,
+                    hessianVectorProducts = convergence$hessianVectorProducts %||% NA_real_,
+                    ineligible = as.character(convergence$ineligible %||% NA_character_),
                     nonZero = if (is.null(coefficients)) NA_integer_ else sum(coefficients[-1] != 0))
   utils::write.table(row, file, sep = ",", append = file.exists(file), col.names = !file.exists(file), row.names = FALSE)
+  if (!row$status %in% c("SUCCESS", "POOR_BLR_STEP")) {
+    # Cyclops's convergence details (scalars and short vectors of the optimiser: no coefficients, nothing per patient)
+    details <- Filter(function(v) is.atomic(v) && length(v) <= 100, as.list(convergence %||% list()))
+    lines <- c(sprintf("--- %s", paste(sprintf("%s=%s", names(row), vapply(row, function(v) format(v[[1]]), "")), collapse = ", ")),
+               if (length(details)) utils::capture.output(utils::str(details, vec.len = 100, give.attr = FALSE))
+               else "(no convergence details from this Cyclops)")
+    cat(lines, file = sub("\\.csv$", "_failed.txt", file), sep = "\n", append = TRUE)
+  }
+}
+
+# For a traced fit that did not converge, with options(SignalAdaptiveStudy.fitTraceRetry = TRUE): the same problem again
+# with more iterations, from zero, and by coordinate descent, each traced (stage "retry"). Diagnostics only: the search
+# goes on with the original fit.
+retryFailedFit <- function(problem, penalised, prior, control, start, fixed) {
+  cold <- if (!is.null(fixed)) numeric(length(problem$ids) + 1) else NULL
+  variants <- list(
+    list(label = "retry: maxIterations 100000", control = utils::modifyList(control, list(maxIterations = 100000)), start = start),
+    list(label = "retry: cold start", control = control, start = cold),
+    list(label = "retry: ccd", control = utils::modifyList(control, list(algorithm = "ccd")), start = start),
+    list(label = "retry: ccd, maxIterations 100000",
+         control = utils::modifyList(control, list(algorithm = "ccd", maxIterations = 100000)), start = start))
+  for (v in variants) {
+    started <- proc.time()[["elapsed"]]
+    fit <- tryCatch(Cyclops::fitCyclopsModel(problem$data, prior = prior, control = v$control, startingCoefficients = v$start,
+                                             fixedCoefficients = fixed, warnings = FALSE), error = function(e) e)
+    seconds <- proc.time()[["elapsed"]] - started
+    if (inherits(fit, "error")) {
+      fit <- list(return_flag = paste("ERROR:", conditionMessage(fit)), iterations = NA_integer_, convergence = NULL, estimation = NULL)
+    }
+    coefficients <- if (is.null(fit$estimation)) NULL else as.numeric(stats::coef(fit, ignoreConvergence = TRUE))
+    traceFit(problem, penalised, fit, fit$convergence, coefficients, seconds, v$control, stage = paste0(.cyclopsTiming$stage %||% "", " ", v$label),
+             start = if (is.null(v$start) || all(v$start == 0)) "cold" else .cyclopsTiming$start)
+  }
 }
 
 # NA for a fit without Newton steps or from a Cyclops that does not say
@@ -281,6 +330,8 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
         vapply(seq_along(problems), function(f) {
           p <- problems[[f]]; s <- setups[[f]]; ca <- cache[[f]]
           warm <- if (length(ca$variances)) ca$coefficients[[which.min(abs(log(ca$variances) - log(sigma2)))]] else seeds[[f]]
+          .cyclopsTiming$fold <- f
+          .cyclopsTiming$start <- if (length(ca$variances)) "search" else if (!is.null(seeds[[f]])) "shape" else "cold"
           fit <- fitProblem(p, penalty, priorVariances(penalty, s$weights, s$keep, sigma2, "variance", p$n), s$keep,
                             warm, foldControl)
           foldStats$iterations <<- c(foldStats$iterations, fit$iterations)
@@ -303,7 +354,8 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
         problemWeights(X, y, context$full, shape, context$unpenalized, context$weightRule)
       }
       nullVariance <- if (penalty != "ridge") {
-        nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1)
+        { .cyclopsTiming$fold <- "all (null-model bound)"; .cyclopsTiming$start <- "cold"
+          nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1) }
       } else NA_real_
       startVariance <- if (start == "priorScale") priorScaleStart(context$columnSquares, setup$full, n, penalty) else context$startVariance
       search <- autoSearch(evaluate, start = startVariance, firstCut = 0, refine = TRUE, nullVariance = nullVariance,
@@ -337,6 +389,7 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
     penaltyScale = function(records) -records$variance,
     finalFit = function(X, y, full, penalty, w, record) {
       v <- priorVariances(penalty, w$weights, w$keep, record$variance, "variance", full$n)
+      .cyclopsTiming$fold <- "all"; .cyclopsTiming$start <- "cold"
       fit <- fitProblem(full, penalty, v, w$keep, NULL, finalControl)
       if (!fit$converged) stop("the final fit did not converge (", fit$status, " after ", fit$iterations, " iterations)")
       list(fit = fit, variances = v, variance = record$variance, lambda = varianceToLambda(penalty, record$variance, full$n))

@@ -10,6 +10,12 @@
 #   Rscript extras/production/fitTrace.R CCAE --budget=1000 --featureSet=defaults --methods=SAR_ccd,SAR_auto,Ridge_ccd,Ridge_auto
 #   Rscript extras/production/fitTrace.R CCAE --minFraction=0   # all of it with another frequency filter than the study's (own folder and zip)
 #   Rscript extras/production/fitTrace.R CCAE --methods=none        # design only
+#
+# One training set of the benchmark run (runBenchmarks.R's data, split and preprocessing: the same fits), e.g. to reproduce a
+# fold fit that did not converge; --retry fits each such fit again with more iterations, from zero and by coordinate
+# descent, and writes Cyclops's convergence details (trace_<model>_failed.txt):
+#   Rscript extras/production/fitTrace.R CCAE --data=benchmarks --task=ISAF --featureSet=phenotypes --budget=1000 --ordering=3 --methods=SAL --retry
+# Methods: those of the fit-algorithm comparison (SAR_auto, ...) or of the final study (SAR, SAL, LASSO, ...).
 # (in the project folder; settings as for runBenchmarks.R).
 
 options(java.parameters = "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED")
@@ -36,21 +42,33 @@ option <- function(name, default) {
 }
 budget <- as.numeric(option("budget", "1000"))
 featureSet <- option("featureSet", "defaults")
-methods <- fitAlgorithmComparisonMethods()
+benchmark <- option("task", "HFT2DM")
+ordering <- as.integer(option("ordering", "1"))
+data <- option("data", "comparison") # "benchmarks": runBenchmarks.R's output folder
+retry <- "--retry" %in% args
+methods <- c(fitAlgorithmComparisonMethods(), finalStudyMethods())
 chosen <- option("methods", c("SAR_auto", "Ridge_auto", "LASSO_auto", "ElasticNet_auto"))
 if (identical(chosen, "none")) chosen <- character() # design only
 minFraction <- option("minFraction", NULL) # NULL: the study's preprocessing
 if (!is.null(minFraction)) minFraction <- as.numeric(minFraction)
-stopifnot(length(budget) == 1, budget %in% finalBudgets(), featureSet %in% c("defaults", "phenotypes"), all(chosen %in% names(methods)))
+stopifnot(length(budget) == 1, budget %in% finalBudgets(), featureSet %in% c("defaults", "phenotypes"), all(chosen %in% names(methods)),
+          length(benchmark) == 1, benchmark %in% benchmarkTasks()$benchmark, length(ordering) == 1, ordering %in% 1:3,
+          data %in% c("comparison", "benchmarks"), !"PLP_LASSO" %in% chosen) # PLP's own LASSO is not traced
 message("Cyclops ", utils::packageVersion("Cyclops"), " commit ", utils::packageDescription("Cyclops")$RemoteSha %||% "",
-        "; k", budget, ", ", featureSet, "; ", paste(chosen, collapse = ", "))
+        "; ", benchmark, " k", budget, " ordering ", ordering, ", ", featureSet, "; ", paste(chosen, collapse = ", "),
+        if (retry) "; failed fits retried")
 
-# The data and counts of the most recent fit-algorithm comparison that has this task's data
-task <- paste0("benchmark_HFT2DM_", featureSet)
-folders <- Sys.glob(file.path(getwd(), "SignalAdaptiveStudy_fit_comparison*", database))
-folders <- folders[dir.exists(file.path(folders, "data", database, task))]
-if (!length(folders)) stop("no fit-algorithm comparison with data for ", task, "; run compareFitAlgorithms.R first")
-outputFolder <- folders[which.max(file.mtime(file.path(folders, "data", database, task)))]
+task <- paste0("benchmark_", benchmark, "_", featureSet)
+if (data == "benchmarks") {
+  outputFolder <- file.path(getwd(), "SignalAdaptiveStudy_benchmarks", database)
+  if (!dir.exists(file.path(outputFolder, "data", database, task))) stop("no benchmark data for ", task, " in ", outputFolder)
+} else {
+  # The data and counts of the most recent fit-algorithm comparison that has this task's data
+  folders <- Sys.glob(file.path(getwd(), "SignalAdaptiveStudy_fit_comparison*", database))
+  folders <- folders[dir.exists(file.path(folders, "data", database, task))]
+  if (!length(folders)) stop("no fit-algorithm comparison with data for ", task, "; run compareFitAlgorithms.R first")
+  outputFolder <- folders[which.max(file.mtime(file.path(folders, "data", database, task)))]
+}
 message("Data from: ", outputFolder)
 
 cohortTable <- paste0("sar_benchmark_cohort_", tolower(database))
@@ -58,11 +76,18 @@ dataSource <- createCdmDataSource(connectionDetails, cdmSchemas[[database]], scr
                                   covariateSettings = finalCovariateSettings(scratchSchema, cohortTable),
                                   cohortDefinitionSet = benchmarkCohortDefinitionSet(), incremental = TRUE,
                                   combinedCohorts = combinedFeatureCohorts())
+# the tasks as the run that made the data builds them (the comparison: HFT2DM alone; the benchmarks: all), so the sample,
+# split, orderings and folds are the same; the counts are read from the output folder
 base <- benchmarkTasks()
-base <- base[base$benchmark == "HFT2DM", ]
+if (data == "comparison") base <- base[base$benchmark == benchmark, ]
 counts <- execute(dataSource, base, outputFolder, mode = "counts")
-tasks <- expandFeatureSets(addSampleSizes(base, feasibleCounts(counts), budgets = finalBudgets()), featureSet) # as the comparison: same sample
-reportFolder <- file.path(getwd(), paste0("SignalAdaptiveStudy_fit_trace", if (!is.null(minFraction)) paste0("_minFraction", minFraction)), database)
-zipFile <- SignalAdaptiveStudy:::fitTraceReport(dataSource, tasks[1, ], budget, methods[chosen], outputFolder, reportFolder,
-                                                minCellCount = minCellCount, minFraction = minFraction)
+tasks <- expandFeatureSets(addSampleSizes(base, feasibleCounts(counts), budgets = finalBudgets()), featureSet)
+tasks <- tasks[tasks$taskId == task, ]
+if (nrow(tasks) != 1) stop(task, " is not feasible in ", database)
+label <- if (data == "benchmarks" || benchmark != "HFT2DM" || ordering != 1) sprintf("%s_%s_k%g_o%d", benchmark, featureSet, budget, ordering)
+reportFolder <- file.path(getwd(), paste0("SignalAdaptiveStudy_fit_trace", if (!is.null(label)) paste0("_", label),
+                                          if (!is.null(minFraction)) paste0("_minFraction", minFraction)), database)
+zipFile <- SignalAdaptiveStudy:::fitTraceReport(dataSource, tasks, budget, methods[chosen], outputFolder, reportFolder,
+                                                ordering = ordering, minCellCount = minCellCount, minFraction = minFraction,
+                                                label = label, retry = retry)
 message("Send: ", zipFile)

@@ -99,12 +99,14 @@ studyTrainingSet <- function(dataSource, task, budget, ordering, outputFolder, m
 }
 
 # Fits the given models (as fitPlp() would) with every Cyclops fit traced, and summarises the trace per model.
-traceModels <- function(train, methods, folder) {
+# retry: fits that do not converge are fitted again with variants (retryFailedFit()), as diagnostics.
+traceModels <- function(train, methods, folder, retry = FALSE) {
   summaries <- list()
   for (name in names(methods)) {
     file <- file.path(folder, sprintf("trace_%s.csv", name))
-    unlink(file)
-    old <- options(SignalAdaptiveStudy.fitTrace = file, sarShareSearches = FALSE) # each model's own fits traced
+    unlink(c(file, sub("\\.csv$", "_failed.txt", file)))
+    old <- options(SignalAdaptiveStudy.fitTrace = file, SignalAdaptiveStudy.fitTraceRetry = retry,
+                   sarShareSearches = FALSE) # each model's own fits traced
     started <- Sys.time()
     model <- tryCatch(fitSignalAdaptive(train, methods[[name]]), error = function(e) e)
     options(old)
@@ -145,9 +147,10 @@ traceSummary <- function(trace, name, wallSeconds) {
 }
 
 # The whole report for one task: design aggregates, traced fits, a zip to send back. minFraction: all of it with that
-# frequency filter instead of the study's (see studyTrainingSet()); the zip's name says so.
+# frequency filter instead of the study's (see studyTrainingSet()); the zip's name says so, and label (e.g. the task,
+# budget and ordering) too. retry: see traceModels().
 fitTraceReport <- function(dataSource, task, budget, methods, outputFolder, reportFolder, ordering = 1, minCellCount = 5,
-                           minFraction = NULL) {
+                           minFraction = NULL, label = NULL, retry = FALSE) {
   dir.create(reportFolder, recursive = TRUE, showWarnings = FALSE)
   unlink(list.files(reportFolder, "\\.(csv|txt|zip)$", full.names = TRUE)) # files of an earlier run would go into the zip
   message("Preparing the training set: ", task$taskId, ", k", budget, ", ordering ", ordering,
@@ -160,14 +163,15 @@ fitTraceReport <- function(dataSource, task, budget, methods, outputFolder, repo
   utils::write.csv(d$design, file.path(reportFolder, "design.csv"), row.names = FALSE)
   utils::write.csv(d$columnTypes, file.path(reportFolder, "column_types.csv"), row.names = FALSE)
   print(t(d$design)); print(d$columnTypes, row.names = FALSE)
-  summary <- if (length(methods)) traceModels(set$train, methods, reportFolder)
+  summary <- if (length(methods)) traceModels(set$train, methods, reportFolder, retry = retry)
   if (!is.null(summary)) {
     utils::write.csv(summary, file.path(reportFolder, "trace_summary.csv"), row.names = FALSE)
     print(t(summary))
   }
   writeLines(c(paste("Exported", format(Sys.time(), usetz = TRUE)), packageVersions(), paste("minCellCount", minCellCount)),
              file.path(reportFolder, "export.txt"))
-  zipFile <- normalizePath(file.path(reportFolder, sprintf("SignalAdaptiveStudy_fit_trace_%s%s_%s.zip", dataSource$databaseName,
+  zipFile <- normalizePath(file.path(reportFolder, sprintf("SignalAdaptiveStudy_fit_trace_%s%s%s_%s.zip", dataSource$databaseName,
+                                                          if (!is.null(label)) paste0("_", label) else "",
                                                           if (!is.null(minFraction)) sprintf("_minFraction%g", minFraction) else "",
                                                           format(Sys.Date(), "%Y%m%d"))), mustWork = FALSE)
   unlink(zipFile)
