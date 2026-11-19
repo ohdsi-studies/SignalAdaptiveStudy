@@ -113,10 +113,11 @@ so every 10 minutes) until the first is done. A run that was killed leaves `busy
 delete it if no run of that database is going. A prepare window uses up to about 8 GB while extracting; the model run sees that
 memory in use and starts fewer units.
 
-**After 2026-11-19:** SAR and SAL now search 16 shapes (c3 down to -2, from -1), and the three SAR ablations take SAR's searches,
-so their finished runs were made with other settings. Add `--rerun-changed`: those runs (SAR, SAL and the ablations; not ridge,
-LASSO, elastic net, PLP's LASSO or posterior-moment ridge) are moved to `replaced/` in the output folder and run again. SAR runs
-first in each training set and the ablations take its searches.
+**After 2026-11-19 (evening):** the preprocessing is now FeatureExtraction's standard one (redundancy removal before the
+frequency filter, so complete blocks such as gender and age group lose one reference level and keep their rare levels), so
+every finished run was made with other settings. Add `--rerun-changed`: all runs are moved to `replaced/` in the output folder
+and run again from the extracted data (no new extraction). SAR and SAL search 16 shapes (c3 down to -2) and the three SAR
+ablations take SAR's searches.
 
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.

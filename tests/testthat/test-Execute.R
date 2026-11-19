@@ -142,3 +142,33 @@ test_that("the test AUC holds for large test sets (no integer overflow)", {
   expect_identical(aucMannWhitney(y, p), 0.75)
   expect_identical(testMetrics(y, p, y)$auc, 0.75)
 })
+
+test_that("the study's preprocessing drops one level of each complete block and keeps its rare levels", {
+  profile <- get(utils::data("simulationProfile", package = "PatientLevelPrediction", envir = environment()))
+  sim <- suppressMessages(PatientLevelPrediction::simulatePlpData(profile, n = 3000, seed = 11))
+  settings <- PatientLevelPrediction::createStudyPopulationSettings(riskWindowStart = 1, riskWindowEnd = 365, requireTimeAtRisk = FALSE)
+  pop <- suppressMessages(PatientLevelPrediction::createStudyPopulation(sim, outcomeId = 3, populationSettings = settings))
+  # a complete gender block and an age block (as FeatureExtraction's) with one level of a single person
+  covariates <- as.data.frame(dplyr::collect(sim$covariateData$covariates))
+  covariates <- covariates[!covariates$covariateId %in% c(8507001, 8532001), c("rowId", "covariateId", "covariateValue")]
+  ids <- sort(unique(dplyr::collect(sim$cohorts)$rowId))
+  set.seed(1)
+  gender <- sample(c(8507001, 8532001), length(ids), TRUE)
+  age <- sample(c(2003, 3003, 4003), length(ids), TRUE, prob = c(0.3, 0.4, 0.3))
+  age[1] <- 1003
+  sim$covariateData$covariates <- rbind(covariates, data.frame(rowId = ids, covariateId = gender, covariateValue = 1),
+                                        data.frame(rowId = ids, covariateId = age, covariateValue = 1))
+  ref <- as.data.frame(dplyr::collect(sim$covariateData$covariateRef))
+  extra <- ref[rep(1, 4), ]
+  extra$covariateId <- c(1003, 2003, 3003, 4003); extra$covariateName <- paste("age group", 1:4); extra$analysisId <- 3
+  sim$covariateData$covariateRef <- rbind(ref, extra)
+  split <- data.frame(rowId = pop$rowId, index = ifelse(seq_len(nrow(pop)) %% 4 == 0, -1, (seq_len(nrow(pop)) %% 3) + 1))
+  data <- suppressMessages(prepareRunData(sim, pop, split))
+  tidy <- attr(data$Train$covariateData, "metaData")$tidyCovariateDataSettings
+  kept <- as.data.frame(dplyr::collect(dplyr::distinct(data$Train$covariateData$covariates, .data$covariateId)))$covariateId
+  expect_length(intersect(tidy$deletedRedundantCovariateIds, c(8507001, 8532001)), 1) # one gender level
+  expect_length(intersect(tidy$deletedRedundantCovariateIds, c(2003, 3003, 4003)), 1) # the most prevalent age group
+  expect_true(1003 %in% kept)                                                          # the rare level stays
+  expect_false(1003 %in% tidy$deletedInfrequentCovariateIds)
+  expect_gt(length(tidy$deletedInfrequentCovariateIds), 0)                             # the filter still applies
+})
