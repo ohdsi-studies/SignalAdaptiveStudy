@@ -98,8 +98,10 @@ use a new output folder if results should all come from one commit.
     antibiotic classes combined into one (51 indicators).
 - **Covariate window:** ends before the risk window starts. All benchmark tasks end at day -1, as PLPBenchmarks does.
 - **Budgets and orderings:** 100, 250, 500 and 1000 events; 3 orderings.
-- **Methods:** SAR, LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), and SAR
-  without its third term (secondary).
+- **Methods:** SAR, LASSO and ridge (primary); PLP's default LASSO, elastic net (mixing 0.5), SAR with its shape fixed at (0, 1, -1), SAR
+  without its third term, SAR with only its third term, posterior-moment ridge and SAL (SAR's weights with the LASSO penalty) (secondary).
+  The CV-chosen standard model (ridge, LASSO or elastic net, whichever has the smallest CV loss) is derived from those runs in the analysis.
+  On a rerun only the methods without results are fitted.
 
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.

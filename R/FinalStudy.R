@@ -109,8 +109,11 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 
 #' Methods of the final study
 #'
-#' Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), two reduced versions of SAR, the
-#' shape fixed at (0, 1, -1) and without the third term, and posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5).
+#' Primary: SAR, LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), three reduced versions of
+#' SAR (the shape fixed at (0, 1, -1), the shapes without the third term, and the shapes with only the third term),
+#' posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5) and SAL ([setSal()], SAR's weights with the LASSO
+#' penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome). The
+#' CV-chosen standard model ([addCvChosen()]) is derived from the ridge, LASSO and elastic net runs.
 #'
 #' @param fitAlgorithm As in [setSar()]; PLP's LASSO uses PLP's own settings.
 #' @return A named list of model settings.
@@ -124,7 +127,39 @@ finalStudyMethods <- function(fitAlgorithm = "auto") {
        ElasticNet = setElasticNet(fitAlgorithm = fitAlgorithm),
        SAR_fixed = setSar(shapes = c(0, 1, -1), name = "SAR_fixed", fitAlgorithm = fitAlgorithm),
        SAR_no_c3 = setSar(shapes = shapes[shapes[, "c3"] == 0, , drop = FALSE], name = "SAR_no_c3", fitAlgorithm = fitAlgorithm),
-       PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm))
+       SAR_c3_only = setSar(shapes = shapes[shapes[, "c1"] == 0 & shapes[, "c2"] == 0, , drop = FALSE], name = "SAR_c3_only",
+                            fitAlgorithm = fitAlgorithm),
+       PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
+       SAL = setSal(fitAlgorithm = fitAlgorithm))
+}
+
+#' The CV-chosen standard model
+#'
+#' Adds, for each training set (database, task, budget, ordering), a row with method "CV_chosen": the run among the
+#' candidates with the smallest cross-validated loss, as a practitioner who fits ridge, LASSO and elastic net and keeps
+#' the one CV prefers. All candidates use the same folds and the same loss, so their CV losses compare. Training sets
+#' where a candidate is missing or has no CV loss get no row. The chosen method is in the column chosenMethod.
+#'
+#' @param results Rows of [execute()] (or [collectResults()]), one per run.
+#' @param candidates The methods to choose from; on equal CV losses the first.
+#' @return results with the added rows.
+#' @export
+addCvChosen <- function(results, candidates = c("Ridge", "LASSO", "ElasticNet")) {
+  key <- intersect(c("database", "taskId", "budget", "ordering"), names(results))
+  pool <- results[results$method %in% candidates, , drop = FALSE]
+  pool <- pool[order(match(pool$method, candidates)), , drop = FALSE]
+  chosen <- lapply(split(pool, interaction(pool[key], drop = TRUE, sep = "\r")), function(d) {
+    if (!setequal(d$method, candidates) || anyNA(d$cvLoss)) return(NULL)
+    row <- d[which.min(d$cvLoss), , drop = FALSE]
+    row$chosenMethod <- row$method
+    row$method <- "CV_chosen"
+    row
+  })
+  chosen <- do.call(rbind, chosen)
+  if (is.null(chosen)) return(results)
+  results$chosenMethod <- results$chosenMethod %||% NA_character_
+  rownames(chosen) <- NULL
+  rbind(results, chosen[names(results)])
 }
 
 #' Methods for comparing Cyclops's fitting algorithms

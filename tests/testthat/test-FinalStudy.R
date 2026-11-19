@@ -124,7 +124,8 @@ test_that("every method of the final study runs end to end, saves, and gives the
   folder <- tempfile("sar_final_")
   on.exit(unlink(folder, recursive = TRUE), add = TRUE)
   methods <- finalStudyMethods()
-  expect_setequal(names(methods), c("SAR", "LASSO", "Ridge", "PLP_LASSO", "ElasticNet", "SAR_fixed", "SAR_no_c3", "PM_ridge"))
+  expect_setequal(names(methods), c("SAR", "LASSO", "Ridge", "PLP_LASSO", "ElasticNet", "SAR_fixed", "SAR_no_c3", "SAR_c3_only",
+                                     "PM_ridge", "SAL"))
   task$budgets <- list(100)
   results <- execute(source, task, folder, mode = "models", orderings = 1, methods = methods, workers = 1)
   expect_equal(nrow(results), length(methods))
@@ -163,6 +164,11 @@ test_that("every method of the final study runs end to end, saves, and gives the
   expect_equal(results$c2[results$method == "SAR_fixed"], 1)
   expect_equal(results$c3[results$method == "SAR_fixed"], -1)
   expect_equal(results$c3[results$method == "SAR_no_c3"], 0)
+  expect_equal(c(results$c1[results$method == "SAR_c3_only"], results$c2[results$method == "SAR_c3_only"]), c(0, 0))
+  expect_equal(methods$SAR_c3_only$param$shapes[, "c3"], c(0, -0.5, -1))
+  expect_true(all(methods$SAR_c3_only$param$shapes[, c("c1", "c2")] == 0))
+  expect_equal(nrow(methods$SAL$param$shapes), nrow(sarShapes()))
+  expect_equal(methods$SAL$settings$penalty, "lasso")
   pm <- results[results$method == "PM_ridge", ]
   expect_identical(pm$weightRule, "posteriorMoment(kappa=0.5)")
   expect_true(pm$kappa == 0.5 && is.na(pm$c1) && is.na(pm$c2) && is.na(pm$c3))
@@ -284,4 +290,22 @@ test_that("failed fits are counted, summarised and reported", {
   expect_equal(fit$status, "MAX_ITERATIONS")
   results <- data.frame(modelStatus = c("SUCCESS", "REACHED MAXIMUM NUMBER OF ITERATIONS, CANNOT FIT"), foldFitsFailed = c(2, NA), fitWarnings = c("", ""))
   expect_message(convergenceReport(results), "1 run\\(s\\) with a model status other than success, 1 with failed fold fits, 0 with fit warnings")
+})
+
+test_that("the CV-chosen standard model is the candidate run with the smallest CV loss of each training set", {
+  runs <- expand.grid(method = c("Ridge", "LASSO", "ElasticNet", "SAR"), ordering = 1:3, stringsAsFactors = FALSE)
+  runs$database <- "DB"; runs$taskId <- "t"; runs$budget <- 100
+  runs$cvLoss <- c(0.30, 0.20, 0.25, 0.10,   # o1: LASSO (SAR is not a candidate)
+                   0.20, 0.20, 0.30, 0.10,   # o2: tie, the first candidate (Ridge)
+                   0.20, NA, 0.10, 0.10)     # o3: a candidate without a CV loss: no row
+  runs$auc <- seq_len(nrow(runs))
+  out <- addCvChosen(runs)
+  chosen <- out[out$method == "CV_chosen", ]
+  expect_equal(nrow(out), nrow(runs) + 2)
+  expect_equal(chosen$ordering, 1:2)
+  expect_equal(chosen$chosenMethod, c("LASSO", "Ridge"))
+  expect_equal(chosen$auc, runs$auc[(runs$method == "LASSO" & runs$ordering == 1) | (runs$method == "Ridge" & runs$ordering == 2)])
+  expect_true(all(is.na(out$chosenMethod[out$method != "CV_chosen"])))
+  # a training set without one of the candidates gets no row
+  expect_equal(sum(addCvChosen(runs[runs$method != "ElasticNet", ])$method == "CV_chosen"), 0)
 })
