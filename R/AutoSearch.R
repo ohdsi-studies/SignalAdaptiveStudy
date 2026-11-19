@@ -30,7 +30,13 @@ quadraticLogFit <- function(x, m, s) {
 
 # x, m, s: tried values with fold mean and sd, in the order tried; best = first maximum in that order.
 # upStep: the step up when bracketing (Cyclops: stdStep, as down).
-uniModalStep <- function(x, m, s, stdStep = 10, stopByY = 0.01, stopByX = log(1.5), firstCut = 0, upStep = stdStep) {
+# localFit: once the maximum is bracketed, fit the quadratic to the best value and its two neighbours only (Cyclops's
+# UniModalSearch localFit, which Cyclops uses for least squares since 0b360387) instead of to every value tried: over
+# several decades the CV curve is far from quadratic (flat towards no penalty), and a fit through every value can put
+# its maximum far outside the bracket (CCAE ISAF, 2026-11-19: 3e16 from values 0.003-9.5). Three values with the best
+# in the middle always give a concave fit with its maximum between the neighbours.
+uniModalStep <- function(x, m, s, stdStep = 10, stopByY = 0.01, stopByX = log(1.5), firstCut = 0, upStep = stdStep,
+                         localFit = FALSE) {
   best <- x[firstBest(m)]
   bestM <- m[firstBest(m)]
   ord <- order(x)
@@ -47,7 +53,10 @@ uniModalStep <- function(x, m, s, stdStep = 10, stopByY = 0.01, stopByX = log(1.
     result$next_ <- best * upStep
     if (!is.finite(best)) { result$more <- FALSE; result$expected <- bestM }
   } else {
-    q <- quadraticLogFit(x, m, s)
+    q <- if (localFit) {
+      b <- match(best, x)
+      quadraticLogFit(x[(b - 1):(b + 1)], m[(b - 1):(b + 1)], s[(b - 1):(b + 1)])
+    } else quadraticLogFit(x, m, s)
     logArgmax <- -q$c1 / q$c2 / 2
     expectedMax <- -q$c1^2 / q$c2 / 4 + q$c0
     if (isTRUE(bestM == 0)) result$more <- FALSE
@@ -74,7 +83,8 @@ foldEstimates <- function(scores) {
 # if it has not been tried; else, if it is the best so far and every value tried is below 100 x nullVariance, try 10x
 # the largest value tried; else stop at the best value.
 # upStep: the factor of each step up while bracketing (Cyclops: 10, as down).
-autoSearch <- function(evaluate, start, firstCut = 0, refine = TRUE, maxSteps = 50, nullVariance = NA, upStep = 10) {
+autoSearch <- function(evaluate, start, firstCut = 0, refine = TRUE, maxSteps = 50, nullVariance = NA, upStep = 10,
+                       localFit = FALSE) {
   bounded <- isTRUE(nullVariance > 0 && is.finite(nullVariance))
   if (bounded && start < nullVariance) start <- nullVariance
   tried <- numeric(); scores <- list(); current <- start; value <- NA_real_; step <- 0
@@ -94,7 +104,7 @@ autoSearch <- function(evaluate, start, firstCut = 0, refine = TRUE, maxSteps = 
       current <- tried[scored][firstBest(est$m[scored])]; value <- max(est$m[scored]); failed <- TRUE
       break
     }
-    nxt <- uniModalStep(tried[scored], est$m[scored], est$s[scored], firstCut = firstCut, upStep = upStep)
+    nxt <- uniModalStep(tried[scored], est$m[scored], est$s[scored], firstCut = firstCut, upStep = upStep, localFit = localFit)
     if (bounded && isTRUE(nxt$next_ < nullVariance)) {
       best <- tried[scored][firstBest(est$m[scored])]
       same <- function(a, b) abs(log(a) - log(b)) < 1e-9

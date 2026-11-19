@@ -83,3 +83,32 @@ test_that("the null-model variance is where the weighted LASSO becomes all zero"
     expect_gt(nonZero(v0 * 1.05), 0L)
   }
 })
+
+test_that("the local fit keeps the bracketed step between the best value's neighbours", {
+  # a CV curve that still rises almost linearly in log variance, its maximum just bracketed (best 3, then 9.5 a hair
+  # lower), tried as the study's search does: the fit through every value is nearly linear and its maximum far out
+  x <- c(0.03, 0.003, 0.09, 0.3, 0.9, 3, 9.5)
+  m <- -0.0522 + 1e-5 * log(x)
+  m[7] <- m[6] - 1e-8
+  s <- rep(0.001, length(x))
+  global <- uniModalStep(x, m, s, upStep = sqrt(10))
+  local <- uniModalStep(x, m, s, upStep = sqrt(10), localFit = TRUE)
+  sorted <- sort(x)
+  b <- which(sorted == x[which.max(m)])
+  expect_true(local$next_ > sorted[b - 1] && local$next_ < sorted[b + 1])
+  expect_gt(global$next_, 1000 * max(x)) # the fit through every value lands far outside
+  # fewer than three values, or the best at an end: no fit, the same step either way
+  expect_equal(uniModalStep(x[1:2], m[1:2], s[1:2], localFit = TRUE), uniModalStep(x[1:2], m[1:2], s[1:2]))
+  expect_equal(uniModalStep(x[2:4], m[2:4], s[2:4], localFit = TRUE), uniModalStep(x[2:4], m[2:4], s[2:4]))
+})
+
+test_that("the search comparison adds every study model with the local fit, and only those change", {
+  methods <- searchComparisonMethods()
+  base <- finalStudyMethods()
+  local <- methods[grepl("_local$", names(methods))]
+  expect_setequal(names(local), paste0(setdiff(names(base), "PLP_LASSO"), "_local"))
+  expect_true(all(vapply(local, function(m) isTRUE(m$param$searchSettings$localFit), logical(1))))
+  expect_identical(methods[names(base)], base)
+  expect_true(all(vapply(base[names(base) != "PLP_LASSO"], function(m) is.null(m$param$searchSettings$localFit), logical(1))))
+  expect_identical(local$SAR_no_c3_local$param$searchSettings$sharedShapes, base$SAR_no_c3$param$searchSettings$sharedShapes)
+})

@@ -117,7 +117,8 @@ memory in use and starts fewer units.
 frequency filter, so complete blocks such as gender and age group lose one reference level and keep their rare levels), so
 every finished run was made with other settings. Add `--rerun-changed`: all runs are moved to `replaced/` in the output folder
 and run again from the extracted data (no new extraction). SAR and SAL search 16 shapes (c3 down to -2) and the three SAR
-ablations take SAR's searches.
+ablations take SAR's searches. To compare the variance search with a local quadratic fit on the same training sets, add `--compare-search`: the
+study's models run a second time with that search, as `<method>_local` (about 70% more model time, no more data work).
 
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.

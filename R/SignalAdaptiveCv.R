@@ -280,7 +280,8 @@ shapeKey <- function(shape) c(sum(shape != 0), sum(abs(shape)))
 searchStrategy <- function(search, settings = list()) {
   switch(search,
     auto = autoStrategy(settings$fitAlgorithm %||% "auto", start = settings$start %||% "cyclops",
-                        upStep = settings$upStep %||% 10, warmShapes = isTRUE(settings$warmShapes)),
+                        upStep = settings$upStep %||% 10, warmShapes = isTRUE(settings$warmShapes),
+                        localFit = isTRUE(settings$localFit)),
     stop("unknown search: ", search)
   )
 }
@@ -303,7 +304,8 @@ searchStrategy <- function(search, settings = list()) {
 # upStep: the factor of each step up while bracketing (Cyclops: 10; steps down stay 10).
 # warmShapes: each shape's first fit in a fold starts from that fold's fit at the nearest shape done (L1 distance in c),
 #   at that shape's selected variance, instead of from zero. A start, not a different model.
-autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, warmShapes = FALSE) {
+# localFit: the bracketed step fits its quadratic to the best variance and its two neighbours (see uniModalStep()).
+autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, warmShapes = FALSE, localFit = FALSE) {
   if (!fitAlgorithm %in% c("auto", "ccd")) stop("unknown fit algorithm: ", fitAlgorithm)
   if (!start %in% c("cyclops", "priorScale")) stop("unknown start: ", start)
   if (!(is.numeric(upStep) && length(upStep) == 1 && upStep > 1)) stop("upStep must be a number above 1")
@@ -358,7 +360,7 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
           nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1) }
       } else NA_real_
       startVariance <- if (start == "priorScale") priorScaleStart(context$columnSquares, setup$full, n, penalty) else context$startVariance
-      search <- autoSearch(evaluate, start = startVariance, firstCut = 0, refine = TRUE, nullVariance = nullVariance,
+      search <- autoSearch(evaluate, start = startVariance, firstCut = 0, refine = TRUE, nullVariance = nullVariance, localFit = localFit,
                            upStep = upStep)
       if (length(failed)) {
         ParallelLogger::logWarn(sprintf("shape c = %s: %d fold fit(s) did not converge and were left out of their mean (%s)",

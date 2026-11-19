@@ -119,11 +119,14 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 #' shape of SAR and SAL (identical to fitting them alone), so they cost only their final fits.
 #'
 #' @param fitAlgorithm As in [setSar()]; PLP's LASSO uses PLP's own settings.
+#' @param localFit `TRUE`: the study's models search with the local quadratic fit (the bracketed step fitted to the best
+#'   variance and its two neighbours, as Cyclops does for least squares); PLP's LASSO is left out. For comparing the two
+#'   searches (investigator, 2026-11-19).
 #' @return A named list of model settings.
 #' @export
-finalStudyMethods <- function(fitAlgorithm = "auto") {
+finalStudyMethods <- function(fitAlgorithm = "auto", localFit = FALSE) {
   shapes <- finalSarShapes()
-  list(SAR = setSar(shapes = shapes, fitAlgorithm = fitAlgorithm),
+  methods <- list(SAR = setSar(shapes = shapes, fitAlgorithm = fitAlgorithm),
        LASSO = setSal(shapes = c(0, 0, 0), name = "LASSO", fitAlgorithm = fitAlgorithm),
        Ridge = setSar(shapes = c(0, 0, 0), name = "Ridge", fitAlgorithm = fitAlgorithm),
        PLP_LASSO = PatientLevelPrediction::setLassoLogisticRegression(seed = STUDY_SEEDS$folds, threads = 1),
@@ -135,6 +138,16 @@ finalStudyMethods <- function(fitAlgorithm = "auto") {
                             fitAlgorithm = fitAlgorithm, sharedShapes = shapes),
        PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
        SAL = setSal(shapes = shapes, fitAlgorithm = fitAlgorithm))
+  if (!localFit) return(methods)
+  methods$PLP_LASSO <- NULL
+  lapply(methods, function(m) { m$param$searchSettings$localFit <- TRUE; m })
+}
+
+# The final study's methods and, for comparing the two searches, the study's models again with the local fit, named
+# <method>_local (they share their searches with each other as the others do, not with the others).
+searchComparisonMethods <- function(fitAlgorithm = "auto") {
+  local <- finalStudyMethods(fitAlgorithm, localFit = TRUE)
+  c(finalStudyMethods(fitAlgorithm), stats::setNames(local, paste0(names(local), "_local")))
 }
 
 #' The CV-chosen standard model

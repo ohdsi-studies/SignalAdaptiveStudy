@@ -4,10 +4,14 @@
 \alias{finalStudyMethods}
 \title{Methods of the final study}
 \usage{
-finalStudyMethods(fitAlgorithm = "auto")
+finalStudyMethods(fitAlgorithm = "auto", localFit = FALSE)
 }
 \arguments{
 \item{fitAlgorithm}{As in \code{\link[=setSar]{setSar()}}; PLP's LASSO uses PLP's own settings.}
+
+\item{localFit}{\code{TRUE}: the study's models search with the local quadratic fit (the bracketed step fitted to the best
+variance and its two neighbours, as Cyclops does for least squares); PLP's LASSO is left out. For comparing the two
+searches (investigator, 2026-11-19).}
 }
 \value{
 A named list of model settings.

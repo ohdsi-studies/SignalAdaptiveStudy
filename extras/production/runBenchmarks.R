@@ -12,6 +12,8 @@
 #                                                           from the extracted data. A run of the same database waits.
 #   --rerun-changed   finished runs made with other settings than now (e.g. the SAR ablations after 2026-11-19) are moved
 #                     to replaced/ and run again, instead of stopping
+#   --compare-search  also the study's models with the local quadratic fit in the variance search (<method>_local), to
+#                     compare the two searches on the same training sets (2026-11-19)
 # (in the project folder; settings as for CodeToRun.R). A database that fails does not stop the others.
 
 # Needed by the Databricks JDBC driver, before Java starts (see CodeToRun.R)
@@ -39,6 +41,7 @@ onlyBenchmarks <- option("tasks", NULL)   # benchmark names, e.g. HFT2DM
 orderings <- as.integer(option("orderings", 1:3))
 prepareOnly <- "--prepare" %in% args
 onChangedRuns <- if ("--rerun-changed" %in% args) "rerun" else "stop"
+compareSearch <- "--compare-search" %in% args
 stopifnot(is.null(onlyBenchmarks) || all(onlyBenchmarks %in% benchmarkTasks()$benchmark), all(orderings %in% 1:3))
 args <- args[!startsWith(args, "--")]
 databases <- if (length(args)) args else names(cdmSchemas)
@@ -73,7 +76,8 @@ runDatabase <- function(database) {
     folders <- execute(dataSource, tasks, outputFolder, mode = "data")
     return(sprintf("data of %d of %d task(s) ready (no models run)", sum(!is.na(folders)), length(folders)))
   }
-  execute(dataSource, tasks, outputFolder, mode = "models", orderings = orderings, methods = finalStudyMethods(),
+  methods <- if (compareSearch) SignalAdaptiveStudy:::searchComparisonMethods() else finalStudyMethods()
+  execute(dataSource, tasks, outputFolder, mode = "models", orderings = orderings, methods = methods,
           workers = if (exists("workers")) workers else 1, onChangedRuns = onChangedRuns)
   exportResults(outputFolder, minCellCount = minCellCount)
 }
