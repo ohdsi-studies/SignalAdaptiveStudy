@@ -83,8 +83,9 @@ priorVariances <- function(penalty, weights, keep, scale, scaleType, n) {
 
 varianceToLambda <- function(penalty, variance, n) if (penalty == "ridge") 1 / (n * variance) else sqrt(2 / variance) / n
 
-# Mean-loss KKT residual on the original scale (the original code's certificate).
-kktResidual <- function(X, y, problem, coefficients, variances, keep, penalty) {
+# Mean-loss KKT residual on the original scale (the original code's certificate). lowerBound = 0 (LASSO only): coefficients
+# >= 0, so at 0 the condition is one-sided (the gradient may not push below the bound).
+kktResidual <- function(X, y, problem, coefficients, variances, keep, penalty, lowerBound = NULL) {
   Xs <- X[problem$rows, problem$ids, drop = FALSE]
   b <- coefficients[-1]
   r <- stats::plogis(coefficients[1] + as.numeric(Xs %*% b)) - y[problem$rows]
@@ -95,23 +96,27 @@ kktResidual <- function(X, y, problem, coefficients, variances, keep, penalty) {
     rate <- sqrt(2 / variances) / problem$n
     alpha <- if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1
     v <- ifelse(abs(b) > 1e-8, abs(g + alpha * rate * sign(b) + (1 - alpha) * rate * b), pmax(abs(g) - alpha * rate, 0))
+    if (!is.null(lowerBound)) v <- ifelse(b > 1e-8, abs(g + rate), pmax(-g - rate, 0))
   }
   max(abs(mean(r)), v[keep], 0)
 }
 
-fitProblem <- function(problem, penalty, variances, keep, start, control) {
+# lowerBound: NULL, or 0 for every coefficient but the intercept (LASSO only; uniLasso's second stage). Needs Cyclops with
+# createPrior(lowerBound =) (branch lower-bounds).
+fitProblem <- function(problem, penalty, variances, keep, start, control, lowerBound = NULL) {
   type <- switch(penalty, ridge = "normal", lasso = "laplace", elasticnet = "elasticnet")
+  bound <- if (!is.null(lowerBound)) list(lowerBound = lowerBound)
   free <- is.infinite(variances) # unpenalised (weight 0)
   penalised <- variances[keep & !free]
   prior <- if (!any(free) && length(penalised) && all(penalised == penalised[1])) {
     # one variance for every column (ridge, LASSO, elastic net; SAR's shape 0, 0, 0): one prior, the intercept (ID 0)
     # excluded, as practitioners call Cyclops. The same objective as one prior per column, set up faster. Columns not
     # kept are fixed at 0 below, whatever their prior.
-    Cyclops::createPrior(type, variance = penalised[1], exclude = 0,
-                         laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA)
+    do.call(Cyclops::createPrior, c(list(type, variance = penalised[1], exclude = 0,
+                                         laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA), bound))
   } else {
-    Cyclops::createPrior(c("none", ifelse(free, "none", type)), variance = c(0, ifelse(free, 0, variances)),
-                         laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA)
+    do.call(Cyclops::createPrior, c(list(c("none", ifelse(free, "none", type)), variance = c(0, ifelse(free, 0, variances)),
+                                         laplaceFraction = if (penalty == "elasticnet") ELASTIC_NET_ALPHA), bound))
   }
   fixed <- NULL
   if (any(!keep)) {
@@ -228,8 +233,9 @@ smoothedIntercept <- function(y) log((sum(y) + 0.5) / (length(y) - sum(y) + 0.5)
 # 2 / lambdaMax^2 without weights). At the fit of the unpenalised coefficients alone (the intercept and any unpenalised
 # columns) on the problem's rows, coefficient j stays 0 while |g_j| <= sqrt(2 w_j / sigma^2), g the log-likelihood
 # gradient, so all are 0 for sigma^2 <= min_j 2 w_j / g_j^2. The elastic net's kink at 0 is alpha times that of the
-# LASSO, so its bound is alpha^2 times as large. NA when no penalised column has a gradient.
-nullModelVariance <- function(X, y, problem, setup, control, alpha = 1) {
+# LASSO, so its bound is alpha^2 times as large. NA when no penalised column has a gradient. lowerBound = 0: a coefficient
+# held >= 0 leaves 0 only where g_j > 0.
+nullModelVariance <- function(X, y, problem, setup, control, alpha = 1, lowerBound = NULL) {
   free <- setup$keep & setup$weights == 0
   penalised <- setup$keep & !free
   if (!any(penalised)) return(NA_real_)
@@ -242,6 +248,7 @@ nullModelVariance <- function(X, y, problem, setup, control, alpha = 1) {
   Xs <- X[problem$rows, problem$ids, drop = FALSE]
   g <- as.numeric(Matrix::crossprod(Xs, y[problem$rows] - stats::plogis(fit$coefficients[1] +
                                                                            as.numeric(Xs %*% fit$coefficients[-1]))))
+  if (!is.null(lowerBound)) g <- pmax(g, 0)
   bound <- 2 * alpha^2 * setup$weights[penalised] / g[penalised]^2
   if (!any(is.finite(bound))) NA_real_ else min(bound[is.finite(bound)])
 }
@@ -281,7 +288,7 @@ searchStrategy <- function(search, settings = list()) {
   switch(search,
     auto = autoStrategy(settings$fitAlgorithm %||% "auto", start = settings$start %||% "cyclops",
                         upStep = settings$upStep %||% 10, warmShapes = isTRUE(settings$warmShapes),
-                        localFit = isTRUE(settings$localFit)),
+                        localFit = isTRUE(settings$localFit), lowerBound = settings$lowerBound),
     stop("unknown search: ", search)
   )
 }
@@ -305,7 +312,9 @@ searchStrategy <- function(search, settings = list()) {
 # warmShapes: each shape's first fit in a fold starts from that fold's fit at the nearest shape done (L1 distance in c),
 #   at that shape's selected variance, instead of from zero. A start, not a different model.
 # localFit: the bracketed step fits its quadratic to the best variance and its two neighbours (see uniModalStep()).
-autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, warmShapes = FALSE, localFit = FALSE) {
+autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, warmShapes = FALSE, localFit = FALSE,
+                         lowerBound = NULL) {
+  if (!is.null(lowerBound) && !identical(lowerBound, 0)) stop("lowerBound must be NULL or 0")
   if (!fitAlgorithm %in% c("auto", "ccd")) stop("unknown fit algorithm: ", fitAlgorithm)
   if (!start %in% c("cyclops", "priorScale")) stop("unknown start: ", start)
   if (!(is.numeric(upStep) && length(upStep) == 1 && upStep > 1)) stop("upStep must be a number above 1")
@@ -335,7 +344,7 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
           .cyclopsTiming$fold <- f
           .cyclopsTiming$start <- if (length(ca$variances)) "search" else if (!is.null(seeds[[f]])) "shape" else "cold"
           fit <- fitProblem(p, penalty, priorVariances(penalty, s$weights, s$keep, sigma2, "variance", p$n), s$keep,
-                            warm, foldControl)
+                            warm, foldControl, lowerBound = lowerBound)
           foldStats$iterations <<- c(foldStats$iterations, fit$iterations)
           foldStats$newton <<- c(foldStats$newton, fit$newtonIterations)
           foldStats$algorithms <<- c(foldStats$algorithms, as.character(fit$algorithm))
@@ -357,7 +366,8 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
       }
       nullVariance <- if (penalty != "ridge") {
         { .cyclopsTiming$fold <- "all (null-model bound)"; .cyclopsTiming$start <- "cold"
-          nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1) }
+          nullModelVariance(X, y, context$full, setup, finalControl, alpha = if (penalty == "elasticnet") ELASTIC_NET_ALPHA else 1,
+                            lowerBound = lowerBound) }
       } else NA_real_
       startVariance <- if (start == "priorScale") priorScaleStart(context$columnSquares, setup$full, n, penalty) else context$startVariance
       search <- autoSearch(evaluate, start = startVariance, firstCut = 0, refine = TRUE, nullVariance = nullVariance, localFit = localFit,
@@ -392,7 +402,7 @@ autoStrategy <- function(fitAlgorithm = "auto", start = "cyclops", upStep = 10, 
     finalFit = function(X, y, full, penalty, w, record) {
       v <- priorVariances(penalty, w$weights, w$keep, record$variance, "variance", full$n)
       .cyclopsTiming$fold <- "all"; .cyclopsTiming$start <- "cold"
-      fit <- fitProblem(full, penalty, v, w$keep, NULL, finalControl)
+      fit <- fitProblem(full, penalty, v, w$keep, NULL, finalControl, lowerBound = lowerBound)
       if (!fit$converged) stop("the final fit did not converge (", fit$status, " after ", fit$iterations, " iterations)")
       list(fit = fit, variances = v, variance = record$variance, lambda = varianceToLambda(penalty, record$variance, full$n))
     },
@@ -415,6 +425,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
                              search = "auto", cSelection = c("observed", "ordinate"), searchSettings = list(),
                              unpenalized = rep(FALSE, ncol(X)), weightRule = NULL, prepared = NULL) {
   penalty <- match.arg(penalty); cSelection <- match.arg(cSelection)
+  if (!is.null(searchSettings$lowerBound) && penalty != "lasso") stop("a lower bound needs the LASSO penalty")
   strategy <- searchStrategy(search, searchSettings)
   start <- Sys.time()
   resetCyclopsTiming()
@@ -525,7 +536,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
     .cyclopsTiming$stage <- "final"; .cyclopsTiming$shape <- paste(shape, collapse = " ")
     final <- strategy$finalFit(X, y, full, penalty, w, record)
     lambda <- final$lambda; variance <- final$variance
-    kkt <- kktResidual(X, y, full, final$fit$coefficients, final$variances, w$keep, penalty)
+    kkt <- kktResidual(X, y, full, final$fit$coefficients, final$variances, w$keep, penalty, searchSettings$lowerBound)
     finalFit <- final$fit; finalStatus <- finalFit$status %||% NA_character_; finalIterations <- finalFit$iterations %||% NA_integer_
     if (!identical(finalStatus, "SUCCESS")) ParallelLogger::logWarn(sprintf("final fit accepted with status %s", finalStatus))
     intercept <- final$fit$coefficients[1]

@@ -49,3 +49,71 @@ test_that("uniLassoFeatures() refuses non-binary covariates or a constant outcom
   expect_error(uniLassoFeatures(X * 2, d$y), "binary covariates")
   expect_error(uniLassoFeatures(X, rep(0, nrow(X))), "binary outcome")
 })
+
+cyclopsHasBounds <- function() "lowerBound" %in% names(formals(Cyclops::createPrior))
+
+test_that("stage 2 by Cyclops with lower bounds gives the package's model at the same lambda", {
+  skip_if_not_installed("uniLasso")
+  skip_if_not(cyclopsHasBounds(), "Cyclops without lower bounds (branch lower-bounds)")
+  d <- simulateBinary(seed = 3)
+  features <- uniLassoFeatures(Matrix::Matrix(d$X, sparse = TRUE), d$y)
+  reference <- uniLasso::uniLasso(d$X, d$y, family = "binomial", thresh = 1e-14)
+  problem <- createFitProblem(features$G, d$y, rep(TRUE, length(d$y)))
+  control <- Cyclops::createControl(convergenceType = "gradient", tolerance = 1e-12, maxIterations = 1e6)
+  n <- length(d$y)
+  for (k in c(10, 25, 40)) {
+    lambda <- reference$lambda[k]
+    fit <- fitProblem(problem, "lasso", rep(2 / (n * lambda)^2, length(problem$ids)), rep(TRUE, length(problem$ids)),
+                      NULL, control, lowerBound = 0)
+    expect_true(fit$converged)
+    theta <- numeric(ncol(features$G)); theta[problem$ids] <- fit$coefficients[-1]
+    expect_true(all(theta >= 0))
+    model <- uniLassoModel(features, fit$coefficients[1], theta)
+    expect_equal(model$intercept, unname(reference$a0[k]), tolerance = 1e-6)
+    expect_equal(model$coefficients, as.numeric(reference$beta[, k]), tolerance = 1e-6)
+    expect_lt(kktResidual(features$G, d$y, problem, fit$coefficients, rep(2 / (n * lambda)^2, length(problem$ids)),
+                          rep(TRUE, length(problem$ids)), "lasso", lowerBound = 0), 1e-6)
+  }
+  # without the bound some coefficients go negative: the bound is doing something here
+  free <- fitProblem(problem, "lasso", rep(2 / (n * reference$lambda[40])^2, length(problem$ids)),
+                     rep(TRUE, length(problem$ids)), NULL, control)
+  expect_true(any(free$coefficients[-1] < -1e-6))
+})
+
+test_that("setUniLasso() runs through execute(): coefficients keep the univariate signs", {
+  skip_on_cran()
+  skip_if_not(cyclopsHasBounds(), "Cyclops without lower bounds (branch lower-bounds)")
+  profile <- get(utils::data("simulationProfile", package = "PatientLevelPrediction", envir = environment()))
+  plpData <- PatientLevelPrediction::simulatePlpData(profile, n = 3000, seed = 11)
+  # binary covariates only, as the study's (the simulation's age in years, 1002, is not)
+  plpData$covariateData$covariates <- dplyr::filter(plpData$covariateData$covariates, .data$covariateId != 1002)
+  dataSource <- createPlpDataSource(plpData, "SIM", PatientLevelPrediction::createStudyPopulationSettings(
+    riskWindowStart = 1, riskWindowEnd = 365, requireTimeAtRisk = FALSE))
+  tasks <- data.frame(taskId = "task_a", outcomeId = 3, timeAtRiskDays = 365)
+  tasks$budgets <- list(100)
+  folder <- tempfile("sar_unilasso_")
+  on.exit(unlink(folder, recursive = TRUE), add = TRUE)
+  methods <- list(uniLasso = setUniLasso(), LASSO = setSal(shapes = c(0, 0, 0), name = "LASSO"))
+  results <- suppressMessages(execute(dataSource, tasks, folder, mode = "models", orderings = 1, methods = methods))
+  expect_setequal(results$method, c("uniLasso", "LASSO"))
+  u <- results[results$method == "uniLasso", ]
+  expect_identical(u$modelStatus, "SUCCESS")
+  expect_gt(u$nonZero, 0)
+})
+
+test_that("the study search with the bound keeps every stage-2 coefficient >= 0, so the univariate signs", {
+  skip_if_not(cyclopsHasBounds(), "Cyclops without lower bounds (branch lower-bounds)")
+  d <- simulateBinary(n = 1500, p = 40, seed = 4)
+  features <- uniLassoFeatures(Matrix::Matrix(d$X, sparse = TRUE), d$y)
+  folds <- rep_len(1:3, length(d$y))
+  fit <- suppressMessages(signalAdaptiveCv(features$G, d$y, folds, penalty = "lasso", shapes = c(0, 0, 0),
+                                           searchSettings = c(studySearchSettings(), list(lowerBound = 0))))
+  expect_true(all(fit$beta >= 0))
+  expect_gt(sum(fit$beta > 0), 0)
+  expect_lt(fit$kkt, 1e-3)
+  model <- uniLassoModel(features, fit$intercept, fit$beta)
+  used <- model$coefficients != 0
+  expect_identical(sign(model$coefficients[used]), sign(features$beta[used]))
+  expect_error(signalAdaptiveCv(features$G, d$y, folds, penalty = "ridge", shapes = c(0, 0, 0),
+                                searchSettings = list(lowerBound = 0)), "LASSO penalty")
+})

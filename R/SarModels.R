@@ -51,6 +51,21 @@ setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL", fit
 #' @inheritParams setSar
 #' @return PLP model settings.
 #' @export
+#' uniLasso, fitted with Cyclops
+#'
+#' uniLasso (Chatterjee, Hastie & Tibshirani 2025, arXiv 2501.18360) with the CRAN package's defaults: each covariate's
+#' leave-one-out univariate logistic fit (two IRLS steps) as a feature, then a LASSO on those features with coefficients
+#' >= 0, so each covariate keeps its univariate sign; no standardisation. Stage 1 as [uniLassoFeatures()], from each
+#' binary covariate's 2 x 2 table; stage 2 fitted by Cyclops (needs lower bounds, branch lower-bounds) with the study's
+#' folds and variance search, as LASSO, instead of glmnet's lambda path (investigator, 2026-11-20).
+#' @inheritParams setSar
+#' @return PLP model settings.
+#' @export
+setUniLasso <- function(interceptOnly = TRUE, name = "uniLasso", fitAlgorithm = "auto") {
+  signalAdaptiveSettings("lasso", c(0, 0, 0), interceptOnly, name,
+                         searchSettings = c(studySearchSettings(fitAlgorithm), list(lowerBound = 0)), features = "uniLasso")
+}
+
 setPosteriorMomentRidge <- function(kappa = 0.5, interceptOnly = TRUE, name = "PM_ridge", fitAlgorithm = "auto") {
   signalAdaptiveSettings("ridge", c(0, 0, 0), interceptOnly, name, searchSettings = studySearchSettings(fitAlgorithm),
                          weightRule = list(type = "posteriorMoment", kappa = kappa))
@@ -69,7 +84,9 @@ studySearchSettings <- function(fitAlgorithm = "auto", sharedShapes = NULL) {
 # search, cSelection, searchSettings and unpenalizedCovariateIds are for development comparisons; the study uses the
 # defaults (Cyclops's auto-search, c chosen by the observed CV loss, every covariate penalised).
 signalAdaptiveSettings <- function(penalty, shapes, interceptOnly, name, search = "auto", cSelection = "observed",
-                                   searchSettings = list(), unpenalizedCovariateIds = c(), weightRule = NULL) {
+                                   searchSettings = list(), unpenalizedCovariateIds = c(), weightRule = NULL,
+                                   features = NULL) {
+  if (!is.null(features) && !identical(features, "uniLasso")) stop("features must be NULL or \"uniLasso\"")
   shapes <- normalizeShapes(shapes)
   weightRule <- checkWeightRule(weightRule)
   if (!is.null(weightRule) && (nrow(shapes) != 1 || any(shapes != 0))) stop("a weight rule takes the one shape c(0, 0, 0)")
@@ -82,7 +99,7 @@ signalAdaptiveSettings <- function(penalty, shapes, interceptOnly, name, search 
     fitFunction = "SignalAdaptiveStudy::fitSignalAdaptive",
     param = list(shapes = shapes, interceptOnly = interceptOnly, search = search, cSelection = cSelection,
                  searchSettings = searchSettings, unpenalizedCovariateIds = unpenalizedCovariateIds,
-                 weightRule = weightRule)[c(rep(TRUE, 6), !is.null(weightRule))], # SAR's settings, so their fingerprints, as before
+                 weightRule = weightRule, features = features)[c(rep(TRUE, 6), !is.null(weightRule), !is.null(features))], # SAR's settings, so their fingerprints, as before
     settings = list(modelName = name, penalty = penalty, modelType = "binary", saveType = "RtoJson")
   ), class = "modelSettings")
 }
@@ -114,13 +131,23 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
   if (anyNA(folds) || any(folds < 1)) stop("every training row needs a fold")
   covariateIds <- sparse$covariateMap$covariateId[match(seq_len(ncol(sparse$dataMatrix)), sparse$covariateMap$columnId)]
 
-  fit <- signalAdaptiveCv(sparse$dataMatrix, as.numeric(labels$outcomeCount > 0), folds,
+  y <- as.numeric(labels$outcomeCount > 0)
+  uni <- identical(param$features, "uniLasso")
+  # uniLasso: the search runs on the stage-1 features (their own fit problems, kept apart from those of the covariates)
+  features <- if (uni) uniLassoFeatures(sparse$dataMatrix, y)
+  fit <- signalAdaptiveCv(if (uni) features$G else sparse$dataMatrix, y, folds,
                           penalty = settings$penalty, shapes = param$shapes, interceptOnly = param$interceptOnly,
                           search = param$search %||% "auto", cSelection = param$cSelection %||% "observed",
                           searchSettings = param$searchSettings %||% list(),
                           unpenalized = covariateIds %in% (param$unpenalizedCovariateIds %||% c()),
-                          weightRule = param$weightRule, prepared = cached$prepared)
-  rememberTrainingSet(trainData, sparse, fit$prepared)
+                          weightRule = param$weightRule, prepared = if (uni) cached$preparedUniLasso else cached$prepared)
+  if (uni) {
+    rememberTrainingSet(trainData, sparse, cached$prepared, preparedUniLasso = fit$prepared)
+    model <- uniLassoModel(features, fit$intercept, fit$beta) # to the covariates' scale
+    fit$intercept <- model$intercept; fit$beta <- model$coefficients; fit$nonZero <- sum(fit$beta != 0)
+  } else {
+    rememberTrainingSet(trainData, sparse, fit$prepared, preparedUniLasso = cached$preparedUniLasso)
+  }
   fit$prepared <- NULL
 
   ids <- c("(Intercept)", as.character(covariateIds))
@@ -249,16 +276,18 @@ trainingSetKey <- function(trainData) {
 }
 trainingSetCache <- function(trainData) {
   if (!is.null(.trainingSetCache$key) && identical(.trainingSetCache$key, trainingSetKey(trainData))) {
-    list(sparse = .trainingSetCache$sparse, prepared = .trainingSetCache$prepared)
+    list(sparse = .trainingSetCache$sparse, prepared = .trainingSetCache$prepared,
+         preparedUniLasso = .trainingSetCache$preparedUniLasso)
   } else {
     clearTrainingSetCache()
     list()
   }
 }
-rememberTrainingSet <- function(trainData, sparse, prepared) {
+rememberTrainingSet <- function(trainData, sparse, prepared, preparedUniLasso = NULL) {
   .trainingSetCache$key <- trainingSetKey(trainData)
   .trainingSetCache$sparse <- sparse
   .trainingSetCache$prepared <- prepared
+  .trainingSetCache$preparedUniLasso <- preparedUniLasso
 }
 clearTrainingSetCache <- function() {
   rm(list = ls(.trainingSetCache, all.names = TRUE), envir = .trainingSetCache)

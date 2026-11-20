@@ -44,7 +44,10 @@ sarStatistics <- function(X, y) {
 
 weightsFromStatistics <- function(s, c, weightRule = NULL) {
   logWeights <- if (is.null(weightRule)) {
-    c[1] * log1p(s$n * s$mu) / log1p(s$n) + c[2] * log1p(s$info) + c[3] * log1p(s$score^2 / (s$info + 0.5))
+    # a term with c = 0 is left out rather than multiplied by 0 (the same weights; on columns that are not binary, e.g.
+    # uniLasso's features, a term may be NaN)
+    term <- function(cj, value) if (cj == 0) numeric(length(s$mu)) else cj * value
+    term(c[1], log1p(s$n * s$mu) / log1p(s$n)) + term(c[2], log1p(s$info)) + term(c[3], log1p(s$score^2 / (s$info + 0.5)))
   } else {
     posteriorMomentLogWeights(s, weightRule$kappa)
   }
