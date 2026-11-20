@@ -77,11 +77,12 @@ has enough events, not whether its definition is right.
 `Rscript extras/production/runBenchmarks.R` runs the 13 PLP benchmark tasks with the final study's settings, on every database in
 `cdmSchemas` (or those you name: `Rscript extras/production/runBenchmarks.R MDCD`). Start with one small database.
 
-**Cyclops:** the study runs on the latest `develop` of Cyclops, which it also helps to test. Before a run, update it and reinstall the
-package:
+**Cyclops:** the study runs on a pinned Cyclops commit (since 2026-11-20: `228d03cd` on branch `lower-bounds`, which adds
+the lower bounds uniLasso needs to the ridge and memory changes of PR #121). `renv::restore()` installs it; to install it
+alone:
 
 ```r
-renv::install("OHDSI/Cyclops@develop")
+renv::install("OHDSI/Cyclops@228d03cd75b7a61ded2906a2cb9437cf6b4a0411")
 install.packages(".", repos = NULL, type = "source")
 ```
 
@@ -113,9 +114,10 @@ so every 10 minutes) until the first is done. A run that was killed leaves `busy
 delete it if no run of that database is going. A prepare window uses up to about 8 GB while extracting; the model run sees that
 memory in use and starts fewer units.
 
-**After 2026-11-20:** one-hot blocks such as gender and age group keep every level again (no redundancy removal), and the
-study's models search the variance with a local quadratic fit, so every finished run was made with other settings. Add
-`--rerun-changed`: all runs are moved to `replaced/` in the output folder and run again from the extracted data (no new
+**After 2026-11-20:** one-hot blocks such as gender and age group keep every level again (no redundancy removal), the
+study's models search the variance with a local quadratic fit, uniLasso is added as an 11th method, and Cyclops moves to
+`228d03cd`. Reinstall Cyclops at that commit (above) and the package, then add `--rerun-changed`: every run is made with
+other settings, so all are moved to `replaced/` in the output folder and run again from the extracted data (no new
 extraction). SAR and SAL search 16 shapes (c3 down to -2) and the three SAR ablations take SAR's searches.
 
 A run that fails leaves `error.txt` in its folder and is tried again the next time. Runs that failed for lack of memory

@@ -111,8 +111,9 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 #'
 #' Primary: SAR (over the 16 shapes of [finalSarShapes()]), LASSO and ridge. Secondary: PLP's default LASSO, elastic net (mixing 0.5), three reduced versions of
 #' SAR (the shape fixed at (0, 1, -1), the shapes without the third term, and the shapes with only the third term),
-#' posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5) and SAL ([setSal()], SAR's shapes with the LASSO
-#' penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome). The
+#' posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5), SAL ([setSal()], SAR's shapes with the LASSO
+#' penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome) and uniLasso
+#' ([setUniLasso()], univariate fits guiding a sign-constrained LASSO; added 2026-11-20). The
 #' CV-chosen standard model ([addCvChosen()]) is derived from the ridge, LASSO and elastic net runs.
 #'
 #' The ablations reuse SAR's shape searches on the same training set (`sharedShapes`), and ridge and LASSO the first
@@ -139,7 +140,8 @@ finalStudyMethods <- function(fitAlgorithm = "auto", localFit = TRUE) {
        SAR_c3_only = setSar(shapes = shapes[shapes[, "c1"] == 0 & shapes[, "c2"] == 0, , drop = FALSE], name = "SAR_c3_only",
                             fitAlgorithm = fitAlgorithm, sharedShapes = shapes),
        PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
-       SAL = setSal(shapes = shapes, fitAlgorithm = fitAlgorithm))
+       SAL = setSal(shapes = shapes, fitAlgorithm = fitAlgorithm),
+       uniLasso = setUniLasso(fitAlgorithm = fitAlgorithm))
   if (!localFit) return(methods)
   ours <- names(methods) != "PLP_LASSO"
   methods[ours] <- lapply(methods[ours], function(m) { m$param$searchSettings$localFit <- TRUE; m })

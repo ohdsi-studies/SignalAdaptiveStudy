@@ -226,8 +226,8 @@
       "RemoteHost": "api.github.com",
       "RemoteUsername": "OHDSI",
       "RemoteRepo": "Cyclops",
-      "RemoteRef": "auto-fast",
-      "RemoteSha": "ccc7aefa7f4509af07b49ae062ccef9b354cd1a1"
+      "RemoteRef": "lower-bounds",
+      "RemoteSha": "228d03cd75b7a61ded2906a2cb9437cf6b4a0411"
     },
     "DBI": {
       "Package": "DBI",

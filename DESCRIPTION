@@ -26,7 +26,7 @@ Imports:
     utils,
     zip
 Remotes:
-    OHDSI/Cyclops@auto-fast
+    OHDSI/Cyclops@228d03cd75b7a61ded2906a2cb9437cf6b4a0411
 Suggests:
     Andromeda,
     bit64,

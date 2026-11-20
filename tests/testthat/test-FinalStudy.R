@@ -118,6 +118,8 @@ test_that("every method of the final study runs end to end, saves, and gives the
   coefficients <- c("(Intercept)" = -3, stats::setNames(rep(c(1.5, -1.2, 1.0), length.out = length(signal)), signal))
   plpData <- PatientLevelPrediction::simulatePlpBenchmarkData(simulated, coefficients, n = 8000, riskWindowStart = 1, riskWindowEnd = 365,
                                                               outcomeId = 3, targetOutcomeRate = 0.06, seed = 12, returnTruth = FALSE)
+  # binary covariates only, as the study's (uniLasso needs them; the simulation's age in years, 1002, is not)
+  plpData$covariateData$covariates <- dplyr::filter(plpData$covariateData$covariates, .data$covariateId != 1002)
   settings <- PatientLevelPrediction::createStudyPopulationSettings(riskWindowStart = 1, riskWindowEnd = 365, requireTimeAtRisk = FALSE)
   source <- createPlpDataSource(plpData, "SIM", settings)
   task <- data.frame(taskId = "sim_task_defaults", outcomeId = 3, timeAtRiskDays = 365, featureSet = "defaults")
@@ -125,7 +127,8 @@ test_that("every method of the final study runs end to end, saves, and gives the
   on.exit(unlink(folder, recursive = TRUE), add = TRUE)
   methods <- finalStudyMethods()
   expect_setequal(names(methods), c("SAR", "LASSO", "Ridge", "PLP_LASSO", "ElasticNet", "SAR_fixed", "SAR_no_c3", "SAR_c3_only",
-                                     "PM_ridge", "SAL"))
+                                     "PM_ridge", "SAL", "uniLasso"))
+  expect_identical(methods$uniLasso$param$searchSettings$lowerBound, 0)
   task$budgets <- list(100)
   results <- execute(source, task, folder, mode = "models", orderings = 1, methods = methods, workers = 1)
   expect_equal(nrow(results), length(methods))
