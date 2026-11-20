@@ -118,6 +118,10 @@ study's models search the variance with a local quadratic fit, so every finished
 `--rerun-changed`: all runs are moved to `replaced/` in the output folder and run again from the extracted data (no new
 extraction). SAR and SAL search 16 shapes (c3 down to -2) and the three SAR ablations take SAR's searches.
 
+A run that fails leaves `error.txt` in its folder and is tried again the next time. Runs that failed for lack of memory
+(`cannot allocate`, `bad_alloc`, out of memory, or a worker that died twice) are also tried once more at the end of the
+same run, one training set at a time with nothing else running.
+
 It writes `SignalAdaptiveStudy_benchmarks/<database>/`; send the zip that the last message names. Its results also hold calibration, the
 AUC's standard error, and the metrics on test rows with full follow-up.
 

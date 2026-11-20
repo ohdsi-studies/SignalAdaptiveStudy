@@ -406,6 +406,25 @@ failUnit <- function(unit, reason) {
   sprintf("%s %s k=%s o=%d failed: %s", unit$source$databaseName, unit$task$taskId, unit$budget, unit$ordering, reason)
 }
 
+# An error message that says memory ran out: R's, C++'s, duckdb's, or a worker that died twice (failUnit() above).
+memoryFailure <- function(message) {
+  grepl("cannot allocate|bad_alloc|out of memory|memory exhausted|memory limit", message, ignore.case = TRUE)
+}
+
+# The runs of a unit that failed for lack of memory (no result.csv, error.txt says so; memoryFailure()), as a unit of
+# their own to try again; NULL if none.
+memoryRetryUnit <- function(unit) {
+  runs <- unit$runs
+  failed <- !file.exists(file.path(runs$folder, "result.csv")) & vapply(file.path(runs$folder, "error.txt"), function(f) {
+    file.exists(f) && memoryFailure(paste(readLines(f, warn = FALSE), collapse = " "))
+  }, logical(1), USE.NAMES = FALSE)
+  if (!any(failed)) return(NULL)
+  unit$runs <- runs[failed, , drop = FALSE]
+  unit$methods <- unit$methods[unique(unit$runs$method)]
+  unit$fingerprints <- unit$fingerprints[unit$runs$folder]
+  unit
+}
+
 # Holds a database's output folder for this call (a lock folder, removed by the caller on exit): waits, checking every
 # 30 s, while another R process holds it (both would generate the same cohorts and extract the same tasks), and says so
 # every 10 minutes; option sarLockTimeoutSeconds stops instead after that long. A process that was killed leaves its lock:
@@ -586,7 +605,8 @@ appendMemory <- function(unit, memory, file) {
 # cache) here, one task at a time, and its units are queued as soon as it is ready, so the workers start on the first
 # task while the next is extracted. A worker runs one thread for duckdb, BLAS and OpenMP, has a memory limit for each
 # Andromeda and writes its temporary files under outputFolder/tmp. A worker that dies (e.g. out of memory) is replaced
-# and its unit tried once more.
+# and its unit tried once more. When every unit is done, the runs that failed for lack of memory (memoryRetryUnit()) are
+# tried once more in a fresh worker, one unit at a time with nothing else running.
 runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   profile <- "SignalAdaptiveStudy"
   database <- dataSource$databaseName
@@ -633,6 +653,8 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   }
   pending <- list()
   waiting <- list() # units not handed out yet, in order
+  queuedUnits <- list() # every unit queued, for the retry of runs that failed for lack of memory
+  alone <- FALSE # TRUE: one unit at a time, nothing else running (the retry)
   finished <- 0
   queued <- 0
   inUse <- function() sum(vapply(pending, function(p) p$unit$memoryGB %||% 0, numeric(1)))
@@ -647,6 +669,12 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
   dispatch <- function() {
     repeat {
       if (length(waiting) == 0) return(invisible())
+      if (alone) {
+        if (length(pending) > 0) return(invisible())
+        pending[[1]] <<- submit(waiting[[1]])
+        waiting[[1]] <<- NULL
+        next
+      }
       extraction <- reserve()
       budget <- memoryBudget - extraction
       running <- data.frame(estimate = vapply(pending, function(p) p$unit$memoryGB %||% 0, numeric(1)),
@@ -743,6 +771,7 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
       unit$memoryGB <- if (is.null(shape)) 0 else unitMemoryGB(unit$budget, shape, setup$memoryLimit)
       unit$shape <- shape
       waiting[[length(waiting) + 1]] <- unit
+      queuedUnits[[length(queuedUnits) + 1]] <- unit
     }
     if (!is.null(shape)) {
       report(sprintf("%s: %.0f non-zeros per person; estimated memory per unit %s GB", task$taskId, shape$entriesPerPerson,
@@ -753,6 +782,16 @@ runInWorkers <- function(tasks, unitsOf, dataSource, outputFolder, workers) {
     collect(wait = FALSE)
   }
   extracting <- FALSE
+  collect(wait = TRUE)
+  retries <- Filter(Negate(is.null), lapply(queuedUnits, memoryRetryUnit))
+  if (length(retries) == 0) return(invisible())
+  report(sprintf("%d run(s) of %d unit(s) failed for lack of memory: tried once more, one unit at a time in a fresh worker",
+                 sum(vapply(retries, function(u) nrow(u$runs), numeric(1))), length(retries)), warn = TRUE)
+  mirai::daemons(0, .compute = profile) # the idle workers hold their last task's data
+  mirai::daemons(1, .compute = profile)
+  alone <- TRUE
+  waiting <- retries
+  queued <- queued + length(retries)
   collect(wait = TRUE)
 }
 

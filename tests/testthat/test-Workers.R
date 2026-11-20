@@ -45,3 +45,30 @@ test_that("workers give the same results as one process, and a worker that dies 
                      order(serial$budget[serial$taskId == "task_a" & serial$ordering == 1 & serial$method == "LASSO"])])
   expect_match(readLines(file.path(folders[["crash"]], "log_SIM.txt")), "the worker stopped", all = FALSE)
 })
+
+test_that("runs that failed for lack of memory are tried once more at the end, other failures are not", {
+  skip_on_cran()
+  expect_true(all(memoryFailure(c("cannot allocate vector of size 2.1 Gb", "std::bad_alloc",
+                                  "Out of Memory Error: could not allocate block", "the worker stopped twice (out of memory?)"))))
+  expect_false(any(memoryFailure(c("MAX_ITERATIONS", "subscript out of bounds", "No Outcomes"))))
+  profile <- get(utils::data("simulationProfile", package = "PatientLevelPrediction", envir = environment()))
+  plpData <- PatientLevelPrediction::simulatePlpData(profile, n = 3000, seed = 11)
+  dataSource <- createPlpDataSource(plpData, "SIM", PatientLevelPrediction::createStudyPopulationSettings(
+    riskWindowStart = 1, riskWindowEnd = 365, requireTimeAtRisk = FALSE))
+  tasks <- data.frame(taskId = "task_a", outcomeId = 3, timeAtRiskDays = 365)
+  tasks$budgets <- list(c(50, 100))
+  folder <- tempfile("sar_memory_")
+  flag <- normalizePath(tempfile("sar_memory_flag_"), winslash = "/", mustWork = FALSE)
+  calls <- normalizePath(tempfile("sar_broken_calls_"), winslash = "/", mustWork = FALSE)
+  on.exit(unlink(c(folder, flag, calls), recursive = TRUE), add = TRUE)
+  short <- studyMethods()$LASSO # the first fit of all fails for lack of memory, once
+  short$fitFunction <- sprintf("function(...) { if (!file.exists('%s')) { file.create('%s'); stop('cannot allocate vector of size 2.1 Gb') }; SignalAdaptiveStudy::fitSignalAdaptive(...) }", flag, flag)
+  broken <- studyMethods()$Ridge # fails every time, not for memory
+  broken$fitFunction <- sprintf("function(...) { cat('x\\n', file = '%s', append = TRUE); stop('a bug') }", calls)
+  results <- suppressMessages(execute(dataSource, tasks, folder, mode = "models", orderings = 1,
+                                      methods = list(LASSO = short, Broken = broken), workers = 2))
+  expect_true(file.exists(flag))
+  expect_identical(sort(results$method), c("LASSO", "LASSO"))      # the run that ran out of memory finished on its retry
+  expect_length(readLines(calls), 2)                               # the other failures were not tried again
+  expect_match(readLines(file.path(folder, "log_SIM.txt")), "failed for lack of memory: tried once more", all = FALSE)
+})
