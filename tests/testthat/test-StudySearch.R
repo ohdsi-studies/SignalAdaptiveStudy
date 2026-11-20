@@ -3,7 +3,7 @@ test_that("the study's search settings and preprocessing are as decided", {
   expect_equal(setSar()$param$searchSettings, studySearchSettings("auto"))
   expect_equal(setElasticNet(fitAlgorithm = "ccd")$param$searchSettings, studySearchSettings("ccd"))
   expect_equal(studyPreprocessSettings()$minFraction, 0.001)
-  expect_true(studyPreprocessSettings()$removeRedundancy)
+  expect_false(studyPreprocessSettings()$removeRedundancy)
 })
 
 test_that("priorScaleStart is c n / sum ||x_j||^2 / w_j over the penalised columns kept", {

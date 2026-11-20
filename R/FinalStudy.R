@@ -119,12 +119,14 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 #' shape of SAR and SAL (identical to fitting them alone), so they cost only their final fits.
 #'
 #' @param fitAlgorithm As in [setSar()]; PLP's LASSO uses PLP's own settings.
-#' @param localFit `TRUE`: the study's models search with the local quadratic fit (the bracketed step fitted to the best
-#'   variance and its two neighbours, as Cyclops does for least squares); PLP's LASSO is left out. For comparing the two
-#'   searches (investigator, 2026-11-19).
+#' @param localFit `TRUE` (the study's choice; investigator, 2026-11-20): the variance search's bracketed step fits its
+#'   quadratic to the best variance and its two neighbours, as Cyclops does for least squares, instead of to every
+#'   variance tried, which can extrapolate far outside the tried range. PLP's LASSO uses its own search either way.
+#'   Compared on CCAE (6 tasks, 1,272 paired runs, public commit a7e7517): the same choices in 97-100% of runs, CV loss
+#'   within 1.2e-4 per person, slightly fewer fits.
 #' @return A named list of model settings.
 #' @export
-finalStudyMethods <- function(fitAlgorithm = "auto", localFit = FALSE) {
+finalStudyMethods <- function(fitAlgorithm = "auto", localFit = TRUE) {
   shapes <- finalSarShapes()
   methods <- list(SAR = setSar(shapes = shapes, fitAlgorithm = fitAlgorithm),
        LASSO = setSal(shapes = c(0, 0, 0), name = "LASSO", fitAlgorithm = fitAlgorithm),
@@ -139,15 +141,9 @@ finalStudyMethods <- function(fitAlgorithm = "auto", localFit = FALSE) {
        PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
        SAL = setSal(shapes = shapes, fitAlgorithm = fitAlgorithm))
   if (!localFit) return(methods)
-  methods$PLP_LASSO <- NULL
-  lapply(methods, function(m) { m$param$searchSettings$localFit <- TRUE; m })
-}
-
-# The final study's methods and, for comparing the two searches, the study's models again with the local fit, named
-# <method>_local (they share their searches with each other as the others do, not with the others).
-searchComparisonMethods <- function(fitAlgorithm = "auto") {
-  local <- finalStudyMethods(fitAlgorithm, localFit = TRUE)
-  c(finalStudyMethods(fitAlgorithm), stats::setNames(local, paste0(names(local), "_local")))
+  ours <- names(methods) != "PLP_LASSO"
+  methods[ours] <- lapply(methods[ours], function(m) { m$param$searchSettings$localFit <- TRUE; m })
+  methods
 }
 
 #' The CV-chosen standard model

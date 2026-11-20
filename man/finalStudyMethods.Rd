@@ -4,14 +4,16 @@
 \alias{finalStudyMethods}
 \title{Methods of the final study}
 \usage{
-finalStudyMethods(fitAlgorithm = "auto", localFit = FALSE)
+finalStudyMethods(fitAlgorithm = "auto", localFit = TRUE)
 }
 \arguments{
 \item{fitAlgorithm}{As in \code{\link[=setSar]{setSar()}}; PLP's LASSO uses PLP's own settings.}
 
-\item{localFit}{\code{TRUE}: the study's models search with the local quadratic fit (the bracketed step fitted to the best
-variance and its two neighbours, as Cyclops does for least squares); PLP's LASSO is left out. For comparing the two
-searches (investigator, 2026-11-19).}
+\item{localFit}{\code{TRUE} (the study's choice; investigator, 2026-11-20): the variance search's bracketed step fits its
+quadratic to the best variance and its two neighbours, as Cyclops does for least squares, instead of to every
+variance tried, which can extrapolate far outside the tried range. PLP's LASSO uses its own search either way.
+Compared on CCAE (6 tasks, 1,272 paired runs, public commit a7e7517): the same choices in 97-100\% of runs, CV loss
+within 1.2e-4 per person, slightly fewer fits.}
 }
 \value{
 A named list of model settings.

@@ -102,13 +102,13 @@ test_that("the local fit keeps the bracketed step between the best value's neigh
   expect_equal(uniModalStep(x[2:4], m[2:4], s[2:4], localFit = TRUE), uniModalStep(x[2:4], m[2:4], s[2:4]))
 })
 
-test_that("the search comparison adds every study model with the local fit, and only those change", {
-  methods <- searchComparisonMethods()
-  base <- finalStudyMethods()
-  local <- methods[grepl("_local$", names(methods))]
-  expect_setequal(names(local), paste0(setdiff(names(base), "PLP_LASSO"), "_local"))
-  expect_true(all(vapply(local, function(m) isTRUE(m$param$searchSettings$localFit), logical(1))))
-  expect_identical(methods[names(base)], base)
-  expect_true(all(vapply(base[names(base) != "PLP_LASSO"], function(m) is.null(m$param$searchSettings$localFit), logical(1))))
-  expect_identical(local$SAR_no_c3_local$param$searchSettings$sharedShapes, base$SAR_no_c3$param$searchSettings$sharedShapes)
+test_that("the final study's models search with the local fit, PLP's LASSO with its own", {
+  methods <- finalStudyMethods()
+  ours <- methods[names(methods) != "PLP_LASSO"]
+  expect_true(all(vapply(ours, function(m) isTRUE(m$param$searchSettings$localFit), logical(1))))
+  expect_true("PLP_LASSO" %in% names(methods))
+  expect_null(methods$PLP_LASSO$param$searchSettings$localFit)
+  global <- finalStudyMethods(localFit = FALSE)
+  expect_true(all(vapply(global, function(m) is.null(m$param$searchSettings$localFit), logical(1))))
+  expect_identical(ours$SAR_no_c3$param$searchSettings$sharedShapes, global$SAR_no_c3$param$searchSettings$sharedShapes)
 })

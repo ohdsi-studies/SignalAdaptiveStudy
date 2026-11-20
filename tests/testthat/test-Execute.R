@@ -143,7 +143,7 @@ test_that("the test AUC holds for large test sets (no integer overflow)", {
   expect_identical(testMetrics(y, p, y)$auc, 0.75)
 })
 
-test_that("the study's preprocessing drops one level of each complete block and keeps its rare levels", {
+test_that("the study's preprocessing keeps complete blocks whole and filters their rare levels like any covariate", {
   profile <- get(utils::data("simulationProfile", package = "PatientLevelPrediction", envir = environment()))
   sim <- suppressMessages(PatientLevelPrediction::simulatePlpData(profile, n = 3000, seed = 11))
   settings <- PatientLevelPrediction::createStudyPopulationSettings(riskWindowStart = 1, riskWindowEnd = 365, requireTimeAtRisk = FALSE)
@@ -166,9 +166,8 @@ test_that("the study's preprocessing drops one level of each complete block and 
   data <- suppressMessages(prepareRunData(sim, pop, split))
   tidy <- attr(data$Train$covariateData, "metaData")$tidyCovariateDataSettings
   kept <- as.data.frame(dplyr::collect(dplyr::distinct(data$Train$covariateData$covariates, .data$covariateId)))$covariateId
-  expect_length(intersect(tidy$deletedRedundantCovariateIds, c(8507001, 8532001)), 1) # one gender level
-  expect_length(intersect(tidy$deletedRedundantCovariateIds, c(2003, 3003, 4003)), 1) # the most prevalent age group
-  expect_true(1003 %in% kept)                                                          # the rare level stays
-  expect_false(1003 %in% tidy$deletedInfrequentCovariateIds)
-  expect_gt(length(tidy$deletedInfrequentCovariateIds), 0)                             # the filter still applies
+  expect_length(tidy$deletedRedundantCovariateIds, 0)
+  expect_true(all(c(8507001, 8532001, 2003, 3003, 4003) %in% kept))                    # both genders, every common age group
+  expect_false(1003 %in% kept)                                                         # the single-person level is filtered
+  expect_gt(length(tidy$deletedInfrequentCovariateIds), 0)
 })

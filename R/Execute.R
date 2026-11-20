@@ -89,14 +89,15 @@ studyMethods <- function() {
        Ridge = setSar(shapes = c(0, 0, 0), name = "Ridge"), LASSO = setSal(shapes = c(0, 0, 0), name = "LASSO"))
 }
 
-# FeatureExtraction's standard preprocessing, as PLP's defaults (investigator, 2026-11-19): redundancy removal first (a
-# covariate present in every row, and the most prevalent level of each block where every row has exactly one, e.g.
-# gender or age group), then the frequency filter (covariates in fewer than 0.1% of the training rows), which leaves
-# the other levels of those blocks in however rare. With the filter alone (2026-11-18), rare age groups were removed and
-# their persons fell to the intercept. normalize = TRUE divides by each covariate's maximum, which is 1 for the study's
-# binary covariates, so it changes nothing; FALSE would trigger https://github.com/OHDSI/PatientLevelPrediction/issues/688.
+# PLP's default frequency filter (covariates in fewer than 0.1% of the training rows removed) and no redundancy
+# removal: one-hot blocks such as gender and age group keep every level, as penalised regression usually does, so no
+# level's coefficient has to carry the whole contrast against a dropped reference level (investigator, 2026-11-20). On
+# CCAE (6 tasks, 1,417 paired runs), FeatureExtraction's redundancy removal lowered every method's AUC (by 0.003-0.006 on
+# average). Constant columns are left out of each fit by the weights. Rare levels of a block are filtered like any
+# covariate. normalize = TRUE divides by each covariate's maximum, which is 1 for the study's binary covariates, so it
+# changes nothing; FALSE would trigger https://github.com/OHDSI/PatientLevelPrediction/issues/688.
 studyPreprocessSettings <- function() {
-  PatientLevelPrediction::createPreprocessSettings(minFraction = 0.001, normalize = TRUE, removeRedundancy = TRUE)
+  PatientLevelPrediction::createPreprocessSettings(minFraction = 0.001, normalize = TRUE, removeRedundancy = FALSE)
 }
 
 # Counts as doubles: as integers, n1 * n0 overflows (NA) beyond 2^31, e.g. 8,000 events in a test set of 500,000.
