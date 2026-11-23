@@ -113,7 +113,9 @@ finalCovariateSettings <- function(cohortDatabaseSchema, cohortTable) {
 #' SAR (the shape fixed at (0, 1, -1), the shapes without the third term, and the shapes with only the third term),
 #' posterior-moment ridge ([setPosteriorMomentRidge()], kappa = 0.5), SAL ([setSal()], SAR's shapes with the LASSO
 #' penalty: an adaptive LASSO whose weights come from each covariate's own association with the outcome) and uniLasso
-#' ([setUniLasso()], univariate fits guiding a sign-constrained LASSO; added 2026-11-20). The
+#' ([setUniLasso()], univariate fits guiding a sign-constrained LASSO; added 2026-11-20; its first stage inside each
+#' cross-validation fold), with, as a sensitivity analysis, uniLasso_package (the first stage once on all rows, as the
+#' CRAN package's cv.uniLasso, whose CV loss is optimistic; investigator, 2026-11-23). The
 #' CV-chosen standard model ([addCvChosen()]) is derived from the ridge, LASSO and elastic net runs.
 #'
 #' The ablations reuse SAR's shape searches on the same training set (`sharedShapes`), and ridge and LASSO the first
@@ -141,7 +143,8 @@ finalStudyMethods <- function(fitAlgorithm = "auto", localFit = TRUE) {
                             fitAlgorithm = fitAlgorithm, sharedShapes = shapes),
        PM_ridge = setPosteriorMomentRidge(kappa = 0.5, fitAlgorithm = fitAlgorithm),
        SAL = setSal(shapes = shapes, fitAlgorithm = fitAlgorithm),
-       uniLasso = setUniLasso(fitAlgorithm = fitAlgorithm))
+       uniLasso = setUniLasso(fitAlgorithm = fitAlgorithm),
+       uniLasso_package = setUniLasso(name = "uniLasso_package", fitAlgorithm = fitAlgorithm, foldFeatures = FALSE))
   if (!localFit) return(methods)
   ours <- names(methods) != "PLP_LASSO"
   methods[ours] <- lapply(methods[ours], function(m) { m$param$searchSettings$localFit <- TRUE; m })

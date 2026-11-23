@@ -141,7 +141,7 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
   design <- sparse$dataMatrix; prepared <- cached$prepared
   if (uni) {
     # uniLasso: the search runs on the stage-1 features, with problems of its own. The covariates' problems of this
-    # training set are dropped first (uniLasso is the last method of a unit; a later one would rebuild them).
+    # training set are dropped first (the uniLasso methods are the last of a unit; a later one would rebuild them).
     prepared <- NULL; cached$prepared <- NULL; .trainingSetCache$prepared <- NULL; invisible(gc(verbose = FALSE))
     if (isTRUE(param$searchSettings$foldFeatures)) {
       problems <- uniLassoProblems(sparse$dataMatrix, y, folds) # stage 1 inside each fold

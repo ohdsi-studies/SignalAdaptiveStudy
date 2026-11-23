@@ -127,8 +127,12 @@ test_that("every method of the final study runs end to end, saves, and gives the
   on.exit(unlink(folder, recursive = TRUE), add = TRUE)
   methods <- finalStudyMethods()
   expect_setequal(names(methods), c("SAR", "LASSO", "Ridge", "PLP_LASSO", "ElasticNet", "SAR_fixed", "SAR_no_c3", "SAR_c3_only",
-                                     "PM_ridge", "SAL", "uniLasso"))
+                                     "PM_ridge", "SAL", "uniLasso", "uniLasso_package"))
   expect_identical(methods$uniLasso$param$searchSettings$lowerBound, 0)
+  expect_true(methods$uniLasso$param$searchSettings$foldFeatures)
+  expect_identical(methods$uniLasso_package$param$searchSettings$lowerBound, 0)
+  expect_null(methods$uniLasso_package$param$searchSettings$foldFeatures) # as on 2026-11-20
+  expect_identical(tail(names(methods), 2), c("uniLasso", "uniLasso_package")) # they drop the covariates' problems
   task$budgets <- list(100)
   results <- execute(source, task, folder, mode = "models", orderings = 1, methods = methods, workers = 1)
   expect_equal(nrow(results), length(methods))

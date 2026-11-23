@@ -124,6 +124,10 @@ extraction). SAR and SAL search 16 shapes (c3 down to -2) and the three SAR abla
 other methods' do not). `git pull`, reinstall the package, and run with `--rerun-changed`: only the 144 uniLasso runs
 are moved to `replaced/` and fitted again.
 
+**After 2026-11-23 (second):** a 12th method, uniLasso_package (uniLasso as the CRAN package cross-validates it), is
+added as a sensitivity analysis. `git pull`, reinstall the package, and run as usual: only its 144 runs are new; every
+other run is kept.
+
 A run that fails leaves `error.txt` in its folder and is tried again the next time. Runs that failed for lack of memory
 (`cannot allocate`, `bad_alloc`, out of memory, or a worker that died twice) are also tried once more at the end of the
 same run, one training set at a time with nothing else running.
