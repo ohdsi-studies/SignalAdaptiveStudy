@@ -58,12 +58,17 @@ setSal <- function(shapes = sarShapes(), interceptOnly = TRUE, name = "SAL", fit
 #' >= 0, so each covariate keeps its univariate sign; no standardisation. Stage 1 as [uniLassoFeatures()], from each
 #' binary covariate's 2 x 2 table; stage 2 fitted by Cyclops (needs lower bounds, branch lower-bounds) with the study's
 #' folds and variance search, as LASSO, instead of glmnet's lambda path (investigator, 2026-11-20).
+#' @param foldFeatures `TRUE` (the study's, investigator 2026-11-23): the cross-validation repeats stage 1 inside each
+#'   fold, and the held-out rows get a new person's features ([uniLassoProblems()]); the package's cv.uniLasso computes
+#'   stage 1 once on all rows, so a held-out row's feature holds a trace of its own outcome and, with many rare binary
+#'   covariates, the CV loss is optimistic (CCAE run of 2026-11-20). `FALSE`: as the package.
 #' @inheritParams setSar
 #' @return PLP model settings.
 #' @export
-setUniLasso <- function(interceptOnly = TRUE, name = "uniLasso", fitAlgorithm = "auto") {
+setUniLasso <- function(interceptOnly = TRUE, name = "uniLasso", fitAlgorithm = "auto", foldFeatures = TRUE) {
   signalAdaptiveSettings("lasso", c(0, 0, 0), interceptOnly, name,
-                         searchSettings = c(studySearchSettings(fitAlgorithm), list(lowerBound = 0)), features = "uniLasso")
+                         searchSettings = c(studySearchSettings(fitAlgorithm), list(lowerBound = 0),
+                                            if (foldFeatures) list(foldFeatures = TRUE)), features = "uniLasso")
 }
 
 setPosteriorMomentRidge <- function(kappa = 0.5, interceptOnly = TRUE, name = "PM_ridge", fitAlgorithm = "auto") {
@@ -133,20 +138,33 @@ fitSignalAdaptive <- function(trainData, modelSettings, hyperparameterSettings =
 
   y <- as.numeric(labels$outcomeCount > 0)
   uni <- identical(param$features, "uniLasso")
-  # uniLasso: the search runs on the stage-1 features (their own fit problems, kept apart from those of the covariates)
-  features <- if (uni) uniLassoFeatures(sparse$dataMatrix, y)
-  fit <- signalAdaptiveCv(if (uni) features$G else sparse$dataMatrix, y, folds,
+  design <- sparse$dataMatrix; prepared <- cached$prepared
+  if (uni) {
+    # uniLasso: the search runs on the stage-1 features, with problems of its own. The covariates' problems of this
+    # training set are dropped first (uniLasso is the last method of a unit; a later one would rebuild them).
+    prepared <- NULL; cached$prepared <- NULL; .trainingSetCache$prepared <- NULL; invisible(gc(verbose = FALSE))
+    if (isTRUE(param$searchSettings$foldFeatures)) {
+      problems <- uniLassoProblems(sparse$dataMatrix, y, folds) # stage 1 inside each fold
+      features <- problems$features; design <- problems$G; prepared <- problems$prepared
+      rm(problems)
+    } else {
+      features <- uniLassoFeatures(sparse$dataMatrix, y) # stage 1 once on all rows, as the package's cv.uniLasso
+      design <- features$G
+    }
+  }
+  fit <- signalAdaptiveCv(design, y, folds,
                           penalty = settings$penalty, shapes = param$shapes, interceptOnly = param$interceptOnly,
                           search = param$search %||% "auto", cSelection = param$cSelection %||% "observed",
                           searchSettings = param$searchSettings %||% list(),
                           unpenalized = covariateIds %in% (param$unpenalizedCovariateIds %||% c()),
-                          weightRule = param$weightRule, prepared = if (uni) cached$preparedUniLasso else cached$prepared)
+                          weightRule = param$weightRule, prepared = prepared)
+  rm(design, prepared)
   if (uni) {
-    rememberTrainingSet(trainData, sparse, cached$prepared, preparedUniLasso = fit$prepared)
+    rememberTrainingSet(trainData, sparse, NULL) # uniLasso's problems are not kept
     model <- uniLassoModel(features, fit$intercept, fit$beta) # to the covariates' scale
     fit$intercept <- model$intercept; fit$beta <- model$coefficients; fit$nonZero <- sum(fit$beta != 0)
   } else {
-    rememberTrainingSet(trainData, sparse, fit$prepared, preparedUniLasso = cached$preparedUniLasso)
+    rememberTrainingSet(trainData, sparse, fit$prepared)
   }
   fit$prepared <- NULL
 
@@ -276,18 +294,16 @@ trainingSetKey <- function(trainData) {
 }
 trainingSetCache <- function(trainData) {
   if (!is.null(.trainingSetCache$key) && identical(.trainingSetCache$key, trainingSetKey(trainData))) {
-    list(sparse = .trainingSetCache$sparse, prepared = .trainingSetCache$prepared,
-         preparedUniLasso = .trainingSetCache$preparedUniLasso)
+    list(sparse = .trainingSetCache$sparse, prepared = .trainingSetCache$prepared)
   } else {
     clearTrainingSetCache()
     list()
   }
 }
-rememberTrainingSet <- function(trainData, sparse, prepared, preparedUniLasso = NULL) {
+rememberTrainingSet <- function(trainData, sparse, prepared) {
   .trainingSetCache$key <- trainingSetKey(trainData)
   .trainingSetCache$sparse <- sparse
   .trainingSetCache$prepared <- prepared
-  .trainingSetCache$preparedUniLasso <- preparedUniLasso
 }
 clearTrainingSetCache <- function() {
   rm(list = ls(.trainingSetCache, all.names = TRUE), envir = .trainingSetCache)

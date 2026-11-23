@@ -117,3 +117,52 @@ test_that("the study search with the bound keeps every stage-2 coefficient >= 0,
   expect_error(signalAdaptiveCv(features$G, d$y, folds, penalty = "ridge", shapes = c(0, 0, 0),
                                 searchSettings = list(lowerBound = 0)), "LASSO penalty")
 })
+
+test_that("in-fold stage 1: a held-out row's features are a new person's, from the fold's training rows only", {
+  skip_if_not(cyclopsHasBounds(), "Cyclops without lower bounds (branch lower-bounds)")
+  d <- simulateBinary(n = 900, p = 30, seed = 5)
+  X <- Matrix::Matrix(d$X, sparse = TRUE)
+  folds <- rep_len(1:3, length(d$y))
+  up <- uniLassoProblems(X, d$y, folds)
+  expect_length(up$prepared$problems, 3)
+  expect_equal(up$G, uniLassoFeatures(X, d$y)$G) # the full problem: stage 1 on all rows, as the package's final model
+  set.seed(6)
+  for (k in 1:3) {
+    pr <- up$prepared$problems[[k]]
+    rows <- folds != k
+    f <- uniLassoFeatures(X[rows, ], d$y[rows]) # the fold's own stage 1
+    theta <- numeric(ncol(X)); theta[pr$ids] <- stats::runif(length(pr$ids))
+    model <- uniLassoModel(f, -1.3, theta) # the model a stage-2 fit on the fold's features would give, on x
+    expect_equal(heldOutEta(pr, c(-1.3, theta[pr$ids])), as.numeric(model$intercept + X[!rows, ] %*% model$coefficients),
+                 tolerance = 1e-10)
+    # the held-out rows' outcomes play no part: the same problem with them flipped
+    flipped <- d$y; flipped[!rows] <- 1 - flipped[!rows]
+    other <- uniLassoProblems(X, flipped, folds)$prepared$problems[[k]]
+    expect_equal(other$heldOutShift, pr$heldOutShift)
+    expect_equal(other$heldOutX, pr$heldOutX)
+  }
+})
+
+test_that("on pure noise with rare covariates, in-fold stage 1 keeps fewer noise covariates than stage 1 on all rows", {
+  skip_on_cran()
+  skip_if_not(cyclopsHasBounds(), "Cyclops without lower bounds (branch lower-bounds)")
+  set.seed(1)
+  n <- 3000; p <- 2000
+  X <- Matrix::rsparsematrix(n, p, density = 0.01, rand.x = function(k) rep(1, k))
+  X <- X[, Matrix::colSums(X) >= 2]
+  y <- as.numeric(stats::runif(n) < 0.03)
+  folds <- rep_len(1:3, n)
+  settings <- c(studySearchSettings(), list(lowerBound = 0))
+  plain <- suppressMessages(signalAdaptiveCv(uniLassoFeatures(X, y)$G, y, folds, penalty = "lasso", shapes = c(0, 0, 0),
+                                             searchSettings = settings))
+  up <- uniLassoProblems(X, y, folds)
+  nested <- suppressMessages(signalAdaptiveCv(up$G, y, folds, penalty = "lasso", shapes = c(0, 0, 0),
+                                              searchSettings = settings, prepared = up$prepared))
+  expect_gt(plain$nonZero, nested$nonZero)
+  expect_lte(nested$nonZero, 2)
+})
+
+test_that("setUniLasso() cross-validates with stage 1 inside each fold unless told otherwise", {
+  expect_true(setUniLasso()$param$searchSettings$foldFeatures)
+  expect_null(setUniLasso(foldFeatures = FALSE)$param$searchSettings$foldFeatures)
+})

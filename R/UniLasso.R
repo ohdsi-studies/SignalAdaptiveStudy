@@ -48,14 +48,18 @@ uniLassoFeatures <- function(X, y) {
   f00 <- loo(g0, h0, g0$z0); f01 <- loo(g0, h0, g0$z1); f10 <- loo(g1, h1, g1$z0); f11 <- loo(g1, h1, g1$z1)
   zero <- function(v) ifelse(constant, 0, v)
   shift <- zero(f00)
-  # G: where the covariate is present, F - shift for the person's outcome; in the outcome rows, F01 - shift elsewhere
-  present <- methods::as(X, "TsparseMatrix")
-  i <- present@i + 1L; j <- present@j + 1L
-  values <- ifelse(y[i] == 1, zero(f11)[j], zero(f10)[j]) - shift[j]
+  # G: where the covariate is present, F - shift for the person's outcome; in the outcome rows, F01 - shift elsewhere.
+  # Built on X's own column-compressed structure (no triplet copies).
+  j <- rep.int(seq_len(p), diff(X@p)); i <- X@i + 1L
+  event <- y[i] == 1
+  present <- X
+  present@x <- ifelse(event, zero(f11)[j] - zero(f01)[j], zero(f10)[j] - shift[j])
+  rm(j, i, event)
   events <- which(y == 1)
   absentInEvents <- Matrix::sparseMatrix(i = rep(events, p), j = rep(seq_len(p), each = length(events)),
                                          x = rep(zero(f01) - shift, each = length(events)), dims = c(n, p))
-  G <- Matrix::sparseMatrix(i = i, j = j, x = values - (zero(f01) - shift)[j] * (y[i] == 1), dims = c(n, p)) + absentInEvents
+  G <- present + absentInEvents
+  rm(present, absentInEvents)
   dimnames(G) <- dimnames(X)
   list(beta = beta, beta0 = beta0, shift = shift, G = methods::as(G, "CsparseMatrix"), constant = constant)
 }
@@ -64,4 +68,32 @@ uniLassoFeatures <- function(X, y) {
 # intercept and coefficients on x, gamma_j = theta_j beta_j, intercept theta0 + sum_j theta_j (beta0_j - shift_j).
 uniLassoModel <- function(features, intercept, theta) {
   list(intercept = unname(intercept) + sum(theta * (features$beta0 - features$shift)), coefficients = unname(theta * features$beta))
+}
+
+# The fit problems of uniLasso's cross-validation, with stage 1 inside each fold (investigator, 2026-11-23): the package's
+# cv.uniLasso computes the stage-1 features once on all rows and then cross-validates stage 2, so a held-out row's
+# feature already holds a trace of its own outcome (the leave-one-out of two IRLS steps is approximate: the first step
+# includes the person), which with many rare binary covariates makes the CV loss optimistic. Here each fold's stage 1
+# uses the fold's training rows only (the package's leave-one-out features for them), and its held-out rows get the
+# features of a new person, beta0 + beta x from that fit, as at test time. The full problem is stage 1 on all rows, as the
+# package's final model. Returns list(G, features, prepared) for signalAdaptiveCv(G, ..., prepared = prepared).
+uniLassoProblems <- function(X, y, folds) {
+  X <- methods::as(X, "CsparseMatrix")
+  y <- as.numeric(y)
+  problem <- function(rows) {
+    f <- uniLassoFeatures(X[rows, , drop = FALSE], y[rows])
+    pr <- list(rows = rows, n = sum(rows), data = makeCyclopsData(f$G, y[rows]),
+               statistics = sarStatistics(f$G, y[rows]))
+    pr$ids <- as.integer(Cyclops::getCovariateIds(pr$data)[-1])
+    if (any(!rows)) {
+      # new-person features, beta0 + beta x, relative to the training rows' shift (absorbed by the intercept there)
+      pr$heldOutX <- X[!rows, pr$ids, drop = FALSE] %*% Matrix::Diagonal(x = f$beta[pr$ids])
+      pr$heldOutShift <- (f$beta0 - f$shift)[pr$ids]
+    }
+    list(problem = pr, features = f)
+  }
+  problems <- lapply(sort(unique(folds)), function(k) problem(folds != k)$problem)
+  full <- problem(rep(TRUE, length(y)))
+  list(G = full$features$G, features = full$features,
+       prepared = list(problems = problems, full = full$problem, unpenalized = rep(FALSE, ncol(X)), shapeResults = list()))
 }

@@ -4,7 +4,12 @@
 \alias{setUniLasso}
 \title{uniLasso, fitted with Cyclops}
 \usage{
-setUniLasso(interceptOnly = TRUE, name = "uniLasso", fitAlgorithm = "auto")
+setUniLasso(
+  interceptOnly = TRUE,
+  name = "uniLasso",
+  fitAlgorithm = "auto",
+  foldFeatures = TRUE
+)
 }
 \arguments{
 \item{interceptOnly}{Allow the intercept-only model to win the cross-validation, as the original does.}
@@ -14,6 +19,11 @@ setUniLasso(interceptOnly = TRUE, name = "uniLasso", fitAlgorithm = "auto")
 \item{fitAlgorithm}{\code{"auto"}: Cyclops's coordinate descent that moves to Newton or prox-Newton steps where they pay.
 \code{"ccd"}: coordinate descent. Both stop at the same criteria (KKT 3e-3 in folds, Cyclops's default for the final fit),
 used for fold and final fits alike.}
+
+\item{foldFeatures}{\code{TRUE} (the study's, investigator 2026-11-23): the cross-validation repeats stage 1 inside each
+fold, and the held-out rows get a new person's features (\code{uniLassoProblems()}); the package's cv.uniLasso computes
+stage 1 once on all rows, so a held-out row's feature holds a trace of its own outcome and, with many rare binary
+covariates, the CV loss is optimistic (CCAE run of 2026-11-20). \code{FALSE}: as the package.}
 }
 \value{
 PLP model settings.

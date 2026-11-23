@@ -120,6 +120,10 @@ study's models search the variance with a local quadratic fit, uniLasso is added
 other settings, so all are moved to `replaced/` in the output folder and run again from the extracted data (no new
 extraction). SAR and SAL search 16 shapes (c3 down to -2) and the three SAR ablations take SAR's searches.
 
+**After 2026-11-23:** uniLasso's cross-validation repeats its first stage inside each fold (its settings change, the
+other methods' do not). `git pull`, reinstall the package, and run with `--rerun-changed`: only the 144 uniLasso runs
+are moved to `replaced/` and fitted again.
+
 A run that fails leaves `error.txt` in its folder and is tried again the next time. Runs that failed for lack of memory
 (`cannot allocate`, `bad_alloc`, out of memory, or a worker that died twice) are also tried once more at the end of the
 same run, one training set at a time with nothing else running.

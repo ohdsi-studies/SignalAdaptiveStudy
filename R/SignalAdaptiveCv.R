@@ -221,9 +221,18 @@ newtonSolver <- function(convergence) {
   if (solver == "cg") paste0("cg/", convergence$preconditioner %||% "unknown") else solver
 }
 
+# The held-out rows' linear predictor: their design (problem$heldOutX, the problem's columns) times the coefficients, plus
+# problem$heldOutShift (per column, NULL: none) times the coefficients: uniLasso's fold problems, whose held-out rows get
+# features as a new person does (uniLassoProblems()).
+heldOutEta <- function(problem, coefficients) {
+  b <- coefficients[-1]
+  coefficients[1] + (if (is.null(problem$heldOutShift)) 0 else sum(b * problem$heldOutShift)) +
+    as.numeric(problem$heldOutX %*% b)
+}
+
 heldOutLogLikelihood <- function(X, y, problem, coefficients) {
   heldOut <- !problem$rows
-  eta <- coefficients[1] + as.numeric(problem$heldOutX %*% coefficients[-1])
+  eta <- heldOutEta(problem, coefficients)
   -sum((1 - y[heldOut]) * softplus(eta) + y[heldOut] * softplus(-eta))
 }
 
@@ -547,7 +556,7 @@ signalAdaptiveCv <- function(X, y, folds, penalty = c("ridge", "lasso", "elastic
       pr <- problems[[f]]
       co <- strategy$foldCoefficients(X, y, pr, f, penalty, problemWeights(X, y, pr, shape, unpenalized, weightRule), record,
                                       state)
-      cvPrediction[!pr$rows] <- stats::plogis(co[1] + as.numeric(X[!pr$rows, pr$ids, drop = FALSE] %*% co[-1]))
+      cvPrediction[!pr$rows] <- stats::plogis(heldOutEta(pr, co))
     }
   }
   ParallelLogger::logInfo(sprintf("final fit done: %s; %.1f min in all",
