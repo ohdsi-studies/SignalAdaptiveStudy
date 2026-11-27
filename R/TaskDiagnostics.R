@@ -47,11 +47,12 @@ scalarsSql <- function(values) {
          paste(sprintf("(%s) %s", values, aliases), collapse = " CROSS JOIN "))
 }
 
-# One task's population under the study's rule (first target entry, days of prior observation, no earlier outcome, at
-# least a day at risk; D3 of the design: nobody is removed for leaving before the horizon) and its first event in the
+# One task's population under the study's rule (first target entry, days of prior observation, optionally no earlier outcome,
+# at least a day at risk; D3 of the design: nobody is removed for leaving before the horizon) and its first event in the
 # time at risk: temp tables #diag_pop and #diag_event.
-createDiagnosticPopulation <- function(run, task) {
-  run("
+createDiagnosticPopulation <- function(run, task, removePriorOutcome = TRUE) {
+  priorFilter <- if (isTRUE(removePriorOutcome)) "AND p.subject_id IS NULL " else ""
+  run(sprintf("
     DROP TABLE IF EXISTS #diag_first;
     SELECT subject_id, MIN(cohort_start_date) AS index_date
     INTO #diag_first
@@ -80,7 +81,7 @@ createDiagnosticPopulation <- function(run, task) {
     INTO #diag_pop
     FROM #diag_obs o
     LEFT JOIN #diag_prior p ON p.subject_id = o.subject_id
-    WHERE o.prior_days >= @washout AND p.subject_id IS NULL AND o.follow_days >= @risk_start;
+    WHERE o.prior_days >= @washout %sAND o.follow_days >= @risk_start;
 
     DROP TABLE IF EXISTS #diag_event;
     SELECT p.subject_id, MIN(c.cohort_start_date) AS event_date
@@ -99,7 +100,7 @@ createDiagnosticPopulation <- function(run, task) {
                 WHEN p.follow_days < @risk_end THEN p.follow_days ELSE @risk_end END AS days_at_risk
     INTO #diag_risk
     FROM #diag_pop p
-    LEFT JOIN #diag_event e ON e.subject_id = p.subject_id;")
+    LEFT JOIN #diag_event e ON e.subject_id = p.subject_id;", priorFilter))
 }
 
 # The cohort's entry-event records of a set of persons, into #diag_records (person, date, concept). Domains come from the
@@ -146,8 +147,8 @@ diagnosticQuery <- function(connection, sql) {
   d
 }
 
-taskDiagnostics <- function(connection, run, query, task, cohortDefinitionSet, tempEmulationSchema) {
-  createDiagnosticPopulation(run, task)
+taskDiagnostics <- function(connection, run, query, task, cohortDefinitionSet, tempEmulationSchema, removePriorOutcome = TRUE) {
+  createDiagnosticPopulation(run, task, removePriorOutcome = removePriorOutcome)
   summary <- query(scalarsSql(c(
     target_entries = "SELECT COUNT(*) AS n FROM @schema.@cohort_table WHERE cohort_definition_id = @target_id",
     target_persons = "SELECT COUNT(*) AS n FROM #diag_first",
@@ -232,7 +233,7 @@ taskDiagnostics <- function(connection, run, query, task, cohortDefinitionSet, t
 #' @param cohortDatabaseSchema Schema of the cohort table.
 #' @param cohortTable Cohort table, with the tasks' cohorts already generated.
 #' @param tasks Data frame: `taskId`, `targetId`, `outcomeId`, `riskWindowEnd` (days), optionally `riskWindowStart` (default
-#'   1), `washoutDays` (default 365).
+#'   1), `washoutDays` (default 365), `removePriorOutcome` (default TRUE).
 #' @param cohortDefinitionSet Cohort definitions (`cohortId`, `json`) for the checks on the outcome's codes.
 #' @param databaseName Name used in the results.
 #' @param outputFolder Folder for the results: `taskDiagnostics/<database>/`.
@@ -256,9 +257,11 @@ runTaskDiagnostics <- function(connectionDetails, cdmDatabaseSchema, cohortDatab
     task <- tasks[i, ]
     file <- file.path(folder, "tasks", paste0(task$taskId, ".rds"))
     definition <- cohortDefinitionSet$sql[match(c(task$targetId, task$outcomeId), cohortDefinitionSet$cohortId)]
+    rmPrior <- !isFALSE(as.logical(defaults(task, "removePriorOutcome", TRUE)))
     settings <- list(version = DIAGNOSTICS_VERSION, database = databaseName, cdm = cdmDatabaseSchema, target = definition[1], outcome = definition[2],
                      riskStart = defaults(task, "riskWindowStart", 1), riskEnd = task$riskWindowEnd,
                      washout = defaults(task, "washoutDays", 365), minCellCount = minCellCount)
+    if (!rmPrior) settings$removePriorOutcome <- FALSE
     hash <- rlang::hash(settings)
     if (file.exists(file) && identical(readRDS(file)$hash, hash)) next
     parameters <- list(schema = cohortDatabaseSchema, cohort_table = cohortTable, cdm = cdmDatabaseSchema, target_id = task$targetId,
@@ -268,7 +271,7 @@ runTaskDiagnostics <- function(connectionDetails, cdmDatabaseSchema, cohortDatab
     run <- function(sql) DatabaseConnector::executeSql(connection, translate(sql), progressBar = FALSE, reportOverallTime = FALSE)
     query <- function(sql) diagnosticQuery(connection, translate(sql))
     start <- Sys.time()
-    result <- tryCatch(taskDiagnostics(connection, run, query, task, cohortDefinitionSet, tempEmulationSchema), error = function(e) e)
+    result <- tryCatch(taskDiagnostics(connection, run, query, task, cohortDefinitionSet, tempEmulationSchema, removePriorOutcome = rmPrior), error = function(e) e)
     tryCatch(dropTemps(run), error = function(e) NULL) # on Spark these are real tables in the scratch schema
     if (inherits(result, "error")) {
       writeLines(conditionMessage(result), file.path(folder, "tasks", paste0(task$taskId, "_error.txt")))
@@ -425,10 +428,13 @@ taskScorecard <- function(folders, tasks, thresholds = taskScorecardThresholds()
 #' @param outputFolder Folder for the results.
 #' @param minCellCount Counts below this are shown as `-minCellCount`.
 #' @param tempEmulationSchema For platforms without temp tables (e.g. Spark, Oracle).
+#' @param runV3 Logical; if `TRUE` (default), also run [runTaskDiagnosticsV3()] (Modules 1-7) on the same cohort table and include its aggregate CSVs in the screening zip alongside the standalone V3 zip.
+#' @param runOrphanScan Logical; passed to [runTaskDiagnosticsV3()] (default `TRUE`).
 #' @return The path of the zip file.
 #' @export
 runTaskScreening <- function(connectionDetails, cdmDatabaseSchema, cohortDatabaseSchema, databaseName, outputFolder, minCellCount = 5,
-                             tempEmulationSchema = getOption("sqlRenderTempEmulationSchema")) {
+                             tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+                             runV3 = TRUE, runOrphanScan = TRUE) {
   settings <- system.file("settings", "taskScreening", package = "SignalAdaptiveStudy")
   definitions <- readRDS(file.path(settings, "cohorts.rds"))
   tasks <- utils::read.csv(file.path(settings, "tasks.csv"), stringsAsFactors = FALSE)
@@ -459,10 +465,30 @@ runTaskScreening <- function(connectionDetails, cdmDatabaseSchema, cohortDatabas
   card <- taskScorecard(folder, tasks[usable, ])
   utils::write.csv(card$scorecard, file.path(folder, "scorecard.csv"), row.names = FALSE)
   utils::write.csv(card$tasks, file.path(folder, "scorecard_tasks.csv"), row.names = FALSE)
+  v3Csvs <- character(0)
+  if (isTRUE(runV3)) {
+    startV3 <- Sys.time()
+    runTaskDiagnosticsV3(
+      connectionDetails    = connectionDetails,
+      cdmDatabaseSchema    = cdmDatabaseSchema,
+      cohortDatabaseSchema = cohortDatabaseSchema,
+      cohortTable          = cohortTable,
+      tasks                = tasks[usable, ],
+      cohortDefinitionSet  = definitions,
+      databaseName         = databaseName,
+      outputFolder         = outputFolder,
+      minCellCount         = minCellCount,
+      tempEmulationSchema  = tempEmulationSchema,
+      runOrphanScan        = runOrphanScan
+    )
+    message(sprintf("%s: V3 diagnostics in %.0f min", databaseName, as.numeric(difftime(Sys.time(), startV3, units = "mins"))))
+    v3Folder <- file.path(outputFolder, "taskDiagnosticsV3", databaseName)
+    v3Csvs <- list.files(v3Folder, "_v3\\.csv$", full.names = TRUE)
+  }
   errors <- list.files(file.path(folder, "tasks"), "_error\\.txt$", full.names = TRUE)
   zipFile <- normalizePath(file.path(outputFolder, sprintf("SignalAdaptiveStudy_screening_%s_%s.zip", databaseName, format(Sys.Date(), "%Y%m%d"))), mustWork = FALSE)
   unlink(zipFile)
-  zip::zipr(zipFile, c(list.files(folder, "\\.csv$", full.names = TRUE), errors))
+  zip::zipr(zipFile, c(list.files(folder, "\\.csv$", full.names = TRUE), v3Csvs, errors))
   message(sprintf("%s: %d of %d tasks diagnosed, %d failed. Send: %s", databaseName, nrow(card$scorecard), nrow(tasks), length(errors), zipFile))
   zipFile
 }

@@ -85,6 +85,14 @@ for (dbms in c("duckdb", "sqlite")) {
     expect_identical(file.mtime(file.path(folder, "tasks", "t.rds")), stamp)
     runTaskDiagnostics(details, "main", "main", "cohort", diagnosticTask, definitions, "SYN", out, minCellCount = 5, tempEmulationSchema = NULL)
     expect_equal(utils::read.csv(file.path(folder, "summary.csv"))$events, -5)
+
+    # removePriorOutcome = FALSE keeps person 6 (who had an outcome in 2005)
+    taskNoPrior <- cbind(diagnosticTask, removePriorOutcome = FALSE)
+    taskNoPrior$taskId <- "t_keep_prior"
+    runTaskDiagnostics(details, "main", "main", "cohort", taskNoPrior, definitions, "SYN", out, minCellCount = 1, tempEmulationSchema = NULL)
+    s2 <- utils::read.csv(file.path(folder, "summary.csv"))
+    expect_equal(s2$population[s2$taskId == "t_keep_prior"], 8)
+    expect_equal(s2$prior_outcome[s2$taskId == "t_keep_prior"], 1)
   })
 }
 

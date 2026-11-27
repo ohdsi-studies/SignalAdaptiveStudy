@@ -27,7 +27,7 @@ runTaskDiagnostics(
 \item{cohortTable}{Cohort table, with the tasks' cohorts already generated.}
 
 \item{tasks}{Data frame: \code{taskId}, \code{targetId}, \code{outcomeId}, \code{riskWindowEnd} (days), optionally \code{riskWindowStart} (default
-1), \code{washoutDays} (default 365).}
+1), \code{washoutDays} (default 365), \code{removePriorOutcome} (default TRUE).}
 
 \item{cohortDefinitionSet}{Cohort definitions (\code{cohortId}, \code{json}) for the checks on the outcome's codes.}
 

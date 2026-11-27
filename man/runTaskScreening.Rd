@@ -11,7 +11,9 @@ runTaskScreening(
   databaseName,
   outputFolder,
   minCellCount = 5,
-  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema")
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+  runV3 = TRUE,
+  runOrphanScan = TRUE
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ runTaskScreening(
 \item{minCellCount}{Counts below this are shown as \code{-minCellCount}.}
 
 \item{tempEmulationSchema}{For platforms without temp tables (e.g. Spark, Oracle).}
+
+\item{runV3}{Logical; if \code{TRUE} (default), also run \code{\link[=runTaskDiagnosticsV3]{runTaskDiagnosticsV3()}} (Modules 1-7) on the same cohort table and include its aggregate CSVs in the screening zip alongside the standalone V3 zip.}
+
+\item{runOrphanScan}{Logical; passed to \code{\link[=runTaskDiagnosticsV3]{runTaskDiagnosticsV3()}} (default \code{TRUE}).}
 }
 \value{
 The path of the zip file.

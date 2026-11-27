@@ -1,6 +1,6 @@
-# Screens the candidate tasks of the follow-up study in one database: cohorts and counts only, no covariates and no models.
-# Writes a zip of aggregates (counts below minCellCount censored) to send back. Safe next to a running study: it uses its own
-# cohort table, sar_screen_cohort_<database>. Restartable: rerun after an interruption.
+# Screens the candidate tasks of the follow-up study in one or more databases: cohorts and v2 + v3 diagnostics only,
+# no covariates and no models. Writes a zip of aggregates (counts below minCellCount censored) to send back. Safe next
+# to a running study: it uses its own cohort table, sar_screen_cohort_<database>. Restartable: rerun after an interruption.
 #
 #   Rscript extras/production/runTaskScreening.R               every database in cdmSchemas, one after the other
 #   Rscript extras/production/runTaskScreening.R MDCD MDCR     only these
