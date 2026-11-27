@@ -2,21 +2,55 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "t2dm",
+      "name": "Type 2 diabetes mellitus (with complication orphans)",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 201826,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Type 2 diabetes mellitus",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "44054006",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 43531578,
+              "CONCEPT_NAME": "Chronic kidney disease due to type 2 diabetes mellitus",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "771000119108",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 37016349,
+              "CONCEPT_NAME": "Hyperglycemia due to type 2 diabetes mellitus",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "368051000119109",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -53,6 +87,12 @@
     "Type": "First"
   },
   "InclusionRules": [],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",

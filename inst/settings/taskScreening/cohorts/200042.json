@@ -2,21 +2,21 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "oac",
+      "name": "Oral anticoagulants",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 1310149,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "warfarin",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "11289",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "RxNorm",
+              "CONCEPT_CLASS_ID": "Ingredient"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -25,15 +25,15 @@
           {
             "concept": {
               "CONCEPT_ID": 43013024,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "apixaban",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "1364430",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "RxNorm",
+              "CONCEPT_CLASS_ID": "Ingredient"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -42,15 +42,15 @@
           {
             "concept": {
               "CONCEPT_ID": 40241331,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "rivaroxaban",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "1114195",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "RxNorm",
+              "CONCEPT_CLASS_ID": "Ingredient"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -59,15 +59,15 @@
           {
             "concept": {
               "CONCEPT_ID": 40228152,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "dabigatran etexilate",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "1037042",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "RxNorm",
+              "CONCEPT_CLASS_ID": "Ingredient"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -76,15 +76,15 @@
           {
             "concept": {
               "CONCEPT_ID": 45892847,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "edoxaban",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "1599538",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "RxNorm",
+              "CONCEPT_CLASS_ID": "Ingredient"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -95,21 +95,38 @@
     },
     {
       "id": 1,
-      "name": "af",
+      "name": "Atrial fibrillation or flutter",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 313217,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Atrial fibrillation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "49436004",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 314665,
+              "CONCEPT_NAME": "Atrial flutter",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "5370000",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -147,7 +164,7 @@
   },
   "InclusionRules": [
     {
-      "name": "rules",
+      "name": "Prior AF or flutter",
       "expression": {
         "Type": "ALL",
         "CriteriaList": [
@@ -163,22 +180,29 @@
               },
               "End": {
                 "Days": 0,
-                "Coeff": -1
+                "Coeff": 1
               },
               "UseIndexEnd": false,
               "UseEventEnd": false
             },
+            "RestrictVisit": false,
+            "IgnoreObservationPeriod": false,
             "Occurrence": {
               "Type": 2,
-              "Count": 1
+              "Count": 1,
+              "IsDistinct": false
             }
           }
-        ],
-        "DemographicCriteriaList": [],
-        "Groups": []
+        ]
       }
     }
   ],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",

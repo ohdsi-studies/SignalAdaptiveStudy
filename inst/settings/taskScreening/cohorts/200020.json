@@ -2,21 +2,21 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "axillary",
+      "name": "Axillary lymph node surgery",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 4120961,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Excision of axillary lymph node",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "234262008",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -25,15 +25,15 @@
           {
             "concept": {
               "CONCEPT_ID": 4194967,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Complete axillary lymphadenectomy",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "79544006",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -42,15 +42,15 @@
           {
             "concept": {
               "CONCEPT_ID": 2108469,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Biopsy or excision of lymph node(s); open, deep axillary node(s)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "38525",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -59,15 +59,15 @@
           {
             "concept": {
               "CONCEPT_ID": 40757010,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Intraoperative identification (eg, mapping) of sentinel lymph node(s) includes injection of non-radioactive dye, when performed (List separately in addition to code for primary procedure)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "38900",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -78,21 +78,21 @@
     },
     {
       "id": 1,
-      "name": "breastCancer",
+      "name": "Breast cancer",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 4112853,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Malignant neoplasm of breast",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "254837009",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -115,14 +115,10 @@
             {
               "CONCEPT_ID": 8532,
               "CONCEPT_NAME": "FEMALE",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "F",
               "DOMAIN_ID": "Gender",
               "VOCABULARY_ID": "Gender",
-              "CONCEPT_CLASS_ID": "Gender"
+              "CONCEPT_CODE": "F",
+              "STANDARD_CONCEPT": "S"
             }
           ]
         }
@@ -144,7 +140,7 @@
   },
   "InclusionRules": [
     {
-      "name": "rules",
+      "name": "Prior breast cancer",
       "expression": {
         "Type": "ALL",
         "CriteriaList": [
@@ -160,22 +156,29 @@
               },
               "End": {
                 "Days": 0,
-                "Coeff": -1
+                "Coeff": 1
               },
               "UseIndexEnd": false,
               "UseEventEnd": false
             },
+            "RestrictVisit": false,
+            "IgnoreObservationPeriod": false,
             "Occurrence": {
               "Type": 2,
-              "Count": 1
+              "Count": 1,
+              "IsDistinct": false
             }
           }
-        ],
-        "DemographicCriteriaList": [],
-        "Groups": []
+        ]
       }
     }
   ],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",

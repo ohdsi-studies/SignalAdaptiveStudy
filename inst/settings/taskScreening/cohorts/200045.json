@@ -2,23 +2,40 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "anthracycline",
+      "name": "Systemic anthracyclines",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 21603731,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Anthracyclines and related substances",
+              "STANDARD_CONCEPT": "C",
+              "STANDARD_CONCEPT_CAPTION": "Classification",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "L01DB",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "ATC",
+              "CONCEPT_CLASS_ID": "ATC 4th"
             },
             "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 40955279,
+              "CONCEPT_NAME": "Doxorubicin Topical Solution",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP2153241",
+              "DOMAIN_ID": "Drug",
+              "VOCABULARY_ID": "RxNorm Extension",
+              "CONCEPT_CLASS_ID": "Clinical Drug Form"
+            },
+            "isExcluded": true,
             "includeDescendants": true,
             "includeMapped": false
           }
@@ -27,21 +44,21 @@
     },
     {
       "id": 1,
-      "name": "breastCancer",
+      "name": "Breast cancer",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 4112853,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Malignant neoplasm of breast",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "254837009",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -79,7 +96,7 @@
   },
   "InclusionRules": [
     {
-      "name": "rules",
+      "name": "Recent breast cancer [-365..0d]",
       "expression": {
         "Type": "ALL",
         "CriteriaList": [
@@ -91,26 +108,34 @@
             },
             "StartWindow": {
               "Start": {
+                "Days": 365,
                 "Coeff": -1
               },
               "End": {
                 "Days": 0,
-                "Coeff": -1
+                "Coeff": 1
               },
               "UseIndexEnd": false,
               "UseEventEnd": false
             },
+            "RestrictVisit": false,
+            "IgnoreObservationPeriod": false,
             "Occurrence": {
               "Type": 2,
-              "Count": 1
+              "Count": 1,
+              "IsDistinct": false
             }
           }
-        ],
-        "DemographicCriteriaList": [],
-        "Groups": []
+        ]
       }
     }
   ],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",

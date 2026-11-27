@@ -2,21 +2,21 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "brain metastasis modifier",
+      "name": "Brain, meningeal, spinal cord, or CNS metastasis",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 36768862,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to brain",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP4998538",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -25,15 +25,15 @@
           {
             "concept": {
               "CONCEPT_ID": 35226099,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to cerebral meninges",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031567",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -42,40 +42,49 @@
           {
             "concept": {
               "CONCEPT_ID": 35225743,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to spinal cord",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031935",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
             "includeMapped": false
-          }
-        ]
-      }
-    },
-    {
-      "id": 1,
-      "name": "brain metastasis condition",
-      "expression": {
-        "items": [
+          },
           {
             "concept": {
-              "CONCEPT_ID": 4091764,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_ID": 35225775,
+              "CONCEPT_NAME": "Metastasis to nervous system",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031757",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 704986,
+              "CONCEPT_NAME": "Metastasis to meninges",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5117515",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -90,11 +99,6 @@
       {
         "Measurement": {
           "CodesetId": 0
-        }
-      },
-      {
-        "ConditionOccurrence": {
-          "CodesetId": 1
         }
       }
     ],
@@ -113,6 +117,12 @@
     "Type": "First"
   },
   "InclusionRules": [],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",

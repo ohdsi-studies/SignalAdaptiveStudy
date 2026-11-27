@@ -2,21 +2,21 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "metastasis modifier",
+      "name": "Distant non-brain metastasis Cancer Modifiers",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 36770283,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to lung",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP4999962",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -25,15 +25,15 @@
           {
             "concept": {
               "CONCEPT_ID": 36770544,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to liver",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5000224",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -42,15 +42,15 @@
           {
             "concept": {
               "CONCEPT_ID": 35226180,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to intrahepatic bile ducts",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031661",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -59,15 +59,15 @@
           {
             "concept": {
               "CONCEPT_ID": 36769301,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to bone",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP4998978",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -76,15 +76,15 @@
           {
             "concept": {
               "CONCEPT_ID": 35226074,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to bone marrow",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031538",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -92,16 +92,16 @@
           },
           {
             "concept": {
-              "CONCEPT_ID": 36769180,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_ID": 35226258,
+              "CONCEPT_NAME": "Metastasis to pleura",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031810",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -109,16 +109,50 @@
           },
           {
             "concept": {
-              "CONCEPT_ID": 36768587,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_ID": 35226253,
+              "CONCEPT_NAME": "Metastasis to peritoneum",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031802",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 35225568,
+              "CONCEPT_NAME": "Metastasis to adrenal gland",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031479",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 35225673,
+              "CONCEPT_NAME": "Metastasis to skin",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP5031865",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -129,46 +163,21 @@
     },
     {
       "id": 1,
-      "name": "metastatic neoplasm",
-      "expression": {
-        "items": [
-          {
-            "concept": {
-              "CONCEPT_ID": 432851,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
-            },
-            "isExcluded": false,
-            "includeDescendants": true,
-            "includeMapped": false
-          }
-        ]
-      }
-    },
-    {
-      "id": 2,
-      "name": "breastCancer",
+      "name": "Breast cancer",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 4112853,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Malignant neoplasm of breast",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "254837009",
+              "DOMAIN_ID": "Condition",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -191,37 +200,10 @@
             {
               "CONCEPT_ID": 8532,
               "CONCEPT_NAME": "FEMALE",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "F",
               "DOMAIN_ID": "Gender",
               "VOCABULARY_ID": "Gender",
-              "CONCEPT_CLASS_ID": "Gender"
-            }
-          ]
-        }
-      },
-      {
-        "ConditionOccurrence": {
-          "CodesetId": 1,
-          "Age": {
-            "Op": "gte",
-            "Value": 18
-          },
-          "Gender": [
-            {
-              "CONCEPT_ID": 8532,
-              "CONCEPT_NAME": "FEMALE",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
               "CONCEPT_CODE": "F",
-              "DOMAIN_ID": "Gender",
-              "VOCABULARY_ID": "Gender",
-              "CONCEPT_CLASS_ID": "Gender"
+              "STANDARD_CONCEPT": "S"
             }
           ]
         }
@@ -243,14 +225,14 @@
   },
   "InclusionRules": [
     {
-      "name": "rules",
+      "name": "Prior breast cancer",
       "expression": {
         "Type": "ALL",
         "CriteriaList": [
           {
             "Criteria": {
               "ConditionOccurrence": {
-                "CodesetId": 2
+                "CodesetId": 1
               }
             },
             "StartWindow": {
@@ -259,22 +241,29 @@
               },
               "End": {
                 "Days": 0,
-                "Coeff": -1
+                "Coeff": 1
               },
               "UseIndexEnd": false,
               "UseEventEnd": false
             },
+            "RestrictVisit": false,
+            "IgnoreObservationPeriod": false,
             "Occurrence": {
               "Type": 2,
-              "Count": 1
+              "Count": 1,
+              "IsDistinct": false
             }
           }
-        ],
-        "DemographicCriteriaList": [],
-        "Groups": []
+        ]
       }
     }
   ],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",

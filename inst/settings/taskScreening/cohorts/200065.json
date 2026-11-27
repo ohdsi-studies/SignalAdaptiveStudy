@@ -2,21 +2,21 @@
   "ConceptSets": [
     {
       "id": 0,
-      "name": "brainMets",
+      "name": "Brain metastasis modifier",
       "expression": {
         "items": [
           {
             "concept": {
               "CONCEPT_ID": 36768862,
-              "CONCEPT_NAME": "",
-              "STANDARD_CONCEPT": "",
-              "STANDARD_CONCEPT_CAPTION": "",
-              "INVALID_REASON": "",
-              "INVALID_REASON_CAPTION": "",
-              "CONCEPT_CODE": "",
-              "DOMAIN_ID": "",
-              "VOCABULARY_ID": "",
-              "CONCEPT_CLASS_ID": ""
+              "CONCEPT_NAME": "Metastasis to brain",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "OMOP4998538",
+              "DOMAIN_ID": "Measurement",
+              "VOCABULARY_ID": "Cancer Modifier",
+              "CONCEPT_CLASS_ID": "Metastasis"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -29,7 +29,7 @@
   "PrimaryCriteria": {
     "CriteriaList": [
       {
-        "ConditionOccurrence": {
+        "Measurement": {
           "CodesetId": 0
         }
       }
@@ -49,6 +49,12 @@
     "Type": "First"
   },
   "InclusionRules": [],
+  "EndStrategy": {
+    "DateOffset": {
+      "DateField": "StartDate",
+      "Offset": 1
+    }
+  },
   "CensoringCriteria": [],
   "CollapseSettings": {
     "CollapseType": "ERA",
