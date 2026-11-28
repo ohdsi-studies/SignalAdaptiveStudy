@@ -271,6 +271,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2107924,
+              "CONCEPT_NAME": "Bypass graft, with other than vein; carotid-subclavian",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35606",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107949,
+              "CONCEPT_NAME": "Bypass graft, with other than vein; subclavian-vertebral",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35645",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4240486,
               "CONCEPT_NAME": "Carotid-subclavian artery bypass graft with vein",
               "STANDARD_CONCEPT": "S",
@@ -475,6 +509,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -519,6 +570,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107740,
+              "CONCEPT_NAME": "Thromboendarterectomy, including patch graft, if performed; carotid, vertebral, subclavian, by neck incision",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35301",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -663,6 +731,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -865,6 +950,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -1036,6 +1138,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -1221,6 +1340,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -1353,6 +1489,40 @@
             },
             "isExcluded": false,
             "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2110209,
+              "CONCEPT_NAME": "Laparoscopy, surgical, supracervical hysterectomy, for uterus 250 g or less",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "58541",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2110211,
+              "CONCEPT_NAME": "Laparoscopy, surgical, supracervical hysterectomy, for uterus greater than 250 g",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "58543",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -1620,6 +1790,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -1798,6 +1985,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -1969,6 +2173,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -2536,6 +2757,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -2918,6 +3156,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2103134,
+              "CONCEPT_NAME": "Reconstruction midface, LeFort III (extracranial), any type, requiring bone grafts (includes obtaining autografts); with LeFort I",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "21155",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2103133,
+              "CONCEPT_NAME": "Reconstruction midface, LeFort III (extracranial), any type, requiring bone grafts (includes obtaining autografts); without LeFort I",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "21154",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4265725,
               "CONCEPT_NAME": "Reconstruction of ossicular chain",
               "STANDARD_CONCEPT": "S",
@@ -2962,6 +3234,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -3130,6 +3419,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108643,
+              "CONCEPT_NAME": "Glossectomy; composite procedure with resection floor of mouth and mandibular resection, without radical neck dissection",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "41150",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4071017,
               "CONCEPT_NAME": "Commando radical glossectomy",
               "STANDARD_CONCEPT": "S",
@@ -3242,6 +3548,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2103867,
+              "CONCEPT_NAME": "Radical resection of tumor, radial head or neck",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "24152",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -3429,6 +3752,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -3777,6 +4117,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -4395,6 +4752,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -4488,6 +4862,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 42736434,
+              "CONCEPT_NAME": "Bypass graft, with other than vein; aortoiliac or bi-iliac (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35641",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4249893,
               "CONCEPT_NAME": "Colonoscopy",
               "STANDARD_CONCEPT": "S",
@@ -4573,6 +4964,57 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2211645,
+              "CONCEPT_NAME": "Endovascular repair of descending thoracic aorta (eg, aneurysm, pseudoaneurysm, dissection, penetrating ulcer, intramural hematoma, or traumatic disruption); involving coverage of left subclavian artery origin, initial endoprosthesis plus descending th...",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75956",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2211646,
+              "CONCEPT_NAME": "Endovascular repair of descending thoracic aorta (eg, aneurysm, pseudoaneurysm, dissection, penetrating ulcer, intramural hematoma, or traumatic disruption); not involving coverage of left subclavian artery origin, initial endoprosthesis plus descendin...",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75957",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107573,
+              "CONCEPT_NAME": "Endovascular repair of infrarenal abdominal aortic aneurysm or dissection; using aorto-aortic tube prosthesis (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "34800",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4042673,
               "CONCEPT_NAME": "Procedure on heart",
               "STANDARD_CONCEPT": "S",
@@ -4617,6 +5059,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -4692,6 +5151,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2211642,
+              "CONCEPT_NAME": "Endovascular repair of infrarenal abdominal aortic aneurysm or dissection, radiological supervision and interpretation (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75952",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4052252,
               "CONCEPT_NAME": "Aortic bifurcation bypass graft",
               "STANDARD_CONCEPT": "S",
@@ -4702,6 +5178,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107574,
+              "CONCEPT_NAME": "Endovascular repair of infrarenal abdominal aortic aneurysm or dissection; using modular bifurcated prosthesis (1 docking limb) (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "34802",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -4753,6 +5246,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 40757028,
+              "CONCEPT_NAME": "Endovascular repair of iliac artery bifurcation (eg, aneurysm, pseudoaneurysm, arteriovenous malformation, trauma, dissection) using bifurcated endograft from the common iliac artery into both the external and internal iliac artery, includ... (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "0254T",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -4889,6 +5399,57 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 40756876,
+              "CONCEPT_NAME": "Endovascular repair of iliac artery bifurcation (eg, aneurysm, pseudoaneurysm, arteriovenous malformation, trauma) using bifurcated endoprosthesis from the common iliac artery into both the external and internal iliac artery, unilateral; r... (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "0255T",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107882,
+              "CONCEPT_NAME": "Bypass graft, with vein; aortobifemoral",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35540",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107931,
+              "CONCEPT_NAME": "Bypass graft, with other than vein; ilio-celiac",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35632",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -5244,6 +5805,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -5490,6 +6068,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -5685,6 +6280,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -5754,6 +6366,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107453,
+              "CONCEPT_NAME": "Bypass graft, with other than vein, transcervical retropharyngeal carotid-carotid, performed in conjunction with endovascular repair of descending thoracic aorta, by neck incision",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "33891",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": true,
@@ -5863,6 +6492,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2211645,
+              "CONCEPT_NAME": "Endovascular repair of descending thoracic aorta (eg, aneurysm, pseudoaneurysm, dissection, penetrating ulcer, intramural hematoma, or traumatic disruption); involving coverage of left subclavian artery origin, initial endoprosthesis plus descending th...",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75956",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2211646,
+              "CONCEPT_NAME": "Endovascular repair of descending thoracic aorta (eg, aneurysm, pseudoaneurysm, dissection, penetrating ulcer, intramural hematoma, or traumatic disruption); not involving coverage of left subclavian artery origin, initial endoprosthesis plus descendin...",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75957",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46271672,
               "CONCEPT_NAME": "Fluoroscopy guided aortic aneurysm repair with contrast",
               "STANDARD_CONCEPT": "S",
@@ -5875,6 +6538,23 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107431,
+              "CONCEPT_NAME": "Open subclavian to carotid artery transposition performed in conjunction with endovascular repair of descending thoracic aorta, by neck incision, unilateral",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "33889",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
             "includeDescendants": true,
             "includeMapped": false
           },
@@ -5897,6 +6577,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2211648,
+              "CONCEPT_NAME": "Placement of distal extension prosthesis(s) (delayed) after endovascular repair of descending thoracic aorta, as needed, to level of celiac origin, radiological supervision and interpretation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75959",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107581,
+              "CONCEPT_NAME": "Placement of femoral-femoral prosthetic graft during endovascular aortic aneurysm repair (List separately in addition to code for primary procedure)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "34813",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4259692,
               "CONCEPT_NAME": "Insertion of proximal extension prosthesis for repair of descending thoracic aorta",
               "STANDARD_CONCEPT": "S",
@@ -5907,6 +6621,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2211647,
+              "CONCEPT_NAME": "Placement of proximal extension prosthesis for endovascular repair of descending thoracic aorta (eg, aneurysm, pseudoaneurysm, dissection, penetrating ulcer, intramural hematoma, or traumatic disruption), radiological supervision and interpretation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "75958",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": true,
@@ -5995,6 +6726,91 @@
             },
             "isExcluded": false,
             "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107425,
+              "CONCEPT_NAME": "Repair of thoracoabdominal aortic aneurysm with graft, with or without cardiopulmonary bypass",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "33877",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107310,
+              "CONCEPT_NAME": "Repair sinus of Valsalva aneurysm, with cardiopulmonary bypass",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "33720",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107101,
+              "CONCEPT_NAME": "Suture repair of aorta or great vessels; without shunt or cardiopulmonary bypass",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "33320",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2107112,
+              "CONCEPT_NAME": "Suture repair of aorta or great vessels; with shunt bypass",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "33321",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -6211,6 +7027,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -6389,6 +7222,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 709956,
+              "CONCEPT_NAME": "Excision of chest wall tumor including rib(s)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "21601",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 709957,
+              "CONCEPT_NAME": "Excision of chest wall tumor involving rib(s), with plastic reconstruction; without mediastinal lymphadenectomy",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "21602",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4183741,
               "CONCEPT_NAME": "Excision of lesion of mediastinum",
               "STANDARD_CONCEPT": "S",
@@ -6423,6 +7290,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2103375,
+              "CONCEPT_NAME": "Radical resection of sternum",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "21630",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 42732580,
+              "CONCEPT_NAME": "Resection of lung; with resection of chest wall (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32520",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 2740664,
               "CONCEPT_NAME": "Resection of Thorax Lymphatic, Open Approach",
               "STANDARD_CONCEPT": "S",
@@ -6433,6 +7334,40 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "ICD10PCS",
               "CONCEPT_CLASS_ID": "ICD10PCS"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2106890,
+              "CONCEPT_NAME": "Thoracoplasty, Schede type or extrapleural (all stages)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32905",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2106891,
+              "CONCEPT_NAME": "Thoracoplasty, Schede type or extrapleural (all stages); with closure of bronchopleural fistula",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32906",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -6501,6 +7436,40 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2102701,
+              "CONCEPT_NAME": "Excision of chest wall tumor involving ribs, with plastic reconstruction; without mediastinal lymphadenectomy (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "19271",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2102712,
+              "CONCEPT_NAME": "Excision of chest wall tumor involving ribs, with plastic reconstruction; with mediastinal lymphadenectomy (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "19272",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -6610,6 +7579,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2106769,
+              "CONCEPT_NAME": "Resection of apical lung tumor (eg, Pancoast tumor), including chest wall resection, rib(s) resection(s), neurovascular dissection, when performed; without chest wall reconstruction(s)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32503",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4301338,
               "CONCEPT_NAME": "Thoracectomy",
               "STANDARD_CONCEPT": "S",
@@ -6620,6 +7606,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2106770,
+              "CONCEPT_NAME": "Resection of apical lung tumor (eg, Pancoast tumor), including chest wall resection, rib(s) resection(s), neurovascular dissection, when performed; with chest wall reconstruction",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32504",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -6822,6 +7825,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -6852,6 +7872,23 @@
             },
             "isExcluded": true,
             "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108974,
+              "CONCEPT_NAME": "Laparoscopy, surgical, gastric restrictive procedure; with gastric bypass and Roux-en-Y gastroenterostomy (roux limb 150 cm or less)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "43644",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
             "includeMapped": false
           },
           {
@@ -7010,6 +8047,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -7195,6 +8249,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 725062,
+              "CONCEPT_NAME": "Esophagectomy, distal two-thirds, with laparoscopic mobilization of the abdominal and lower mediastinal esophagus and proximal gastrectomy, with laparoscopic pyloric drainage procedure if performed, with separate thoracoscopic mobilization of the middl...",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "43287",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108937,
+              "CONCEPT_NAME": "Gastrointestinal reconstruction for previous esophagectomy, for obstructing esophageal lesion or fistula, or for previous esophageal exclusion; with stomach, with or without pyloroplasty",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "43360",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4042673,
               "CONCEPT_NAME": "Procedure on heart",
               "STANDARD_CONCEPT": "S",
@@ -7222,6 +8310,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -7269,6 +8374,23 @@
       "name": "Lymph node dissection (includes surgeries that are radical tissue removal)",
       "expression": {
         "items": [
+          {
+            "concept": {
+              "CONCEPT_ID": 2108486,
+              "CONCEPT_NAME": "Abdominal lymphadenectomy, regional, including celiac, gastric, portal, peripancreatic, with or without para-aortic and vena caval nodes (List separately in addition to code for primary procedure)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "38747",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
           {
             "concept": {
               "CONCEPT_ID": 4311405,
@@ -7390,6 +8512,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108640,
+              "CONCEPT_NAME": "Glossectomy; partial, with unilateral radical neck dissection",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "41135",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108475,
+              "CONCEPT_NAME": "Limited lymphadenectomy for staging (separate procedure); retroperitoneal (aortic and/or splenic)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "38564",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4249113,
               "CONCEPT_NAME": "Modified radical mastectomy",
               "STANDARD_CONCEPT": "S",
@@ -7458,6 +8614,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2110038,
+              "CONCEPT_NAME": "Prostatectomy, retropubic radical, with or without nerve sparing; with lymph node biopsy(s) (limited pelvic lymphadenectomy)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "55842",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4035734,
               "CONCEPT_NAME": "Extensive retroperitoneal transabdominal lymphadenectomy",
               "STANDARD_CONCEPT": "S",
@@ -7468,6 +8641,40 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 42742521,
+              "CONCEPT_NAME": "Thoracoscopy, surgical; with mediastinal and regional lymphadenectomy (List separately in addition to code for primary procedure)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32674",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2110372,
+              "CONCEPT_NAME": "Thyroidectomy, total or subtotal for malignancy; with limited neck dissection",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "60252",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -7502,6 +8709,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -7587,6 +8811,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108485,
+              "CONCEPT_NAME": "Thoracic lymphadenectomy by thoracotomy, mediastinal and regional lymphadenectomy (List separately in addition to code for primary procedure)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "38746",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -7848,6 +9089,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2104897,
+              "CONCEPT_NAME": "Closed treatment of acetabulum (hip socket) fracture(s); with manipulation, with or without skeletal traction",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27222",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4260267,
               "CONCEPT_NAME": "Closed reduction of fracture of acetabulum",
               "STANDARD_CONCEPT": "S",
@@ -7858,6 +9116,57 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104912,
+              "CONCEPT_NAME": "Closed treatment of femoral fracture, proximal end, neck; with manipulation, with or without skeletal traction",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27232",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104919,
+              "CONCEPT_NAME": "Closed treatment of greater trochanteric fracture, without manipulation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27246",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105149,
+              "CONCEPT_NAME": "Closed treatment of supracondylar or transcondylar femoral fracture with or without intercondylar extension, with manipulation, with or without skin or skeletal traction",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27503",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -8171,6 +9480,159 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2104900,
+              "CONCEPT_NAME": "Open treatment of acetabular fracture(s) involving anterior and posterior (two) columns, includes T-fracture and both column fracture with complete articular detachment, or single column or transverse fracture with associated acetabular wall fracture,...",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27228",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104899,
+              "CONCEPT_NAME": "Open treatment of acetabular fracture(s) involving anterior or posterior (one) column, or a fracture running transversely across the acetabulum, with internal fixation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27227",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104943,
+              "CONCEPT_NAME": "Open treatment of femoral fracture, proximal end, head, includes internal fixation, when performed",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27269",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104914,
+              "CONCEPT_NAME": "Open treatment of femoral fracture, proximal end, neck, internal fixation or prosthetic replacement",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27236",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105166,
+              "CONCEPT_NAME": "Open treatment of femoral supracondylar or transcondylar fracture with intercondylar extension, includes internal fixation, when performed",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27513",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105165,
+              "CONCEPT_NAME": "Open treatment of femoral supracondylar or transcondylar fracture without intercondylar extension, includes internal fixation, when performed",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27511",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104920,
+              "CONCEPT_NAME": "Open treatment of greater trochanteric fracture, includes internal fixation, when performed",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27248",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104934,
+              "CONCEPT_NAME": "Open treatment of hip dislocation, traumatic, with acetabular wall and femoral head fracture, with or without internal or external fixation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27254",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104898,
+              "CONCEPT_NAME": "Open treatment of posterior or anterior acetabular wall fracture, with internal fixation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27226",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4297365,
               "CONCEPT_NAME": "Partial hip replacement by prosthesis",
               "STANDARD_CONCEPT": "S",
@@ -8181,6 +9643,40 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105163,
+              "CONCEPT_NAME": "Percutaneous skeletal fixation of femoral fracture, distal end, medial or lateral condyle, or supracondylar or transcondylar, with or without intercondylar extension, or distal femoral epiphyseal separation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27509",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104913,
+              "CONCEPT_NAME": "Percutaneous skeletal fixation of femoral fracture, proximal end, neck",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27235",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -8239,6 +9735,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2104839,
+              "CONCEPT_NAME": "Revision of total hip arthroplasty; acetabular component only, with or without autograft or allograft",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27137",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104840,
+              "CONCEPT_NAME": "Revision of total hip arthroplasty; femoral component only, with or without allograft",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27138",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4075926,
               "CONCEPT_NAME": "Revision to closed reduction of fracture and external fixation",
               "STANDARD_CONCEPT": "S",
@@ -8266,6 +9796,40 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104918,
+              "CONCEPT_NAME": "Treatment of intertrochanteric, peritrochanteric, or subtrochanteric femoral fracture; with intramedullary implant, with or without interlocking screws and/or cerclage",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27245",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2104917,
+              "CONCEPT_NAME": "Treatment of intertrochanteric, peritrochanteric, or subtrochanteric femoral fracture; with plate/screw type implant, with or without cerclage",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27244",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -8302,6 +9866,23 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
             "includeDescendants": false,
             "includeMapped": false
           },
@@ -8519,6 +10100,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -8697,6 +10295,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 46273729,
               "CONCEPT_NAME": "Local excision of lesion of duodenum",
               "STANDARD_CONCEPT": "S",
@@ -8765,6 +10380,57 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2105448,
+              "CONCEPT_NAME": "Amputation, leg, through tibia and fibula; open, circular (guillotine)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27882",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105450,
+              "CONCEPT_NAME": "Amputation, leg, through tibia and fibula; re-amputation",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27886",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105449,
+              "CONCEPT_NAME": "Amputation, leg, through tibia and fibula; secondary closure or scar revision",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27884",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 2784251,
               "CONCEPT_NAME": "Detachment at Left Knee Region, Open Approach",
               "STANDARD_CONCEPT": "S",
@@ -8826,6 +10492,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "ICD9Proc",
               "CONCEPT_CLASS_ID": "4-dig billing code"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2105451,
+              "CONCEPT_NAME": "Amputation, ankle, through malleoli of tibia and fibula (eg, Syme, Pirogoff type procedures), with plastic closure and resection of nerves",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "27888",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": false,
@@ -9011,6 +10694,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 42742510,
+              "CONCEPT_NAME": "Thoracotomy; with diagnostic wedge resection followed by anatomic lung resection (List separately in addition to code for primary procedure)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "32507",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4272324,
               "CONCEPT_NAME": "Cardiopulmonary bypass operation",
               "STANDARD_CONCEPT": "S",
@@ -9021,6 +10721,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -9155,6 +10872,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2722219,
+              "CONCEPT_NAME": "Laparoscopy, surgical; splenectomy. (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "56345",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4241198,
               "CONCEPT_NAME": "Operation on spleen",
               "STANDARD_CONCEPT": "S",
@@ -9199,6 +10933,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -9367,6 +11118,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2109616,
+              "CONCEPT_NAME": "Laparoscopy, surgical; radical nephrectomy (includes removal of Gerota's fascia and surrounding fatty tissue, removal of regional lymph nodes, and adrenalectomy)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "50545",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4047234,
               "CONCEPT_NAME": "Operation on adrenal gland",
               "STANDARD_CONCEPT": "S",
@@ -9411,6 +11179,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -9715,6 +11500,57 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2722214,
+              "CONCEPT_NAME": "Laparoscopy, surgical; cholecystectomy (any method). (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "56340",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2722215,
+              "CONCEPT_NAME": "Laparoscopy, surgical; cholecystectomy with cholangiography. (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "56341",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2722216,
+              "CONCEPT_NAME": "Laparoscopy, surgical; cholecystectomy with exploration of common duct. (Deprecated)",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "56342",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4059308,
               "CONCEPT_NAME": "Operation on gallbladder",
               "STANDARD_CONCEPT": "S",
@@ -9776,6 +11612,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "SNOMED",
               "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108020,
+              "CONCEPT_NAME": "Exploration for postoperative hemorrhage, thrombosis or infection; chest",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "35820",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": true,
             "includeDescendants": false,
@@ -9992,6 +11845,40 @@
             "isExcluded": false,
             "includeDescendants": true,
             "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2102773,
+              "CONCEPT_NAME": "Breast reconstruction; with bipedicled transverse rectus abdominis myocutaneous (TRAM) flap",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "19369",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2102761,
+              "CONCEPT_NAME": "Breast reconstruction; with single-pedicled transverse rectus abdominis myocutaneous (TRAM) flap",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "19367",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
           }
         ]
       }
@@ -10166,6 +12053,23 @@
               "DOMAIN_ID": "Procedure",
               "VOCABULARY_ID": "ICD10PCS",
               "CONCEPT_CLASS_ID": "ICD10PCS"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2109680,
+              "CONCEPT_NAME": "Laparoscopy, surgical; ureteroneocystostomy without cystoscopy and ureteral stent placement",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "50948",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
             },
             "isExcluded": false,
             "includeDescendants": true,
@@ -10377,6 +12281,23 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2109617,
+              "CONCEPT_NAME": "Laparoscopy, surgical; nephrectomy, including partial ureterectomy",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "50546",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 2773685,
               "CONCEPT_NAME": "Excision of Right Kidney, Percutaneous Endoscopic Approach",
               "STANDARD_CONCEPT": "S",
@@ -10479,6 +12400,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2109723,
+              "CONCEPT_NAME": "Cystectomy, complete, with ureteroileal conduit or sigmoid bladder, including intestine anastomosis; with bilateral pelvic lymphadenectomy, including external iliac, hypogastric, and obturator nodes",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "51595",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2109724,
+              "CONCEPT_NAME": "Cystectomy, complete, with continent diversion, any open technique, using any segment of small and/or large intestine to construct neobladder",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "51596",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 2773934,
               "CONCEPT_NAME": "Excision of Bladder, Percutaneous Endoscopic Approach",
               "STANDARD_CONCEPT": "S",
@@ -10492,6 +12447,23 @@
             },
             "isExcluded": false,
             "includeDescendants": false,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2109722,
+              "CONCEPT_NAME": "Cystectomy, complete, with ureteroileal conduit or sigmoid bladder, including intestine anastomosis",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "51590",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
             "includeMapped": false
           },
           {

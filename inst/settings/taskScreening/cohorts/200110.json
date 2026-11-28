@@ -43,7 +43,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -60,7 +60,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -77,7 +77,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -94,7 +94,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -111,7 +111,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -128,7 +128,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -145,7 +145,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -162,7 +162,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -179,7 +179,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -196,7 +196,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -213,7 +213,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -230,7 +230,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -247,7 +247,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -264,7 +264,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -281,7 +281,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -298,7 +298,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -315,7 +315,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -332,7 +332,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -349,7 +349,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -366,7 +366,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -383,7 +383,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -400,7 +400,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -417,7 +417,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -434,7 +434,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -451,7 +451,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -468,7 +468,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -485,7 +485,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -502,7 +502,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -519,7 +519,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -536,7 +536,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -553,7 +553,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -570,7 +570,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -587,7 +587,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -604,7 +604,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -621,7 +621,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -638,7 +638,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -655,7 +655,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -672,7 +672,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -689,7 +689,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -706,7 +706,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -723,7 +723,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -740,7 +740,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -757,7 +757,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -774,7 +774,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -791,7 +791,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -808,7 +808,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -825,7 +825,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -842,7 +842,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -859,7 +859,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -876,7 +876,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -893,7 +893,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -910,7 +910,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -927,7 +927,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -944,7 +944,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -961,24 +961,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
-            "includeMapped": false
-          },
-          {
-            "concept": {
-              "CONCEPT_ID": 4184913,
-              "CONCEPT_NAME": "Partial excision of small intestine",
-              "STANDARD_CONCEPT": "S",
-              "STANDARD_CONCEPT_CAPTION": "Standard",
-              "INVALID_REASON": "V",
-              "INVALID_REASON_CAPTION": "Valid",
-              "CONCEPT_CODE": "54357003",
-              "DOMAIN_ID": "Procedure",
-              "VOCABULARY_ID": "SNOMED",
-              "CONCEPT_CLASS_ID": "Procedure"
-            },
-            "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -995,6 +978,210 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 4201147,
+              "CONCEPT_NAME": "Ileectomy",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "51346007",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 4319281,
+              "CONCEPT_NAME": "Jejunectomy",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "22324003",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2002747,
+              "CONCEPT_NAME": "Other partial resection of small intestine",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "45.62",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "ICD9Proc",
+              "CONCEPT_CLASS_ID": "4-dig billing code"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2109028,
+              "CONCEPT_NAME": "Enterectomy, resection of small intestine; single resection and anastomosis",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "44120",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2109030,
+              "CONCEPT_NAME": "Enterectomy, resection of small intestine; with enterostomy",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "44125",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2109063,
+              "CONCEPT_NAME": "Laparoscopy, surgical; enterectomy, resection of small intestine, single resection and anastomosis",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "44202",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2753156,
+              "CONCEPT_NAME": "Resection of Small Intestine, Open Approach",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "0DT80ZZ",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "ICD10PCS",
+              "CONCEPT_CLASS_ID": "ICD10PCS"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2753157,
+              "CONCEPT_NAME": "Resection of Small Intestine, Percutaneous Endoscopic Approach",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "0DT84ZZ",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "ICD10PCS",
+              "CONCEPT_CLASS_ID": "ICD10PCS"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 37156556,
+              "CONCEPT_NAME": "Endoscopy of lower gastrointestinal tract",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "1174027007",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 4123406,
+              "CONCEPT_NAME": "Excision of polyp of large intestine",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "235340004",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 4217766,
+              "CONCEPT_NAME": "Resection of polyp",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "82035006",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 4235570,
+              "CONCEPT_NAME": "Excision of lesion of large intestine",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "9121000",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "SNOMED",
+              "CONCEPT_CLASS_ID": "Procedure"
+            },
+            "isExcluded": true,
             "includeDescendants": true,
             "includeMapped": false
           }

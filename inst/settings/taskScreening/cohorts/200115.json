@@ -110,7 +110,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -127,7 +127,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -144,7 +144,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -161,7 +161,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -178,7 +178,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -195,7 +195,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -212,7 +212,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -229,7 +229,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -246,7 +246,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -263,7 +263,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -280,7 +280,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -297,7 +297,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -314,7 +314,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -331,7 +331,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -348,7 +348,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -365,7 +365,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -382,7 +382,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -399,7 +399,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -416,7 +416,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -433,7 +433,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -450,7 +450,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -467,7 +467,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -484,7 +484,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -501,7 +501,7 @@
               "CONCEPT_CLASS_ID": "Procedure"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -518,7 +518,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -535,7 +535,7 @@
               "CONCEPT_CLASS_ID": "4-dig billing code"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -552,7 +552,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -569,7 +569,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -586,7 +586,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -603,7 +603,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -620,7 +620,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -637,7 +637,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -654,7 +654,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -671,7 +671,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -688,7 +688,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -705,7 +705,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -722,7 +722,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -739,7 +739,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -756,7 +756,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -773,7 +773,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -790,7 +790,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -807,7 +807,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -824,7 +824,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -841,7 +841,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -858,7 +858,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -875,7 +875,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -892,7 +892,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -909,7 +909,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -926,7 +926,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -943,7 +943,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -960,7 +960,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -977,7 +977,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -994,7 +994,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -1011,7 +1011,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -1028,7 +1028,7 @@
               "CONCEPT_CLASS_ID": "ICD10PCS"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           }
         ]

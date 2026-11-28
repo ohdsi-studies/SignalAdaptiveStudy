@@ -466,6 +466,40 @@
           },
           {
             "concept": {
+              "CONCEPT_ID": 2108900,
+              "CONCEPT_NAME": "Esophagogastroduodenoscopy, flexible, transoral; with control of bleeding, any method",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "43255",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
+              "CONCEPT_ID": 2108878,
+              "CONCEPT_NAME": "Esophagoscopy, flexible, transoral; with control of bleeding, any method",
+              "STANDARD_CONCEPT": "S",
+              "STANDARD_CONCEPT_CAPTION": "Standard",
+              "INVALID_REASON": "V",
+              "INVALID_REASON_CAPTION": "Valid",
+              "CONCEPT_CODE": "43227",
+              "DOMAIN_ID": "Procedure",
+              "VOCABULARY_ID": "CPT4",
+              "CONCEPT_CLASS_ID": "CPT4"
+            },
+            "isExcluded": false,
+            "includeDescendants": true,
+            "includeMapped": false
+          },
+          {
+            "concept": {
               "CONCEPT_ID": 4265600,
               "CONCEPT_NAME": "Gastric ulcer",
               "STANDARD_CONCEPT": "S",

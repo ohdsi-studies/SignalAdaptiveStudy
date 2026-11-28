@@ -60,7 +60,7 @@
               "CONCEPT_CLASS_ID": "Clinical Finding"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -111,7 +111,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -128,7 +128,7 @@
               "CONCEPT_CLASS_ID": "Clinical Finding"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -162,7 +162,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -179,7 +179,7 @@
               "CONCEPT_CLASS_ID": "Clinical Finding"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -196,7 +196,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -230,7 +230,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -247,7 +247,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -315,7 +315,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -332,7 +332,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -349,7 +349,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -366,7 +366,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -383,7 +383,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -400,7 +400,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -417,7 +417,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -434,7 +434,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -451,7 +451,7 @@
               "CONCEPT_CLASS_ID": "Clinical Finding"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -468,7 +468,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -485,7 +485,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -519,7 +519,7 @@
               "CONCEPT_CLASS_ID": "Clinical Finding"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -553,7 +553,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
@@ -638,7 +638,7 @@
               "CONCEPT_CLASS_ID": "Disorder"
             },
             "isExcluded": false,
-            "includeDescendants": true,
+            "includeDescendants": false,
             "includeMapped": false
           },
           {
